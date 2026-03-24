@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.order-create-container})}">
+<body>
+<div class="order-create-container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0 text-dark"><a href="/ui/orders" class="text-decoration-none text-muted me-2"><i class="bi bi-arrow-left"></i></a>Tạo Đơn Hàng Mới</h4>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-8">
+            <div class="card h-100 p-0 overflow-hidden">
+                <div class="p-3 bg-light border-bottom d-flex gap-2">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <select id="productSelect" class="form-select border-start-0">
+                            <option value="">-- Tìm và chọn phím cơ, linh kiện... --</option>
+                            <option th:each="p : ${products}"
+                                    th:value="${p.sku}"
+                                    th:data-name="${p.name}"
+                                    th:data-price="${p.price}"
+                                    th:text="${p.sku} + ' - ' + ${p.name} + ' (Tồn: ' + ${p.stockQuantity} + ')'">
+                            </option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary px-4" onclick="addToCart()">Thêm</button>
+                </div>
+
+                <div class="card-body p-0" style="min-height: 400px; max-height: 500px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0" id="cartTable">
+                        <thead class="table-light sticky-top">
+                        <tr>
+                            <th width="5%">#</th>
+                            <th width="40%">Sản phẩm</th>
+                            <th width="15%" class="text-center">Số lượng</th>
+                            <th width="20%" class="text-end">Đơn giá</th>
+                            <th width="20%" class="text-end">Thành tiền</th>
+                        </tr>
+                        </thead>
+                        <tbody id="cartBody">
+                        <tr id="emptyCartMsg">
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <i class="bi bi-cart-x fs-1 d-block mb-2"></i>
+                                Chưa có sản phẩm nào trong đơn hàng
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card p-3 mb-3">
+                <h6 class="fw-bold mb-3 border-bottom pb-2">Thông tin khách hàng</h6>
+                <div class="mb-3">
+                    <select id="customerSelect" class="form-select">
+                        <option value="">-- Chọn khách hàng --</option>
+                        <option th:each="c : ${customers}"
+                                th:value="${c.customerCode}"
+                                th:text="${c.fullName} + ' (' + ${c.phoneNumber} + ')'">
+                        </option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Kênh bán hàng</label>
+                    <select id="salesChannel" class="form-select form-select-sm">
+                        <option value="Tại cửa hàng">Tại cửa hàng</option>
+                        <option value="Shopee">Shopee</option>
+                        <option value="Website">Website (mechkey.vn)</option>
+                        <option value="Facebook">Facebook</option>
+                    </select>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label text-muted small mb-1">Ghi chú đơn hàng</label>
+                    <textarea id="orderNote" class="form-control form-control-sm" rows="2" placeholder="VD: Khách nhờ mod lại switch..."></textarea>
+                </div>
+            </div>
+
+            <div class="card p-3">
+                <h6 class="fw-bold mb-3 border-bottom pb-2">Thanh toán</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Mã đơn hàng:</span>
+                    <strong id="orderCode" th:text="${defaultOrderCode}">DH123</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Tổng tiền hàng:</span>
+                    <strong id="totalAmountLabel">0 đ</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-3 border-bottom pb-3">
+                    <span class="text-muted">Chiết khấu/Giảm giá:</span>
+                    <div class="input-group input-group-sm" style="width: 100px;">
+                        <input type="number" id="discountGlobal" class="form-control text-end" value="0" onchange="calculateTotal()">
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <span class="fw-bold fs-6">KHÁCH PHẢI TRẢ:</span>
+                    <span class="fw-bold fs-4 text-primary" id="grandTotalLabel">0 đ</span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-1">Phương thức thanh toán</label>
+                    <select id="paymentMethod" class="form-select form-select-sm">
+                        <option value="Chuyển khoản">Chuyển khoản</option>
+                        <option value="Tiền mặt">Tiền mặt</option>
+                        <option value="COD">COD (Thanh toán khi nhận hàng)</option>
+                        <option value="Ví điện tử">Ví điện tử / ShopeePay</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary w-100 fw-bold py-2" onclick="submitOrder()">
+                    <i class="bi bi-check-circle me-2"></i>TẠO ĐƠN HÀNG
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cart = []; // Mảng chứa các sản phẩm được chọn
+
+        // 1. Hàm thêm sản phẩm vào giỏ
+        function addToCart() {
+            const select = document.getElementById("productSelect");
+            if (select.value === "") return;
+
+            const sku = select.value;
+            const name = select.options[select.selectedIndex].getAttribute("data-name");
+            const price = parseFloat(select.options[select.selectedIndex].getAttribute("data-price"));
+
+            // Kiểm tra xem SP đã có trong giỏ chưa, có rồi thì tăng số lượng
+            const existingItem = cart.find(item => item.sku === sku);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ sku: sku, name: name, price: price, quantity: 1 });
+            }
+
+            renderCart();
+        }
+
+        // 2. Hàm xóa sản phẩm khỏi giỏ
+        function removeFromCart(sku) {
+            cart = cart.filter(item => item.sku !== sku);
+            renderCart();
+        }
+
+        // 3. Hàm cập nhật số lượng trực tiếp trên ô input
+        function updateQuantity(sku, inputElement) {
+            let newQty = parseInt(inputElement.value);
+            if (newQty < 1 || isNaN(newQty)) {
+                newQty = 1;
+                inputElement.value = 1;
+            }
+            const item = cart.find(i => i.sku === sku);
+            if (item) item.quantity = newQty;
+            renderCart();
+        }
+
+        // 4. Hàm vẽ lại bảng giỏ hàng và tính tổng tiền
+        function renderCart() {
+            const tbody = document.getElementById("cartBody");
+
+            if (cart.length === 0) {
+                tbody.innerHTML = `<tr id="emptyCartMsg"><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-cart-x fs-1 d-block mb-2"></i>Chưa có sản phẩm nào trong đơn hàng</td></tr>`;
+                document.getElementById("totalAmountLabel").innerText = "0 đ";
+                document.getElementById("grandTotalLabel").innerText = "0 đ";
+                return;
+            }
+
+            let html = '';
+            let totalAmount = 0;
+
+            cart.forEach((item, index) => {
+                let itemTotal = item.price * item.quantity;
+                totalAmount += itemTotal;
+
+                html += `
+                        <tr>
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.sku}')"><i class="bi bi-x"></i></button>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">${item.name}</div>
+                                <small class="text-muted">${item.sku}</small>
+                            </td>
+                            <td class="text-center">
+                                <input type="number" class="form-control form-control-sm text-center mx-auto" style="width: 60px;" value="${item.quantity}" onchange="updateQuantity('${item.sku}', this)">
+                            </td>
+                            <td class="text-end">${item.price.toLocaleString('vi-VN')} đ</td>
+                            <td class="text-end fw-bold text-primary">${itemTotal.toLocaleString('vi-VN')} đ</td>
+                        </tr>
+                    `;
+            });
+
+            tbody.innerHTML = html;
+            calculateTotal(totalAmount);
+        }
+
+        // 5. Hàm tính toán tiền khách phải trả (Đã trừ chiết khấu)
+        function calculateTotal(baseTotal = null) {
+            if (baseTotal === null) {
+                baseTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            }
+
+            let discount = parseFloat(document.getElementById("discountGlobal").value) || 0;
+            let grandTotal = baseTotal - discount;
+            if (grandTotal < 0) grandTotal = 0;
+
+            document.getElementById("totalAmountLabel").innerText = baseTotal.toLocaleString('vi-VN') + " đ";
+            document.getElementById("grandTotalLabel").innerText = grandTotal.toLocaleString('vi-VN') + " đ";
+        }
+
+        // 6. Hàm Gửi dữ liệu (POST) lên API Backend để lưu Đơn hàng
+        function submitOrder() {
+            if (cart.length === 0) {
+                alert("Vui lòng chọn ít nhất 1 sản phẩm!");
+                return;
+            }
+
+            const customerCode = document.getElementById("customerSelect").value;
+            if (!customerCode) {
+                alert("Vui lòng chọn Khách hàng!");
+                return;
+            }
+
+            const orderCode = document.getElementById("orderCode").innerText;
+            const salesChannel = document.getElementById("salesChannel").value;
+            const paymentMethod = document.getElementById("paymentMethod").value;
+            const note = document.getElementById("orderNote").value;
+
+            // Thuật toán: Vì API hiện tại hỗ trợ Discount từng dòng (chi tiết),
+            // ta sẽ đẩy discountGlobal vào dòng đầu tiên cho đơn giản.
+            let globalDiscount = parseFloat(document.getElementById("discountGlobal").value) || 0;
+
+            const details = cart.map((item, index) => {
+                return {
+                    sku: item.sku,
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                    discount: index === 0 ? globalDiscount : 0
+                }
+            });
+
+            const payload = {
+                orderCode: orderCode,
+                customerCode: customerCode,
+                salesChannel: salesChannel,
+                paymentMethod: paymentMethod,
+                note: note,
+                status: "Đã hoàn thành",
+                details: details
+            };
+
+            // Gọi API backend
+            fetch('/api/v1/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(response => {
+                    if (response.ok) {
+                        alert("Tạo đơn hàng thành công!");
+                        window.location.reload(); // Xóa sạch form để tạo đơn mới
+                    } else {
+                        return response.json().then(err => { throw new Error(err.message || "Lỗi tạo đơn"); });
+                    }
+                })
+                .catch(error => {
+                    alert("Có lỗi xảy ra: " + error.message);
+                });
+        }
+    </script>
+</div>
+</body>
+</html>
