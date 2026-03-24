@@ -59,7 +59,7 @@ public class QuotationService {
             Product product = productService.getProductBySku(detailReq.getSku());
 
             // Lấy giá bán đề xuất nếu người dùng không nhập giá cụ thể
-            double unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : Double.valueOf(String.valueOf(product.getRetailPrice()));
+            double unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : Double.valueOf(String.valueOf(product.getPrice()));
             double totalPrice = unitPrice * detailReq.getQuantity();
 
             QuotationDetail detail = QuotationDetail.builder()

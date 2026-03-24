@@ -1,17 +1,14 @@
 package com.oms.module.product.dto;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class ProductRequest {
 
-    @NotBlank(message = "Mã SP (SKU) không được để trống")
-    private String sku;
+    private String sku; // Để trống Spring Boot sẽ tự cho qua
 
     @NotBlank(message = "Tên sản phẩm không được để trống")
     private String name;
@@ -23,11 +20,13 @@ public class ProductRequest {
     @NotBlank(message = "Đơn vị tính không được để trống")
     private String unit;
 
-    @NotNull(message = "Định mức tồn tối thiểu không được để trống")
-    @Min(value = 0, message = "Định mức tồn không được âm")
-    private Integer minStockLevel;
+    private Integer minStockLevel = 0;
+    private Integer stockQuantity = 0;
 
-    private BigDecimal retailPrice;
+    // Đã đồng bộ tên
+    private BigDecimal price;
+    private String description;
     private String warrantyPeriod;
-    private String note;
+
+    private List<ProductVariantRequest> variants;
 }

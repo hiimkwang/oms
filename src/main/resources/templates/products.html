@@ -1,55 +1,97 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
 <body>
-<div class="oms-container">
+<div class="oms-container pb-5">
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="fw-bold text-dark mb-0">Kho hàng hóa</h3>
-            <p class="text-muted small mb-0">Quản lý danh sách sản phẩm và tồn kho của MECHKEY</p>
+        <h3 class="fw-bold text-dark mb-0">Danh sách sản phẩm</h3>
+        <div class="d-flex gap-2">
+            <button class="btn btn-light border fw-medium shadow-sm text-muted"><i class="bi bi-box-arrow-up me-1"></i> Xuất file</button>
+            <button class="btn btn-light border fw-medium shadow-sm text-muted"><i class="bi bi-box-arrow-in-down me-1"></i> Nhập file</button>
+            <div class="btn-group shadow-sm">
+                <a href="/ui/products/create" class="btn btn-primary fw-bold px-3">
+                    <i class="bi bi-plus-lg me-1"></i> Thêm sản phẩm
+                </a>
+                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false"></button>
+            </div>
         </div>
-        <button class="btn btn-primary fw-bold shadow-sm px-4" data-bs-toggle="modal" data-bs-target="#addProductModal">
-            <i class="bi bi-plus-lg me-1"></i> Thêm sản phẩm
-        </button>
     </div>
 
     <div class="card border-0 shadow-sm">
+
+        <div class="border-bottom px-4 pt-3">
+            <ul class="nav nav-underline border-0">
+                <li class="nav-item">
+                    <a class="nav-link active fw-semibold text-primary border-primary border-bottom border-2 pb-2" href="#">Tất cả</a>
+                </li>
+            </ul>
+        </div>
+
+        <div id="defaultToolbar" class="p-3 bg-white border-bottom d-flex gap-2 align-items-center transition-all">
+            <div class="input-group flex-grow-1">
+                <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control bg-light border-start-0 ps-0" placeholder="Tìm kiếm theo mã sản phẩm, tên sản phẩm, barcode">
+            </div>
+            <select class="form-select w-auto text-muted border-0 bg-transparent"><option>Kênh bán hàng</option></select>
+            <select class="form-select w-auto text-muted border-0 bg-transparent"><option>Loại sản phẩm</option></select>
+            <select class="form-select w-auto text-muted border-0 bg-transparent"><option>Tag</option></select>
+            <button class="btn btn-light border bg-transparent text-muted"><i class="bi bi-funnel me-1"></i> Bộ lọc khác</button>
+        </div>
+
+        <div id="bulkActionBar" class="p-3 bg-light border-bottom d-flex gap-4 align-items-center d-none transition-all" style="height: 66px;">
+            <div class="form-check mb-0 ps-4">
+                <input class="form-check-input" type="checkbox" id="checkAllBulk" onchange="toggleAll(this)" checked>
+            </div>
+            <span class="fw-medium text-dark">Đã chọn <span id="selectedCount" class="text-primary fw-bold">0</span> sản phẩm</span>
+            <div class="vr"></div>
+            <a href="#" class="text-decoration-none fw-medium text-primary">Sửa sản phẩm</a>
+            <a href="javascript:void(0)" class="text-decoration-none fw-medium text-danger" onclick="deleteSelected()">Xóa sản phẩm</a>
+            <button class="btn btn-sm btn-white border fw-medium text-dark bg-white">Thao tác khác <i class="bi bi-chevron-down ms-1 small"></i></button>
+        </div>
+
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+            <table class="table table-hover align-middle mb-0 text-center">
+                <thead class="text-muted small" style="background-color: #f8fafc;">
                 <tr>
-                    <th class="ps-3">Mã SKU</th>
-                    <th>Tên sản phẩm</th>
-                    <th>Hãng / Danh mục</th>
-                    <th class="text-end">Giá bán đề xuất</th>
-                    <th class="text-center">Tồn kho</th>
-                    <th class="text-center pe-3">Thao tác</th>
+                    <th class="ps-4" style="width: 40px; border-bottom: 1px solid #e2e8f0;">
+                        <input class="form-check-input" type="checkbox" id="checkAll" onchange="toggleAll(this)">
+                    </th>
+                    <th class="text-start fw-semibold py-3 border-bottom-1">Sản phẩm</th>
+                    <th class="fw-semibold py-3 border-bottom-1">Tồn kho</th>
+                    <th class="fw-semibold py-3 border-bottom-1">Ngày tạo</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr th:each="p : ${products}">
-                    <td class="ps-3 fw-bold text-primary" th:text="${p.sku}"></td>
+                    <td class="ps-4">
+                        <input class="form-check-input item-check" type="checkbox" th:value="${p.sku}" onchange="updateBulkAction()">
+                    </td>
+
+                    <td class="text-start">
+                        <div class="d-flex align-items-center gap-3 py-1">
+                            <div class="bg-light border rounded d-flex align-items-center justify-content-center text-muted" style="width: 45px; height: 45px;">
+                                <i class="bi bi-image fs-5"></i>
+                            </div>
+                            <div>
+                                <a th:href="@{/ui/products/{sku}(sku=${p.sku})}" class="fw-medium text-primary text-decoration-none d-block mb-1" th:text="${p.name}">Tên SP</a>
+                                <small class="text-muted" th:text="${p.sku}"></small>
+                            </div>
+                        </div>
+                    </td>
+
                     <td>
-                        <div class="fw-semibold" th:text="${p.name}"></div>
-                        <small class="text-muted" th:text="${p.unit}"></small>
+                        <div class="fw-medium text-dark" th:text="${p.stockQuantity != null ? p.stockQuantity : 0}">0</div>
+                        <small class="text-muted" th:if="${p.variants != null and !#lists.isEmpty(p.variants)}" th:text="'(' + ${#lists.size(p.variants)} + ' phiên bản)'"></small>
                     </td>
-                    <td>
-                        <span class="badge bg-secondary me-1" th:text="${p.brand}"></span>
-                        <span class="badge bg-light text-dark border" th:text="${p.category}"></span>
-                    </td>
-                    <td class="text-end fw-bold text-dark"
-                        th:text="${#numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
-                    <td class="text-center">
-                        <span class="badge rounded-pill"
-                              th:classappend="${p.stockQuantity > 0 ? 'bg-success' : 'bg-danger'}"
-                              th:text="${p.stockQuantity}"></span>
-                    </td>
-                    <td class="text-center pe-3">
-                        <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+
+                    <td class="text-muted">
+                        <span th:text="${p.createdAt != null ? #temporals.format(p.createdAt, 'dd/MM/yyyy') : 'Đang cập nhật'}"></span>
                     </td>
                 </tr>
+
                 <tr th:if="${#lists.isEmpty(products)}">
-                    <td colspan="6" class="text-center py-5 text-muted">
+                    <td colspan="4" class="text-center py-5 text-muted">
                         <i class="bi bi-inbox fs-2 d-block mb-2"></i>
                         Chưa có sản phẩm nào trong kho.
                     </td>
@@ -57,155 +99,88 @@
                 </tbody>
             </table>
         </div>
-    </div>
 
-    <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-light border-0">
-                    <h5 class="modal-title fw-bold">Thêm hàng hóa mới</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="productForm">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small">Mã SP (SKU) <span
-                                        class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="sku" placeholder="VD: KB-AULA-F75" required>
-                            </div>
-                            <div class="col-md-8">
-                                <label class="form-label fw-bold small">Tên sản phẩm <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="name"
-                                       placeholder="VD: Bàn phím Aula F75 Blue" required>
-                            </div>
+        <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center text-muted small">
+            <span th:if="${not #lists.isEmpty(products)}" th:text="'Từ 1 đến ' + ${#lists.size(products)} + ' trên tổng ' + ${#lists.size(products)}"></span>
+            <span th:if="${#lists.isEmpty(products)}">Không có dữ liệu</span>
 
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small">Danh mục</label>
-                                <div class="input-group">
-                                    <select class="form-select" id="category">
-                                        <option th:each="cat : ${categories}" th:value="${cat}"
-                                                th:text="${cat}"></option>
-                                    </select>
-                                    <button class="btn btn-outline-secondary" type="button"
-                                            onclick="openQuickAddModal('CATEGORY', 'Thêm danh mục')"><i
-                                            class="bi bi-plus-lg"></i></button>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small">Hãng sản xuất</label>
-                                <div class="input-group">
-                                    <select class="form-select" id="brand">
-                                        <option th:each="b : ${brands}" th:value="${b}" th:text="${b}"></option>
-                                    </select>
-                                    <button class="btn btn-outline-secondary" type="button"
-                                            onclick="openQuickAddModal('BRAND', 'Thêm hãng')"><i
-                                            class="bi bi-plus-lg"></i></button>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small">Đơn vị tính</label>
-                                <select class="form-select" id="unit">
-                                    <option th:each="u : ${units}" th:value="${u}" th:text="${u}"></option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small">Giá bán đề xuất</label>
-                                <input type="number" class="form-control fw-bold text-primary" id="price" value="0">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small">Tồn kho ban đầu</label>
-                                <input type="number" class="form-control" id="stockQuantity" value="0">
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer bg-light border-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary fw-bold" onclick="saveProduct()">Lưu sản phẩm</button>
-                </div>
+            <div class="d-flex align-items-center gap-3">
+                <span>Hiển thị <select class="form-select form-select-sm d-inline-block w-auto"><option>20</option></select> Kết quả</span>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item disabled"><a class="page-link border-0 text-muted" href="#"><i class="bi bi-chevron-left"></i></a></li>
+                        <li class="page-item active"><a class="page-link rounded-circle" href="#">1</a></li>
+                        <li class="page-item disabled"><a class="page-link border-0 text-muted" href="#"><i class="bi bi-chevron-right"></i></a></li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="quickAddModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header border-0 pb-0">
-                    <h6 class="modal-title fw-bold" id="quickAddTitle">Thêm mới</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="quickAddType">
-                    <input type="text" class="form-control" id="quickAddValue" placeholder="Nhập tên...">
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-sm btn-primary w-100 fw-bold" onclick="saveQuickAdd()">Xác
-                        nhận
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <script>
+        // Hàm Tick All / Untick All
+        function toggleAll(source) {
+            const checkboxes = document.querySelectorAll('.item-check');
+            checkboxes.forEach(cb => cb.checked = source.checked);
 
+            // Đồng bộ 2 ô checkAll (ở bảng và ở thanh Bulk)
+            document.getElementById('checkAll').checked = source.checked;
+            document.getElementById('checkAllBulk').checked = source.checked;
+
+            updateBulkAction();
+        }
+
+        // Ẩn hiện thanh Thao tác hàng loạt (Bulk Action)
+        function updateBulkAction() {
+            const checkedBoxes = document.querySelectorAll('.item-check:checked');
+            const count = checkedBoxes.length;
+            const defaultToolbar = document.getElementById('defaultToolbar');
+            const bulkActionBar = document.getElementById('bulkActionBar');
+
+            if (count > 0) {
+                document.getElementById('selectedCount').innerText = count;
+                defaultToolbar.classList.add('d-none');
+                bulkActionBar.classList.remove('d-none');
+            } else {
+                defaultToolbar.classList.remove('d-none');
+                bulkActionBar.classList.add('d-none');
+                document.getElementById('checkAll').checked = false;
+                document.getElementById('checkAllBulk').checked = false;
+            }
+        }
+
+        // Logic Xóa nhiều sản phẩm
+        function deleteSelected() {
+            const checkedBoxes = document.querySelectorAll('.item-check:checked');
+            if(checkedBoxes.length === 0) return;
+
+            if(!confirm(`Ông có chắc chắn muốn xóa ${checkedBoxes.length} sản phẩm đã chọn không? Toàn bộ các biến thể đi kèm cũng sẽ bị xóa vĩnh viễn!`)) {
+                return;
+            }
+
+            // Tạo mảng các request xóa đồng loạt
+            const deletePromises = Array.from(checkedBoxes).map(cb => {
+                const sku = cb.value;
+                return fetch('/api/v1/products/' + sku, { method: 'DELETE' });
+            });
+
+            // Gửi đi cùng lúc
+            Promise.all(deletePromises)
+                .then(responses => {
+                    // Kiểm tra xem có request nào bị lỗi không
+                    const hasError = responses.some(res => !res.ok);
+                    if (hasError) {
+                        alert("Có lỗi xảy ra với một vài sản phẩm! Vui lòng F5 kiểm tra lại.");
+                    } else {
+                        alert("Xóa thành công!");
+                        window.location.reload();
+                    }
+                })
+                .catch(err => {
+                    alert("Lỗi kết nối mạng: " + err);
+                });
+        }
+    </script>
 </div>
-
-<script th:inline="javascript">
-    // Hàm lưu sản phẩm chính
-    function saveProduct() {
-        const payload = {
-            sku: document.getElementById("sku").value,
-            name: document.getElementById("name").value,
-            category: document.getElementById("category").value,
-            brand: document.getElementById("brand").value,
-            unit: document.getElementById("unit").value,
-            price: parseFloat(document.getElementById("price").value) || 0,
-            stockQuantity: parseInt(document.getElementById("stockQuantity").value) || 0
-        };
-
-        fetch('/api/v1/products', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        }).then(res => {
-            if (res.ok) {
-                alert("Thành công!");
-                location.reload();
-            } else alert("Lỗi khi lưu!");
-        });
-    }
-
-    // Logic thêm nhanh (Quick Add)
-    let qaModal = null;
-
-    function openQuickAddModal(type, title) {
-        if (!qaModal) qaModal = new bootstrap.Modal(document.getElementById('quickAddModal'));
-        document.getElementById("quickAddType").value = type;
-        document.getElementById("quickAddTitle").innerText = title;
-        document.getElementById("quickAddValue").value = "";
-        qaModal.show();
-    }
-
-    function saveQuickAdd() {
-        const type = document.getElementById("quickAddType").value;
-        const val = document.getElementById("quickAddValue").value;
-
-        fetch('/api/v1/settings/master-data/quick-add', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({type: type, value: val})
-        }).then(res => res.json()).then(data => {
-            const selectId = type === 'CATEGORY' ? 'category' : 'brand';
-            const select = document.getElementById(selectId);
-            const opt = document.createElement("option");
-            opt.value = data.dataValue;
-            opt.text = data.dataValue;
-            select.add(opt);
-            select.value = data.dataValue;
-            qaModal.hide();
-        });
-    }
-</script>
 </body>
 </html>

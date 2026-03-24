@@ -51,7 +51,7 @@ public class OrderService {
             Product product = productService.getProductBySku(detailReq.getSku());
 
             // Nếu trên giao diện có nhập đơn giá khác thì lấy giá đó, nếu không thì lấy Giá bán đề xuất mặc định của sản phẩm
-            double unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : Double.valueOf(String.valueOf(product.getRetailPrice()));
+            double unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : Double.valueOf(String.valueOf(product.getPrice()));
             double discount = detailReq.getDiscount() != null ? detailReq.getDiscount() : 0.0;
             double totalPrice = (unitPrice * detailReq.getQuantity()) - discount;
 
