@@ -25,4 +25,25 @@ public class ReceiptController {
     public ResponseEntity<List<Receipt>> getAll() {
         return ResponseEntity.ok(receiptService.getAllReceipts());
     }
+    @PostMapping("/{id}/receive")
+    public ResponseEntity<?> receiveStock(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(receiptService.confirmImport(id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // Nút Xác nhận thanh toán
+    @PostMapping("/{id}/payment")
+    public ResponseEntity<?> pay(@PathVariable Long id) {
+        return ResponseEntity.ok(receiptService.confirmPayment(id));
+    }
+
+    // Nút Hủy đơn
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<?> cancel(@PathVariable Long id) {
+        receiptService.cancelReceipt(id);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -12,7 +12,15 @@
             border: 1px solid;
         }
 
+        /* Đã đảo lại: Đang giao dịch thành màu Xám/Xanh nhạt */
         .status-trading {
+            background-color: #f1f5f9;
+            color: #475569;
+            border-color: #cbd5e1;
+        }
+
+        /* Đã đảo lại: Hoàn thành thành màu Xanh lá */
+        .status-completed {
             background-color: #e6f6ee;
             color: #008a47;
             border-color: #c2ebd5;
@@ -24,10 +32,10 @@
             border-color: #ffe5cc;
         }
 
-        .status-completed {
-            background-color: #f1f5f9;
-            color: #475569;
-            border-color: #cbd5e1;
+        .status-cancelled {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
         }
 
         .table-custom thead th {
@@ -72,8 +80,8 @@
                 <input type="text" id="searchInput" class="form-control border-start-0 ps-0 shadow-none"
                        placeholder="Tìm theo mã đơn nhập, tên NCC...">
             </div>
-            <select id="filterImportStatus" class="form-select border shadow-none" style="width: 180px;">
-                <option value="">Tất cả trạng thái nhập</option>
+            <select id="filterImportStatus" class="form-select border shadow-none" style="width: 220px;">
+                <option value="all">Tất cả trạng thái nhập</option>
                 <option value="Chưa nhập">Chưa nhập</option>
                 <option value="Đã nhập hàng">Đã nhập hàng</option>
             </select>
@@ -98,118 +106,102 @@
                 </tr>
                 </thead>
                 <tbody id="importTableBody">
-                <tr th:each="order : ${importOrders}" class="import-row">
-                    <td class="ps-4"><input class="form-check-input" type="checkbox"></td>
+                <tr th:each="order : ${importOrders}"
+                    class="import-row"
+                    th:data-search="|${order.code} ${order.supplier != null ? order.supplier.name : ''}|"
+                    th:data-trading-status="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}"
+                    th:data-import-status="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập'}">
 
+                    <td class="ps-4"><input class="form-check-input" type="checkbox"></td>
                     <td class="text-start col-code">
                         <a th:href="@{/ui/imports/{id}(id=${order.id})}"
                            class="text-primary text-decoration-none fw-medium" th:text="${order.code}"></a>
                     </td>
-
                     <td class="text-muted small"
                         th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                     <td th:text="${order.branchName}"></td>
 
                     <td class="col-trading-status">
-                    <span class="status-badge"
-                          th:classappend="${order.totalAmount > 0} ? 'status-trading' : 'status-completed'"
-                          th:text="${order.totalAmount > 0 ? 'Đang giao dịch' : 'Hoàn thành'}"></span>
+                        <span class="status-badge"
+                              th:classappend="${order.status == 'CANCELLED' ? 'status-cancelled' : (order.status == 'COMPLETED' ? 'status-completed' : 'status-trading')}"
+                              th:text="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}"></span>
                     </td>
 
                     <td class="col-import-status">
-                        <span class="status-badge status-unreceived">Chưa nhập</span>
+                        <span class="status-badge"
+                              th:classappend="${order.importStatus == 'COMPLETED' ? 'status-completed' : 'status-unreceived'}"
+                              th:text="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập'}"></span>
                     </td>
 
                     <td class="col-supplier-name"
                         th:text="${order.supplier != null ? order.supplier.name : 'N/A'}"></td>
-
                     <td class="text-muted" th:text="${order.creatorName}"></td>
                     <td class="fw-medium" th:text="${order.totalQuantity}"></td>
                     <td class="pe-4 text-end fw-bold"
                         th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT') + ' ₫'}"></td>
                 </tr>
-
-                <tr id="noDataRow" th:if="${#lists.isEmpty(importOrders)}">
-                    <td colspan="10" class="text-center p-5 text-muted">Chưa có đơn nhập hàng nào.</td>
+                <tr id="emptySearchRow" style="display: none;">
+                    <td colspan="10" class="text-center p-5 text-muted">Không tìm thấy kết quả phù hợp</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(importOrders)}">
+                    <td colspan="10" class="text-center p-5 text-muted">Hệ thống chưa có đơn nhập hàng nào</td>
                 </tr>
                 </tbody>
             </table>
         </div>
     </div>
-</div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const searchInput = document.getElementById('searchInput');
-        const filterImportStatus = document.getElementById('filterImportStatus');
-        const tabs = document.querySelectorAll('#statusTabs .nav-link');
-
-        function applyFilters() {
-            const searchTerm = searchInput.value.trim().toLowerCase();
-            const importStatusTerm = filterImportStatus.value;
-            const activeTab = document.querySelector('#statusTabs .nav-link.active').getAttribute('data-status');
-
-            // Lấy tất cả hàng có class import-row
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const searchInput = document.getElementById('searchInput');
+            const filterImportStatus = document.getElementById('filterImportStatus');
+            const tabs = document.querySelectorAll('#statusTabs .nav-link');
             const rows = document.querySelectorAll('.import-row');
-            let visibleCount = 0;
+            const emptyRow = document.getElementById('emptySearchRow');
 
-            rows.forEach(row => {
-                // Lấy text cụ thể từ các cột để tìm kiếm chính xác hơn
-                const codeText = row.querySelector('.col-code').innerText.toLowerCase();
-                const supplierText = row.querySelector('.col-supplier-name').innerText.toLowerCase();
-                const tradingStatus = row.querySelector('.col-trading-status').innerText.trim();
-                const importStatus = row.querySelector('.col-import-status').innerText.trim();
+            function applyFilters() {
+                const searchTerm = searchInput.value.trim().toLowerCase();
+                const importStatusTerm = filterImportStatus.value;
+                const activeTab = document.querySelector('#statusTabs .nav-link.active').getAttribute('data-status');
+                let hasVisible = false;
 
-                // 1. Kiểm tra tìm kiếm (Mã đơn hoặc Tên NCC)
-                const matchesSearch = codeText.includes(searchTerm) || supplierText.includes(searchTerm);
+                rows.forEach(row => {
+                    const searchData = row.getAttribute('data-search').toLowerCase();
+                    const tradingStatus = row.getAttribute('data-trading-status');
+                    const importStatus = row.getAttribute('data-import-status');
 
-                // 2. Kiểm tra Select box Trạng thái nhập
-                const matchesImportStatus = (importStatusTerm === "") || (importStatus === importStatusTerm);
+                    const matchSearch = searchData.includes(searchTerm);
+                    const matchTab = (activeTab === "all" || tradingStatus === activeTab);
+                    const matchSelect = (importStatusTerm === "all" || importStatus === importStatusTerm);
 
-                // 3. Kiểm tra Tab (Tất cả / Đang giao dịch / Hoàn thành)
-                const matchesTab = (activeTab === "all") || (tradingStatus === activeTab);
-
-                // Hiển thị nếu khớp cả 3 điều kiện
-                if (matchesSearch && matchesImportStatus && matchesTab) {
-                    row.style.display = "";
-                    visibleCount++;
-                } else {
-                    row.style.display = "none";
-                }
-            });
-
-            // Hiển thị dòng "Không có dữ liệu" nếu lọc xong không còn hàng nào
-            const noDataRow = document.getElementById('noDataRow');
-            if (noDataRow) {
-                noDataRow.style.display = (visibleCount === 0 && rows.length > 0) ? "" : "none";
-                if (visibleCount === 0 && rows.length > 0) {
-                    noDataRow.innerHTML = `<td colspan="10" class="text-center p-5 text-muted">Không tìm thấy kết quả phù hợp</td>`;
-                }
-            }
-        }
-
-        // Sự kiện gõ phím tìm kiếm
-        searchInput.addEventListener('input', applyFilters);
-
-        // Sự kiện đổi Select box
-        filterImportStatus.addEventListener('change', applyFilters);
-
-        // Sự kiện click Tab
-        tabs.forEach(tab => {
-            tab.addEventListener('click', function (e) {
-                e.preventDefault();
-                // Đổi class active
-                tabs.forEach(t => {
-                    t.classList.remove('active', 'fw-bold', 'text-primary', 'border-primary', 'border-bottom', 'border-2');
-                    t.classList.add('text-muted');
+                    if (matchSearch && matchTab && matchSelect) {
+                        row.style.setProperty('display', '', 'important');
+                        hasVisible = true;
+                    } else {
+                        row.style.setProperty('display', 'none', 'important');
+                    }
                 });
-                this.classList.add('active', 'fw-bold', 'text-primary', 'border-primary', 'border-bottom', 'border-2');
-                this.classList.remove('text-muted');
 
-                applyFilters();
+                if (emptyRow) emptyRow.style.display = (!hasVisible && rows.length > 0) ? "" : "none";
+            }
+
+            if (searchInput) searchInput.addEventListener('input', applyFilters);
+            if (filterImportStatus) filterImportStatus.addEventListener('change', applyFilters);
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    tabs.forEach(t => {
+                        t.classList.remove('active', 'fw-bold', 'text-primary', 'border-primary', 'border-bottom', 'border-2');
+                        t.classList.add('text-muted');
+                    });
+                    this.classList.add('active', 'fw-bold', 'text-primary', 'border-primary', 'border-bottom', 'border-2');
+                    this.classList.remove('text-muted');
+                    applyFilters();
+                });
             });
         });
-    });
-</script>
+    </script>
+</div>
 </body>
 </html>

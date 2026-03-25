@@ -7,7 +7,6 @@
         .detail-card-title {
             font-size: 14px;
             font-weight: 700;
-            color: #333;
             margin-bottom: 15px;
             display: flex;
             align-items: center;
@@ -31,11 +30,31 @@
             font-size: 11px;
             padding: 2px 10px;
             border-radius: 10px;
-            background: #e6f6ee;
-            color: #008a47;
-            border: 1px solid #c2ebd5;
+            border: 1px solid;
         }
 
+        /* Màu sắc Badge Header */
+        .badge-trading {
+            background: #f1f5f9;
+            color: #475569;
+            border-color: #cbd5e1;
+        }
+
+        /* Đang giao dịch -> Xám */
+        .badge-completed {
+            background: #e6f6ee;
+            color: #008a47;
+            border-color: #c2ebd5;
+        }
+
+        /* Hoàn thành -> Xanh lá */
+        .badge-cancelled {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
+        /* Timeline */
         .timeline-item {
             border-left: 2px solid #e2e8f0;
             padding-left: 20px;
@@ -53,26 +72,42 @@
             border-radius: 50%;
             background: #3b82f6;
         }
+
+        /* Tiện ích màu sắc */
+        .text-success-custom {
+            color: #008a47 !important;
+        }
+
+        .text-warning-custom {
+            color: #ff9800 !important;
+        }
     </style>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-2">
             <a th:href="@{/ui/imports}" class="btn btn-white border px-2 py-1"><i class="bi bi-arrow-left"></i></a>
-            <h4 class="fw-bold mb-0" th:text="${order.code}">REI00001</h4>
+            <h4 class="fw-bold mb-0" th:text="${order.code}"></h4>
             <span class="text-muted small" th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></span>
-            <span class="status-header-badge">Đang giao dịch</span>
+
+            <span class="status-header-badge"
+                  th:classappend="${order.status == 'CANCELLED' ? 'badge-cancelled' : (order.status == 'COMPLETED' ? 'badge-completed' : 'badge-trading')}"
+                  th:text="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}">
+            </span>
         </div>
         <div class="d-flex gap-2">
-            <button class="btn btn-white border btn-sm px-3"><i class="bi bi-pencil me-1"></i> Sửa đơn</button>
+            <th:block th:if="${order.status == 'TRADING' && order.importStatus != 'COMPLETED'}">
+                <button class="btn btn-white border btn-sm px-3"><i class="bi bi-pencil me-1"></i> Sửa đơn</button>
+                <div class="dropdown">
+                    <button class="btn btn-white border btn-sm px-3 dropdown-toggle" data-bs-toggle="dropdown">Thao tác
+                        khác
+                    </button>
+                    <ul class="dropdown-menu shadow-sm">
+                        <li><a class="dropdown-item text-danger" href="javascript:void(0)"
+                               th:onclick="'cancelOrder(' + ${order.id} + ')'">Hủy đơn</a></li>
+                    </ul>
+                </div>
+            </th:block>
             <button class="btn btn-white border btn-sm px-3"><i class="bi bi-printer me-1"></i> In đơn</button>
-            <div class="dropdown">
-                <button class="btn btn-white border btn-sm px-3 dropdown-toggle" data-bs-toggle="dropdown">Thao tác
-                    khác
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item text-danger" href="#">Hủy đơn</a></li>
-                </ul>
-            </div>
         </div>
     </div>
 
@@ -80,13 +115,15 @@
         <div class="col-md-8">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <div class="detail-card-title text-warning">
-                        <i class="bi bi-clock-history"></i> Chưa nhập kho
+                    <div class="detail-card-title"
+                         th:classappend="${order.importStatus == 'COMPLETED' ? 'text-success-custom' : 'text-warning-custom'}">
+                        <i th:class="${order.importStatus == 'COMPLETED' ? 'bi bi-check-circle-fill' : 'bi bi-clock-history'}"></i>
+                        <span th:text="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập kho'}"></span>
                     </div>
                     <table class="table table-borderless align-middle mb-4">
                         <thead class="border-bottom">
                         <tr class="text-muted small">
-                            <th>Sản phẩm</th>
+                            <th style="width: 50%">Sản phẩm</th>
                             <th class="text-center">Số lượng</th>
                             <th class="text-end">Đơn giá</th>
                             <th class="text-end pe-0">Thành tiền</th>
@@ -97,34 +134,35 @@
                             <td class="py-3">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="bg-light rounded d-flex align-items-center justify-content-center"
-                                         style="width:40px; height:40px;"><i class="bi bi-image"></i></div>
+                                         style="width:40px; height:40px;"><i class="bi bi-box-seam"></i></div>
                                     <div>
-                                        <div class="text-primary fw-medium" th:text="${item.productName}">Tên SP</div>
-                                        <div class="text-muted small" th:text="${item.sku}">SKU</div>
+                                        <div class="text-primary fw-medium" th:text="${item.productName}"></div>
+                                        <div class="text-muted small" th:text="${item.sku}"></div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="text-center fw-medium" th:text="${item.quantity}">1</td>
+                            <td class="text-center fw-medium" th:text="${item.quantity}"></td>
                             <td class="text-end"
-                                th:text="${#numbers.formatDecimal(item.importPrice, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
-                            </td>
+                                th:text="${#numbers.formatDecimal(item.importPrice, 0, 'COMMA', 0, 'POINT') + '₫'}"></td>
                             <td class="text-end fw-bold pe-0"
-                                th:text="${#numbers.formatDecimal(item.importPrice * item.quantity, 0, 'COMMA', 0, 'POINT') + '₫'}">
-                                0₫
-                            </td>
+                                th:text="${#numbers.formatDecimal(item.importPrice * item.quantity, 0, 'COMMA', 0, 'POINT') + '₫'}"></td>
                         </tr>
                         </tbody>
                     </table>
-                    <div class="text-end">
-                        <button class="btn btn-primary fw-bold px-4">Nhập kho</button>
+                    <div class="text-end" th:if="${order.importStatus != 'COMPLETED' && order.status != 'CANCELLED'}">
+                        <button class="btn btn-primary fw-bold px-4 shadow-sm"
+                                th:onclick="'confirmReceive(' + ${order.id} + ')'">Nhập kho
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <div class="detail-card-title text-warning">
-                        <i class="bi bi-wallet2"></i> Chưa thanh toán
+                    <div class="detail-card-title"
+                         th:classappend="${order.paymentStatus == 'PAID' ? 'text-success-custom' : 'text-warning-custom'}">
+                        <i th:class="${order.paymentStatus == 'PAID' ? 'bi bi-check-circle-fill' : 'bi bi-wallet2'}"></i>
+                        <span th:text="${order.paymentStatus == 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}"></span>
                     </div>
                     <div class="d-flex flex-column gap-2 mb-4 ms-auto" style="max-width: 300px;">
                         <div class="d-flex justify-content-between text-muted"><span>Tổng tiền</span><span
@@ -134,8 +172,10 @@
                                 th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT') + '₫'}"></span>
                         </div>
                     </div>
-                    <div class="text-end">
-                        <button class="btn btn-primary fw-bold px-4">Xác nhận thanh toán</button>
+                    <div class="text-end" th:if="${order.paymentStatus != 'PAID' && order.status != 'CANCELLED'}">
+                        <button class="btn btn-primary fw-bold px-4 shadow-sm"
+                                th:onclick="'confirmPayment(' + ${order.id} + ')'">Xác nhận thanh toán
+                        </button>
                     </div>
                 </div>
             </div>
@@ -144,16 +184,16 @@
                 <div class="card-body p-4">
                     <div class="detail-card-title">Lịch sử đơn nhập hàng</div>
                     <div class="timeline mt-3">
-                        <div class="timeline-item">
+                        <div class="timeline-item" th:each="activity : ${order.activities}">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <span class="fw-bold"
-                                          th:text="${#temporals.format(order.createdAt, 'HH:mm')}"></span>
-                                    <span class="ms-3 fw-bold" th:text="${order.creatorName}">QUANG BUI</span>
-                                    <span class="ms-2">Thêm mới đơn nhập hàng</span>
+                                          th:text="${#temporals.format(activity.createdAt, 'HH:mm')}"></span>
+                                    <span class="ms-3 fw-bold text-dark" th:text="${activity.creatorName}"></span>
+                                    <span class="ms-2" th:text="${activity.action}"></span>
                                 </div>
                                 <div class="text-muted small"
-                                     th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy')}"></div>
+                                     th:text="${#temporals.format(activity.createdAt, 'dd/MM/yyyy')}"></div>
                             </div>
                         </div>
                     </div>
@@ -164,59 +204,67 @@
         <div class="col-md-4">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="detail-card-title mb-0">Nhà cung cấp</span>
-                        <a href="#" class="text-muted"><i class="bi bi-x-lg"></i></a>
-                    </div>
+                    <div class="detail-card-title">Nhà cung cấp</div>
                     <div class="d-flex align-items-center gap-3 mb-3">
                         <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
                              style="width:40px; height:40px;"><i class="bi bi-person"></i></div>
-                        <div class="fw-bold text-primary" th:text="${order.supplier.name}">Gearvn</div>
+                        <div class="fw-bold text-primary" th:text="${order.supplier.name}"></div>
                     </div>
-                    <div class="mb-4">
-                        <h6 class="fw-bold small border-bottom pb-2">Thông tin nhà cung cấp</h6>
-                        <div class="d-flex mb-2"><span class="info-label">Mã NCC:</span><span class="info-value"
-                                                                                              th:text="${order.supplier.code}"></span>
-                        </div>
-                        <div class="d-flex"><span class="info-label">Số điện thoại:</span><span class="info-value"
-                                                                                                th:text="${order.supplier.phone}"></span>
-                        </div>
+                    <div class="mb-2"><span class="info-label">Mã NCC:</span><span class="info-value"
+                                                                                   th:text="${order.supplier.code}"></span>
                     </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-3">
-                    <label class="detail-card-title mb-2">Chi nhánh nhập</label>
-                    <div class="p-2 border rounded bg-light small" th:text="${order.branchName}">Cửa hàng chính</div>
+                    <div class="mb-2"><span class="info-label">Số điện thoại:</span><span class="info-value"
+                                                                                          th:text="${order.supplier.phone}"></span>
+                    </div>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <div class="detail-card-title">Thông tin bổ sung</div>
-                    <div class="d-flex flex-column gap-3">
-                        <div><label class="form-label-custom">Nhân viên phụ trách</label>
-                            <div class="p-2 border rounded bg-light small" th:text="${order.creatorName}"></div>
-                        </div>
-                        <div><label class="form-label-custom">Ngày nhập dự kiến</label>
-                            <div class="p-2 border rounded bg-light small">---</div>
-                        </div>
-                        <div><label class="form-label-custom">Mã đơn nhập</label>
-                            <div class="p-2 border rounded bg-light small" th:text="${order.code}"></div>
-                        </div>
+                    <div class="mb-3"><label class="info-label d-block mb-1">Chi nhánh nhập</label>
+                        <div class="info-value p-2 bg-light rounded" th:text="${order.branchName}"></div>
                     </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <div class="detail-card-title">Ghi chú</div>
-                    <div class="p-2 border rounded bg-light small" th:text="${order.note ?: 'Không có ghi chú'}"></div>
+                    <div class="mb-3"><label class="info-label d-block mb-1">Nhân viên phụ trách</label>
+                        <div class="info-value p-2 bg-light rounded" th:text="${order.creatorName}"></div>
+                    </div>
+                    <div><label class="info-label d-block mb-1">Ghi chú</label>
+                        <div class="info-value p-2 bg-light rounded" th:text="${order.note ?: '---'}"></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script th:inline="javascript">
+        function confirmReceive(id) {
+            if (!confirm("Xác nhận nhập kho và tính lại giá vốn bình quân?")) return;
+            postAction(`/api/v1/imports/${id}/receive`, "Nhập kho thành công!");
+        }
+
+        function confirmPayment(id) {
+            if (!confirm("Xác nhận đã thanh toán cho đơn hàng này?")) return;
+            postAction(`/api/v1/imports/${id}/payment`, "Xác nhận thanh toán thành công!");
+        }
+
+        function cancelOrder(id) {
+            if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
+            postAction(`/api/v1/imports/${id}/cancel`, "Đã hủy đơn hàng!");
+        }
+
+        function postAction(url, successMsg) {
+            fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}})
+                .then(res => {
+                    if (res.ok) {
+                        alert(successMsg);
+                        location.reload();
+                    } else {
+                        res.text().then(text => alert("Lỗi: " + text));
+                    }
+                })
+                .catch(err => alert("Lỗi kết nối máy chủ!"));
+        }
+    </script>
 </div>
 </body>
 </html>

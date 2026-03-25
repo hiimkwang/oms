@@ -4,6 +4,7 @@ import com.oms.module.supplier.entity.Supplier; // Nhớ check path này
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,7 +33,13 @@ public class Receipt {
     private Integer totalQuantity; // Tổng số lượng nhập
     private String note;
     private String paymentStatus; // PAID, UNPAID
+    @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OrderBy("createdAt DESC") // Tự động sắp xếp timeline
+    private List<ReceiptActivity> activities;
 
+    // Thêm field này để fix lỗi chữ "Chưa nhập kho" bị đứng im
+    private String importStatus; // PENDING, COMPLETED
+    private String status;       // TRADING, CANCELLED
     @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL)
     private List<ReceiptDetail> details;
 
