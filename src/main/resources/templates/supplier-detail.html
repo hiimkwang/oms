@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .card-title-custom {
+            font-size: 15px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .text-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #6c757d;
+            margin-bottom: 4px;
+        }
+
+        .text-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .text-value-empty {
+            font-size: 14px;
+            color: #adb5bd;
+        }
+
+        .stat-value-blue {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0d6efd;
+            margin-bottom: 2px;
+        }
+
+        .stat-value-gray {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        /* Badge trạng thái */
+        .badge-active {
+            background-color: #e6f6ee;
+            color: #008a47;
+            border: 1px solid #c2ebd5;
+            padding: 4px 12px;
+            font-weight: 500;
+        }
+
+        .badge-inactive {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+            padding: 4px 12px;
+            font-weight: 500;
+        }
+
+        .form-control-custom, .form-select-custom {
+            font-size: 14px;
+            border-color: #dce0e4;
+            box-shadow: none;
+            height: 38px;
+        }
+
+        .icon-edit {
+            color: #adb5bd;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .icon-edit:hover {
+            color: #0d6efd;
+        }
+
+        /* Trạng thái lỗi tải / trống */
+        .empty-state-box {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            background-color: #f4f6f8;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            color: #adb5bd;
+            font-size: 28px;
+        }
+    </style>
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a th:href="@{/ui/suppliers}" class="btn btn-white border shadow-sm px-2"><i class="bi bi-arrow-left"></i></a>
+        <h3 class="fw-bold text-dark mb-0" th:text="${supplier.name}">Tên nhà cung cấp</h3>
+
+        <span th:if="${supplier.status.name() == 'ACTIVE'}"
+              class="badge rounded-pill badge-active">Đang hoạt động</span>
+        <span th:if="${supplier.status.name() == 'INACTIVE'}"
+              class="badge rounded-pill badge-inactive">Ngừng hoạt động</span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-8">
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="fw-bold text-dark" style="font-size: 15px;">Mã nhà cung cấp: <span
+                                th:text="${supplier.code}">---</span></div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-white text-dark dropdown-toggle fw-medium" type="button"
+                                    data-bs-toggle="dropdown">
+                                Tháng này (01/03/2026 - 31/03/2026)
+                            </button>
+                            <ul class="dropdown-menu shadow">
+                                <li><a class="dropdown-item small" href="#">Tháng trước</a></li>
+                                <li><a class="dropdown-item small" href="#">Năm nay</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="text-label">Đơn nhập<br>đã tạo</div>
+                            <div class="stat-value-blue">0 đơn</div>
+                            <div class="stat-value-gray">0đ</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-label">Đơn đã nhập<br>chưa thanh toán</div>
+                            <div class="stat-value-blue">0 đơn</div>
+                            <div class="stat-value-gray">0đ</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-label">Đơn trả<br>đã tạo</div>
+                            <div class="stat-value-blue">0 đơn</div>
+                            <div class="stat-value-gray">0đ</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-label">Đơn trả<br>chưa nhận hoàn tiền</div>
+                            <div class="stat-value-blue">0 đơn</div>
+                            <div class="stat-value-gray">0đ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Lịch sử nhập/trả hàng</div>
+                    <p class="text-muted small mb-0">Không có đơn nhập/ đơn trả của nhà cung cấp trong khoảng thời gian
+                        đang chọn.</p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-journal-text text-warning fs-5"></i>
+                        <div class="card-title-custom mb-0">Quản lý công nợ</div>
+                    </div>
+                    <div class="empty-state-box">
+                        <div class="empty-state-icon"><i class="bi bi-file-earmark-x"></i></div>
+                        <h6 class="fw-bold text-dark mb-3">Lỗi tải dữ liệu</h6>
+                        <button class="btn btn-primary fw-bold px-4 shadow-sm">Tải lại</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-md-4">
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="card-title-custom mb-0">Liên hệ</div>
+                        <i class="bi bi-pencil icon-edit"></i>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="text-label">Số điện thoại</div>
+                        <div th:if="${supplier.phone != null and supplier.phone != ''}" class="text-value"
+                             th:text="${supplier.phone}"></div>
+                        <div th:unless="${supplier.phone != null and supplier.phone != ''}" class="text-value-empty">
+                            Không có số điện thoại
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div th:if="${supplier.email != null and supplier.email != ''}" class="text-value"
+                             th:text="${supplier.email}"></div>
+                        <div th:unless="${supplier.email != null and supplier.email != ''}" class="text-value-empty">
+                            Không có email
+                        </div>
+                    </div>
+
+                    <div>
+                        <div th:if="${supplier.addressDetail != null and supplier.addressDetail != ''}"
+                             class="text-value" th:text="${supplier.addressDetail}"></div>
+                        <div th:unless="${supplier.addressDetail != null and supplier.addressDetail != ''}"
+                             class="text-value-empty">Không có địa chỉ
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Nhân viên phụ trách</div>
+                    <label class="text-label mb-2 d-block">Nhân viên phụ trách</label>
+                    <select class="form-select form-select-custom">
+                        <option th:text="${supplier.assignee != null and supplier.assignee != '' ? supplier.assignee : 'Chưa phân công'}"
+                                selected></option>
+                        <option value="QUANG BUI">QUANG BUI</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="card-title-custom mb-0">Tag</div>
+                        <a href="javascript:void(0)" class="text-primary small text-decoration-none fw-medium">Danh sách
+                            tag</a>
+                    </div>
+                    <input type="text" class="form-control form-control-custom" th:value="${supplier.tags}"
+                           placeholder="Tìm kiếm hoặc thêm mới tag">
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-4 pt-4">
+        <button type="button" class="btn btn-white border border-danger text-danger fw-medium shadow-sm px-4"
+                th:onclick="'deleteSupplier(\'' + ${supplier.id} + '\')'">Xóa
+        </button>
+        <button type="button" class="btn btn-light fw-medium border shadow-sm px-4 text-muted">Lưu</button>
+    </div>
+
+</div>
+
+<script>
+    async function deleteSupplier(id) {
+        if (confirm("Bạn có chắc chắn muốn xóa nhà cung cấp này không? Dữ liệu không thể khôi phục!")) {
+            try {
+                // (Giả sử ông đã viết DELETE mapping trong SupplierController)
+                // const response = await fetch('/api/v1/suppliers/' + id, { method: 'DELETE' });
+                // if (response.ok) { window.location.href = '/ui/suppliers'; }
+                alert("Đã gửi lệnh xóa NCC có ID: " + id);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    }
+</script>
+</body>
+</html>

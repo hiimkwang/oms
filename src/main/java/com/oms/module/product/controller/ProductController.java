@@ -2,6 +2,7 @@ package com.oms.module.product.controller;
 
 import com.oms.module.product.dto.ProductRequest;
 import com.oms.module.product.entity.Product;
+import com.oms.module.product.entity.ProductVariant;
 import com.oms.module.product.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,5 +45,10 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable String sku) {
         productService.deleteProduct(sku);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/variants/search")
+    public ResponseEntity<List<ProductVariant>> searchVariants(@RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(productService.searchVariantsForOrder(keyword));
     }
 }

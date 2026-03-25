@@ -1,24 +1,22 @@
 package com.oms.module.receipt.dto;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
-
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
 public class ReceiptRequest {
-    @NotBlank(message = "Số phiếu nhập không được để trống")
-    private String receiptCode;
-
-    private LocalDate receiptDate;
-    private String supplierName;
-    private String importer;
+    private String supplierCode;
+    private String branchName;
+    private List<ItemRequest> items;
+    private BigDecimal totalAmount;
     private String note;
+    private String paymentStatus;
 
-    @NotEmpty(message = "Phiếu nhập phải có ít nhất 1 sản phẩm")
-    @Valid
-    private List<ReceiptDetailRequest> details;
+    @Data
+    public static class ItemRequest {
+        private String sku;
+        private Integer quantity;
+        private BigDecimal importPrice;
+    }
 }

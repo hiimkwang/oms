@@ -8,7 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
-    Optional<Receipt> findByReceiptCode(String receiptCode);
-
-    boolean existsByReceiptCode(String receiptCode);
+    Optional<Receipt> findByCode(String code);
+    boolean existsByCode(String code);
 }

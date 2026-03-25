@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .card-title-custom {
+            font-size: 15px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-label-custom {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        .form-control-custom {
+            font-size: 14px;
+            border-color: #dce0e4;
+            box-shadow: none;
+            height: 38px;
+        }
+
+        .form-control-custom:focus {
+            border-color: #b1b9c1;
+            box-shadow: none;
+        }
+
+        .asterisk {
+            color: #dc3545;
+            margin-left: 2px;
+        }
+
+        .info-icon {
+            color: #0d6efd;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a th:href="@{/ui/suppliers}" class="btn btn-white border shadow-sm px-2"><i
+                    class="bi bi-arrow-left"></i></a>
+            <h3 class="fw-bold text-dark mb-0">Thêm mới nhà cung cấp</h3>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/ui/suppliers}" class="btn btn-white border fw-medium shadow-sm text-dark px-4">Hủy</a>
+            <button type="button" class="btn btn-primary fw-bold shadow-sm px-4" onclick="submitSupplier()">Thêm mới
+            </button>
+        </div>
+    </div>
+
+    <form id="supplierForm">
+        <div class="row g-4">
+
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <div class="card-title-custom">Thông tin chung</div>
+
+                        <div class="mb-4">
+                            <label class="form-label-custom">Tên nhà cung cấp<span class="asterisk">*</span></label>
+                            <input type="text" id="name" class="form-control form-control-custom"
+                                   placeholder="Nhập tên nhà cung cấp" required>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Mã nhà cung cấp</label>
+                                <input type="text" id="code" class="form-control form-control-custom"
+                                       placeholder="Nhập mã nhà cung cấp">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Số điện thoại</label>
+                                <div class="input-group">
+                                    <input type="text" id="phone" class="form-control form-control-custom border-end-0"
+                                           placeholder="Nhập số điện thoại">
+                                    <span class="input-group-text bg-white border-start-0"
+                                          style="border-color: #dce0e4;"><i
+                                            class="bi bi-telephone text-muted"></i></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Email</label>
+                                <input type="email" id="email" class="form-control form-control-custom"
+                                       placeholder="Nhập email">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Mã số thuế</label>
+                                <input type="text" id="taxCode" class="form-control form-control-custom"
+                                       placeholder="Nhập mã số thuế">
+                            </div>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Website</label>
+                                <input type="text" id="website" class="form-control form-control-custom"
+                                       placeholder="https://">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Số fax</label>
+                                <input type="text" id="fax" class="form-control form-control-custom"
+                                       placeholder="Nhập số fax">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="card-title-custom">Địa chỉ</div>
+
+                        <div class="mb-4">
+                            <label class="form-label-custom">Quốc gia</label>
+                            <select id="country" class="form-select form-control-custom">
+                                <option value="Vietnam" selected>Vietnam</option>
+                                <option value="China">China</option>
+                                <option value="US">United States</option>
+                            </select>
+                        </div>
+
+                        <div class="bg-light p-3 rounded border mb-4 d-flex align-items-center">
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="newAddressSwitch"
+                                       checked>
+                                <label class="form-check-label ms-2 small fw-medium" for="newAddressSwitch">Địa chỉ mới
+                                    <i class="bi bi-info-circle info-icon ms-1"></i></label>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Tỉnh/Thành phố</label>
+                                <select id="province" class="form-select form-control-custom text-muted">
+                                    <option value="">Chọn tỉnh thành</option>
+                                    <option value="Hà Nội">Hà Nội</option>
+                                    <option value="Hồ Chí Minh">Hồ Chí Minh</option>
+                                    <option value="Thâm Quyến">Thâm Quyến (China)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Quận huyện</label>
+                                <select id="district" class="form-select form-control-custom text-muted">
+                                    <option value="">Chọn quận huyện</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Phường xã</label>
+                                <select id="ward" class="form-select form-control-custom text-muted">
+                                    <option value="">Chọn phường xã</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Địa chỉ cụ thể</label>
+                                <input type="text" id="addressDetail" class="form-control form-control-custom"
+                                       placeholder="Nhập địa chỉ cụ thể">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <div class="card-title-custom">Nhân viên phụ trách</div>
+                        <label class="form-label-custom">Nhân viên phụ trách</label>
+                        <select id="assignee" class="form-select form-control-custom">
+                            <option value="QUANG BUI" selected>QUANG BUI</option>
+                            <option value="ADMIN">ADMIN</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="card-title-custom mb-0">Tag</div>
+                            <a href="javascript:void(0)" class="text-primary small text-decoration-none fw-medium">Danh
+                                sách tag</a>
+                        </div>
+                        <input type="text" id="tags" class="form-control form-control-custom"
+                               placeholder="Tìm kiếm hoặc thêm mới tag">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="d-flex justify-content-end mt-4 border-top pt-4">
+            <button type="button" class="btn btn-primary fw-bold shadow-sm px-5 py-2" onclick="submitSupplier()">Thêm
+                mới
+            </button>
+        </div>
+    </form>
+
+    <script>
+        async function submitSupplier() {
+            // Lấy dữ liệu từ form
+            const name = document.getElementById('name').value;
+            if (!name) {
+                alert('Tên nhà cung cấp không được để trống!');
+                return;
+            }
+
+            const payload = {
+                name: name,
+                code: document.getElementById('code').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                taxCode: document.getElementById('taxCode').value,
+                website: document.getElementById('website').value,
+                fax: document.getElementById('fax').value,
+                country: document.getElementById('country').value,
+                province: document.getElementById('province').value,
+                district: document.getElementById('district').value,
+                ward: document.getElementById('ward').value,
+                addressDetail: document.getElementById('addressDetail').value,
+                assignee: document.getElementById('assignee').value,
+                tags: document.getElementById('tags').value
+            };
+
+            try {
+                // Bắn API lên REST Controller
+                const response = await fetch('/api/v1/suppliers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert('Thêm mới nhà cung cấp thành công!');
+                    window.location.href = '/ui/suppliers'; // Chuyển về trang danh sách
+                } else {
+                    const errorData = await response.json();
+                    alert('Lỗi: ' + (errorData.message || 'Không thể thêm nhà cung cấp.'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra trong quá trình lưu dữ liệu!');
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

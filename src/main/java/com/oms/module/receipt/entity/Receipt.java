@@ -1,50 +1,41 @@
 package com.oms.module.receipt.entity;
 
+import com.oms.module.supplier.entity.Supplier; // Nhớ check path này
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDate;
-import java.util.ArrayList;
+import org.hibernate.annotations.CreationTimestamp;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "receipts")
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Receipt {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "receipt_code", unique = true, nullable = false)
-    private String receiptCode; // Số phiếu nhập (VD: PN000001)
+    @Column(name = "code", nullable = false, unique = true)
+    private String code;
 
-    @Column(name = "receipt_date")
-    private LocalDate receiptDate; // Ngày nhập
+    @ManyToOne
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
 
-    @Column(name = "supplier_name")
-    private String supplierName; // Tên nhà cung cấp (VD: 深圳市博诚电脑科技有限公司)
+    private String branchName; // Chi nhánh nhập
+    private String creatorName; // Nhân viên tạo
+    private BigDecimal totalAmount; // Tổng giá trị đơn
+    private Integer totalQuantity; // Tổng số lượng nhập
+    private String note;
+    private String paymentStatus; // PAID, UNPAID
 
-    @Column(name = "importer")
-    private String importer; // Người nhập (VD: Quang)
+    @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL)
+    private List<ReceiptDetail> details;
 
-    @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ReceiptDetail> receiptDetails = new ArrayList<>();
-
-    @Column(name = "total_amount")
-    private Double totalAmount; // Tổng tiền nhập hàng
-
-    @Column(name = "note")
-    private String note; // Ghi chú
-
-    @PrePersist
-    protected void onCreate() {
-        if (this.receiptDate == null) {
-            this.receiptDate = LocalDate.now();
-        }
-    }
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 }

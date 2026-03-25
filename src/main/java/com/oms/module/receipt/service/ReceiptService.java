@@ -1,69 +1,75 @@
 package com.oms.module.receipt.service;
 
-import com.oms.module.product.entity.Product;
-import com.oms.module.product.service.ProductService;
-import com.oms.module.receipt.dto.ReceiptDetailRequest;
+import com.oms.module.product.entity.ProductVariant;
+import com.oms.module.product.repository.ProductVariantRepository;
 import com.oms.module.receipt.dto.ReceiptRequest;
 import com.oms.module.receipt.entity.Receipt;
 import com.oms.module.receipt.entity.ReceiptDetail;
 import com.oms.module.receipt.repository.ReceiptRepository;
+import com.oms.module.supplier.entity.Supplier;
+import com.oms.module.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ReceiptService {
-
     private final ReceiptRepository receiptRepository;
-    private final ProductService productService;
+    private final SupplierRepository supplierRepository;
+    private final ProductVariantRepository variantRepository;
 
     @Transactional
     public Receipt createReceipt(ReceiptRequest request) {
-        if (receiptRepository.existsByReceiptCode(request.getReceiptCode())) {
-            throw new RuntimeException("Số phiếu nhập đã tồn tại: " + request.getReceiptCode());
-        }
+        Supplier supplier = supplierRepository.findByCode(request.getSupplierCode())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy NCC"));
 
+        // 1. Tạo đối tượng Receipt
         Receipt receipt = Receipt.builder()
-                .receiptCode(request.getReceiptCode())
-                .receiptDate(request.getReceiptDate())
-                .supplierName(request.getSupplierName())
-                .importer(request.getImporter())
+                .code("REI" + System.currentTimeMillis()) // Logic sinh mã đơn
+                .supplier(supplier)
+                .branchName(request.getBranchName())
+                .totalAmount(request.getTotalAmount())
                 .note(request.getNote())
-                .receiptDetails(new ArrayList<>())
+                .paymentStatus(request.getPaymentStatus())
+                .creatorName("QUANG BUI") // Tạm thời để cứng hoặc lấy từ Security
                 .build();
 
-        double totalReceiptAmount = 0.0;
+        // 2. Tạo danh sách chi tiết và CẬP NHẬT KHO
+        List<ReceiptDetail> details = request.getItems().stream().map(item -> {
+            // Tìm variant trong kho
+            ProductVariant variant = variantRepository.findBySku(item.getSku())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy SKU: " + item.getSku()));
 
-        for (ReceiptDetailRequest detailReq : request.getDetails()) {
-            Product product = productService.getProductBySku(detailReq.getSku());
+            // CỘNG TỒN KHO
+            variant.setStockQuantity(variant.getStockQuantity() + item.getQuantity());
+            // Cập nhật luôn giá vốn (Giá nhập mới nhất)
+            variant.setCostPrice(item.getImportPrice());
+            variantRepository.save(variant);
 
-            double totalPrice = detailReq.getQuantity() * detailReq.getImportPrice();
-
-            ReceiptDetail detail = ReceiptDetail.builder()
+            return ReceiptDetail.builder()
                     .receipt(receipt)
-                    .product(product)
-                    .quantity(detailReq.getQuantity())
-                    .importPrice(detailReq.getImportPrice())
-                    .totalPrice(totalPrice)
+                    .sku(item.getSku())
+                    .productName(variant.getProduct().getName())
+                    .quantity(item.getQuantity())
+                    .importPrice(item.getImportPrice())
                     .build();
+        }).collect(Collectors.toList());
 
-            receipt.getReceiptDetails().add(detail);
-            totalReceiptAmount += totalPrice;
-
-            // TODO: Tại đây bạn có thể gọi thêm hàm cập nhật số lượng tồn kho trong ProductService
-            // Ví dụ: productService.addStock(product.getSku(), detailReq.getQuantity());
-        }
-
-        receipt.setTotalAmount(totalReceiptAmount);
+        receipt.setDetails(details);
+        receipt.setTotalQuantity(details.stream().mapToInt(ReceiptDetail::getQuantity).sum());
 
         return receiptRepository.save(receipt);
     }
 
-    public Receipt getReceiptByCode(String receiptCode) {
-        return receiptRepository.findByReceiptCode(receiptCode)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập: " + receiptCode));
+    public List<Receipt> getAllReceipts() {
+        return receiptRepository.findAll();
+    }
+    public Receipt getReceiptById(Long id) {
+        return receiptRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Đơn nhập hàng không tồn tại!"));
     }
 }

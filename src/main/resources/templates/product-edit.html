@@ -22,7 +22,8 @@
         #variantTableContainer th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.85rem; }
     </style>
 
-    <div class="d-flex justify-content-between align-items-center mb-4 sticky-top bg-white py-3 shadow-sm px-4 rounded-bottom" style="z-index: 1000; top: 64px; margin-left: -30px; margin-right: -30px;">
+    <div class="d-flex justify-content-between align-items-center mb-4 sticky-top bg-white py-3 shadow-sm px-4 rounded-bottom"
+         style="z-index: 1000; top: 64px; margin-left: -30px; margin-right: -30px;">
         <div class="d-flex align-items-center gap-3">
             <a href="/ui/products" class="btn btn-light border"><i class="bi bi-arrow-left"></i></a>
             <h4 class="fw-bold mb-0 text-dark">Cập nhật: <span class="text-primary" th:text="${product.name}"></span></h4>
@@ -128,6 +129,7 @@
                             <thead id="variantTableHead">
                             <tr th:if="${not #lists.isEmpty(product.variants)}">
                                 <th class="text-start ps-3">Phân loại</th>
+                                <th width="80">Ảnh</th>
                                 <th width="130">Giá bán</th>
                                 <th width="130">Giá nhập (Vốn)</th>
                                 <th width="100">Tồn kho</th>
@@ -137,6 +139,23 @@
                             <tbody id="variantTableBody">
                             <tr th:each="v : ${product.variants}">
                                 <td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part" th:text="${v.variantName}"></td>
+                                <td>
+                                    <div class="d-flex justify-content-center">
+                                        <label style="cursor: pointer; margin: 0;">
+                                            <div class="variant-img-placeholder bg-light border rounded d-flex align-items-center justify-content-center text-muted"
+                                                 style="width: 36px; height: 36px;"
+                                                 th:classappend="${v.imageUrl != null and v.imageUrl != '' ? 'd-none' : ''}">
+                                                <i class="bi bi-camera"></i>
+                                            </div>
+                                            <img class="variant-img-preview rounded border"
+                                                 style="width: 36px; height: 36px; object-fit: cover;"
+                                                 th:src="${v.imageUrl != null ? v.imageUrl : ''}"
+                                                 th:classappend="${v.imageUrl == null or v.imageUrl == '' ? 'd-none' : ''}">
+                                            <input type="file" class="d-none" accept="image/*" onchange="uploadVariantImage(this)">
+                                        </label>
+                                        <input type="hidden" class="var-image" th:value="${v.imageUrl != null ? v.imageUrl : ''}">
+                                    </div>
+                                </td>
                                 <td><input type="number" class="form-control form-control-sm text-end oms-input var-price" th:value="${v.price}"></td>
                                 <td><input type="number" class="form-control form-control-sm text-end oms-input var-cost" th:value="${v.costPrice}"></td>
                                 <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock" th:value="${v.stockQuantity}"></td>
@@ -175,11 +194,23 @@
 
         <div class="col-lg-4">
             <div class="card p-4 mb-4 border-0 shadow-sm">
-                <div class="card-title-custom">Ảnh sản phẩm</div>
-                <div class="text-center bg-light border-dashed rounded p-4 text-muted" style="border: 2px dashed #cbd5e1;">
-                    <i class="bi bi-plus-lg fs-3"></i>
-                    <p class="mt-2 mb-0 small">Kéo thả hoặc <a href="#" class="text-decoration-none">thêm ảnh từ URL</a></p>
+                <div class="card-title-custom">Ảnh sản phẩm chính</div>
+                <div class="text-center bg-light border-dashed rounded p-3 text-muted position-relative"
+                     style="border: 2px dashed #cbd5e1; cursor: pointer; min-height: 160px; display: flex; align-items: center; justify-content: center;"
+                     onclick="document.getElementById('mainImageInput').click()">
+
+                    <div id="mainImagePlaceholder" th:classappend="${product != null and product.imageUrl != null and product.imageUrl != '' ? 'd-none' : ''}">
+                        <i class="bi bi-cloud-arrow-up fs-2"></i>
+                        <p class="mt-2 mb-0 fw-medium small">Click để tải ảnh lên</p>
+                    </div>
+
+                    <img id="mainImagePreview" th:src="${product != null ? product.imageUrl : ''}"
+                         class="img-fluid rounded" style="max-height: 140px; object-fit: contain;"
+                         th:classappend="${product == null or product.imageUrl == null or product.imageUrl == '' ? 'd-none' : ''}">
+
+                    <input type="file" id="mainImageInput" class="d-none" accept="image/*" onchange="uploadMainImage(this)">
                 </div>
+                <input type="hidden" id="imageUrl" th:value="${product != null ? product.imageUrl : ''}">
             </div>
 
             <div class="card p-4 mb-4 border-0 shadow-sm">
@@ -265,14 +296,12 @@
             const newRow = document.createElement('div');
             newRow.className = 'row g-2 mb-3 align-items-start attr-row';
 
-            const uniqueId = 'tag-input-' + Date.now();
-
             newRow.innerHTML = `
                 <div class="col-md-3">
                     <input type="text" class="form-control oms-input attr-name-input" placeholder="Tên thuộc tính (VD: Switch)">
                 </div>
                 <div class="col-md-8">
-                    <input type="text" id="${uniqueId}" class="tag-input" placeholder="Nhập giá trị và ấn enter">
+                    <input type="text" class="tag-input" placeholder="Nhập giá trị và ấn enter">
                 </div>
                 <div class="col-md-1 d-flex justify-content-center pt-2 mt-1">
                     <i class="bi bi-trash fs-5 btn-remove-attr"></i>
@@ -280,7 +309,12 @@
             `;
             container.appendChild(newRow);
 
-            new TomSelect(`#${uniqueId}`, {
+            // Bắt chính xác cái ô Input vừa được đẻ ra (là phần tử cuối cùng)
+            const allTagInputs = container.querySelectorAll('.tag-input');
+            const newestInput = allTagInputs[allTagInputs.length - 1];
+
+            // Gắn TomSelect trực tiếp vào Element (Không cần xài ID nữa)
+            new TomSelect(newestInput, {
                 create: true,
                 plugins: ['remove_button'],
                 delimiter: ',',
@@ -313,8 +347,6 @@
             });
 
             if (validAttributes.length === 0) {
-                // Đừng d-none nếu đang là trang Edit mà họ lỡ xóa, vì có thể họ muốn xóa sạch
-                // container.classList.add('d-none');
                 tbody.innerHTML = '';
                 return;
             }
@@ -324,6 +356,7 @@
                 headerHtml += `<th class="text-start ps-3">${attr.name}</th>`;
             });
             headerHtml += `
+                <th width="80">Ảnh</th>
                 <th width="130">Giá bán</th>
                 <th width="130">Giá nhập (Vốn)</th>
                 <th width="100">Tồn kho</th>
@@ -334,6 +367,7 @@
             const allValues = validAttributes.map(attr => attr.values);
             const cartesian = (args) => {
                 let r = [], max = args.length - 1;
+
                 function helper(arr, i) {
                     for (let j = 0, l = args[i].length; j < l; j++) {
                         let a = arr.slice(0);
@@ -342,6 +376,7 @@
                         else helper(a, i + 1);
                     }
                 }
+
                 helper([], 0);
                 return r;
             };
@@ -361,7 +396,20 @@
                 combo.forEach(val => {
                     rowHtml += `<td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part">${val}</td>`;
                 });
+
                 rowHtml += `
+                   <td>
+                        <div class="d-flex justify-content-center">
+                            <label style="cursor: pointer; margin: 0;">
+                                <div class="variant-img-placeholder bg-light border rounded d-flex align-items-center justify-content-center text-muted" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-camera"></i>
+                                </div>
+                                <img class="variant-img-preview rounded border d-none" style="width: 36px; height: 36px; object-fit: cover;">
+                                <input type="file" class="d-none" accept="image/*" onchange="uploadVariantImage(this)">
+                            </label>
+                            <input type="hidden" class="var-image" value="">
+                        </div>
+                    </td>
                     <td><input type="number" class="form-control form-control-sm text-end oms-input var-price" value="${basePrice}"></td>
                     <td><input type="number" class="form-control form-control-sm text-end oms-input var-cost" value="0" placeholder="Giá nhập"></td>
                     <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock" value="0"></td>
@@ -395,6 +443,7 @@
             const payload = {
                 sku: skuVal,
                 name: nameVal,
+                imageUrl: document.getElementById("imageUrl").value.trim(),
                 category: document.getElementById("category").value,
                 brand: document.getElementById("brand").value,
                 unit: unitVal,
@@ -412,6 +461,7 @@
 
                 payload.variants.push({
                     variantName: variantName,
+                    imageUrl: row.querySelector('.var-image') ? row.querySelector('.var-image').value.trim() : null,
                     sku: row.querySelector('.var-sku').value,
                     price: parseFloat(row.querySelector('.var-price').value) || 0,
                     costPrice: parseFloat(row.querySelector('.var-cost').value) || 0,
@@ -419,7 +469,6 @@
                 });
             });
 
-            // GỌI API PUT (UPDATE) VÀO ĐƯỜNG DẪN CHỨA SKU
             fetch('/api/v1/products/' + skuVal, {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
@@ -432,6 +481,59 @@
                     res.json().then(err => alert("Lỗi Backend: " + (err.message || "Kiểm tra DTO Java!")));
                 }
             }).catch(err => alert("Lỗi kết nối: " + err));
+        }
+
+        // ================= XỬ LÝ UPLOAD ẢNH =================
+        async function uploadFileToAPI(file) {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const response = await fetch('/api/v1/upload', {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) throw new Error("Upload thất bại, hãy check lại API Java!");
+            const data = await response.json();
+            return data.url;
+        }
+
+        async function uploadMainImage(inputEl) {
+            if (!inputEl.files || inputEl.files.length === 0) return;
+            try {
+                const url = await uploadFileToAPI(inputEl.files[0]);
+
+                document.getElementById('imageUrl').value = url;
+
+                const previewEl = document.getElementById('mainImagePreview');
+                const placeholder = document.getElementById('mainImagePlaceholder');
+
+                previewEl.src = url;
+                previewEl.classList.remove('d-none');
+                placeholder.classList.add('d-none');
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function uploadVariantImage(inputEl) {
+            if (!inputEl.files || inputEl.files.length === 0) return;
+            try {
+                const url = await uploadFileToAPI(inputEl.files[0]);
+
+                const labelWrapper = inputEl.closest('label');
+                const td = inputEl.closest('td');
+
+                td.querySelector('.var-image').value = url;
+
+                const previewEl = labelWrapper.querySelector('.variant-img-preview');
+                const placeholder = labelWrapper.querySelector('.variant-img-placeholder');
+
+                previewEl.src = url;
+                previewEl.classList.remove('d-none');
+                placeholder.classList.add('d-none');
+            } catch (err) {
+                alert(err.message);
+            }
         }
     </script>
 </div>

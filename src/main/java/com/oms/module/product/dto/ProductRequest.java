@@ -27,6 +27,6 @@ public class ProductRequest {
     private BigDecimal price;
     private String description;
     private String warrantyPeriod;
-
+    private String imageUrl;
     private List<ProductVariantRequest> variants;
 }

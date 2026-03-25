@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+
+    <style>
+        .oms-toolbar .btn, .oms-toolbar .input-group-text, .oms-toolbar .form-control {
+            height: 38px;
+            display: flex;
+            align-items: center;
+        }
+
+        .table-custom thead th {
+            background-color: #f4f6f8;
+            font-size: 13px;
+            color: #333;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+            padding-top: 12px;
+            padding-bottom: 12px;
+        }
+
+        .table-custom tbody td {
+            vertical-align: middle;
+            font-size: 14px;
+            padding-top: 12px;
+            padding-bottom: 12px;
+        }
+
+        /* Badge trạng thái "Đang hoạt động" chuẩn Sapo */
+        .status-active {
+            background-color: #e6f6ee;
+            color: #008a47;
+            border: 1px solid #c2ebd5;
+            border-radius: 12px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-inactive {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-dark mb-0">Danh sách nhà cung cấp</h3>
+        <div class="d-flex gap-2">
+            <button class="btn btn-white border fw-medium shadow-sm text-dark"><i class="bi bi-box-arrow-up me-1"></i>
+                Xuất file
+            </button>
+            <button class="btn btn-white border fw-medium shadow-sm text-dark"><i
+                    class="bi bi-box-arrow-in-down me-1"></i> Nhập file
+            </button>
+            <a th:href="@{/ui/suppliers/create}" class="btn btn-primary fw-bold shadow-sm px-3"><i
+                    class="bi bi-plus-lg me-1"></i> Thêm nhà cung cấp</a>
+        </div>
+    </div>
+
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="border-bottom px-4 pt-3">
+            <ul class="nav nav-underline border-0">
+                <li class="nav-item">
+                    <a class="nav-link active fw-semibold text-primary border-primary border-bottom border-2 pb-2"
+                       href="#">Tất cả</a>
+                </li>
+            </ul>
+        </div>
+
+        <form id="filterForm" method="GET" action="/ui/suppliers" class="m-0">
+            <div class="oms-toolbar p-3 bg-white border-bottom d-flex gap-2 align-items-center flex-nowrap">
+
+                <div class="input-group flex-grow-1">
+                    <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" name="keyword" th:value="${keyword}"
+                           class="form-control border-start-0 ps-0 shadow-none"
+                           placeholder="Tìm kiếm theo tên, mã, SĐT nhà cung cấp">
+                </div>
+
+                <div class="dropdown">
+                    <button class="btn btn-white border text-dark dropdown-toggle px-3" type="button"
+                            data-bs-toggle="dropdown">Ngày tạo
+                    </button>
+                    <ul class="dropdown-menu shadow">
+                        <li><a class="dropdown-item" href="#">Hôm nay</a></li>
+                        <li><a class="dropdown-item" href="#">Tháng này</a></li>
+                    </ul>
+                </div>
+
+                <div class="dropdown">
+                    <button class="btn btn-white border text-dark dropdown-toggle px-3" type="button"
+                            data-bs-toggle="dropdown">Nhân viên phụ trách
+                    </button>
+                    <ul class="dropdown-menu shadow">
+                        <li><a class="dropdown-item" href="#">QUANG BUI</a></li>
+                        <li><a class="dropdown-item" href="#">ADMIN</a></li>
+                    </ul>
+                </div>
+
+                <div class="dropdown">
+                    <button class="btn btn-white border text-dark dropdown-toggle px-3" type="button"
+                            data-bs-toggle="dropdown">Tags
+                    </button>
+                    <ul class="dropdown-menu shadow">
+                        <li><a class="dropdown-item" href="#">Tìm kiếm...</a></li>
+                    </ul>
+                </div>
+
+                <button type="button" class="btn btn-light border fw-medium text-dark px-3 text-nowrap">Lưu bộ lọc
+                </button>
+                <button type="submit" class="d-none"></button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover table-custom mb-0 text-center text-nowrap">
+                <thead>
+                <tr>
+                    <th class="ps-4" style="width: 40px;"><input class="form-check-input" type="checkbox"></th>
+                    <th class="text-start">Mã NCC</th>
+                    <th class="text-start">Tên NCC</th>
+                    <th>Trạng thái</th>
+                    <th>Số điện thoại</th>
+                    <th class="pe-4">Email</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${suppliers}">
+                    <td class="ps-4"><input class="form-check-input" type="checkbox"></td>
+                    <td class="text-start">
+                        <a th:href="@{/ui/suppliers/{code}(code=${s.code})}"
+                           class="text-primary text-decoration-none fw-medium" th:text="${s.code}"></a>
+                    </td>
+                    <td class="text-start text-dark" th:text="${s.name}"></td>
+                    <td>
+                        <span th:if="${s.status.name() == 'ACTIVE'}" class="status-active">Đang hoạt động</span>
+                        <span th:if="${s.status.name() == 'INACTIVE'}" class="status-inactive">Ngừng hoạt động</span>
+                    </td>
+                    <td class="text-muted" th:text="${s.phone != null and s.phone != '' ? s.phone : '---'}"></td>
+                    <td class="text-muted pe-4" th:text="${s.email != null and s.email != '' ? s.email : '---'}"></td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(suppliers)}">
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                        Chưa có nhà cung cấp nào.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center text-muted small">
+            <div>
+                <span th:if="${not #lists.isEmpty(suppliers)}"
+                      th:text="'Từ 1 đến ' + ${#lists.size(suppliers)} + ' trên tổng ' + ${#lists.size(suppliers)}"></span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span>Hiển thị</span>
+                    <select class="form-select form-select-sm shadow-none" style="width: 60px;">
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span>Kết quả</span>
+                </div>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-white border text-muted" disabled><i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button class="btn btn-sm btn-primary">1</button>
+                    <button class="btn btn-sm btn-white border text-muted" disabled><i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="text-center py-3">
+            <a href="#" class="text-primary text-decoration-none small">Tìm hiểu thêm về nhà cung cấp</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -42,6 +42,7 @@ public class ProductService {
                 .unit(request.getUnit())
                 .minStockLevel(request.getMinStockLevel())
                 .price(request.getPrice())
+                .imageUrl(request.getImageUrl())
                 .description(request.getDescription())
                 .warrantyPeriod(request.getWarrantyPeriod())
                 .stockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0)
@@ -61,6 +62,7 @@ public class ProductService {
                         .product(product)
                         .variantName(vReq.getVariantName())
                         .sku(varSku)
+                        .imageUrl(vReq.getImageUrl())
                         .price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice())
                         .costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO)
                         .stockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0)
@@ -104,6 +106,7 @@ public class ProductService {
         existingProduct.setUnit(request.getUnit());
         existingProduct.setMinStockLevel(request.getMinStockLevel());
         existingProduct.setPrice(request.getPrice());
+        existingProduct.setImageUrl(request.getImageUrl());
         existingProduct.setDescription(request.getDescription());
         existingProduct.setWarrantyPeriod(request.getWarrantyPeriod());
 
@@ -125,6 +128,7 @@ public class ProductService {
                 if (existingVariantsMap.containsKey(varSku)) {
                     variant = existingVariantsMap.get(varSku);
                     variant.setVariantName(vReq.getVariantName());
+                    variant.setImageUrl(vReq.getImageUrl());
                     variant.setPrice(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice());
                     variant.setCostPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO);
                     variant.setStockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0);
@@ -133,6 +137,7 @@ public class ProductService {
                             .product(existingProduct)
                             .variantName(vReq.getVariantName())
                             .sku(varSku)
+                            .imageUrl(vReq.getImageUrl())
                             .price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice())
                             .costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO)
                             .stockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0)
@@ -159,5 +164,57 @@ public class ProductService {
     public void deleteProduct(String sku) {
         Product product = getProductBySku(sku); // Tìm SP trước rồi mới xóa
         productRepository.delete(product);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Product> getFilteredProducts(String keyword, String category, String brand) {
+        return productRepository.searchAndFilterProducts(keyword, category, brand);
+    }
+    @Transactional(readOnly = true)
+    public List<ProductVariant> getFilteredInventory(String keyword, String stockStatus, Integer minStock, Integer maxStock, String dateRange) {
+        java.time.LocalDateTime startDate = null;
+        java.time.LocalDateTime endDate = null;
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        if (dateRange != null && !dateRange.isEmpty()) {
+            switch (dateRange) {
+                case "today":
+                    startDate = now.with(java.time.LocalTime.MIN);
+                    endDate = now.with(java.time.LocalTime.MAX);
+                    break;
+                case "yesterday":
+                    startDate = now.minusDays(1).with(java.time.LocalTime.MIN);
+                    endDate = now.minusDays(1).with(java.time.LocalTime.MAX);
+                    break;
+                case "7days":
+                    startDate = now.minusDays(7).with(java.time.LocalTime.MIN);
+                    endDate = now.with(java.time.LocalTime.MAX);
+                    break;
+                case "this_month":
+                    startDate = now.withDayOfMonth(1).with(java.time.LocalTime.MIN);
+                    endDate = now.with(java.time.LocalTime.MAX);
+                    break;
+                case "last_month":
+                    startDate = now.minusMonths(1).withDayOfMonth(1).with(java.time.LocalTime.MIN);
+                    endDate = now.withDayOfMonth(1).minusDays(1).with(java.time.LocalTime.MAX);
+                    break;
+                case "this_year":
+                    startDate = now.withDayOfYear(1).with(java.time.LocalTime.MIN);
+                    endDate = now.with(java.time.LocalTime.MAX);
+                    break;
+            }
+        }
+        return productVariantRepository.searchAndFilterVariants(keyword, stockStatus, minStock, maxStock, startDate, endDate);
+    }
+
+    public List<ProductVariant> searchVariantsForOrder(String keyword) {
+        return productVariantRepository.searchAndFilterVariants(
+                keyword,
+                null, // stockStatus
+                null, // minStock
+                null, // maxStock
+                null, // startDate
+                null  // endDate
+        );
     }
 }

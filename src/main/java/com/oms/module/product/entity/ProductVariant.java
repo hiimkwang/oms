@@ -1,6 +1,7 @@
 package com.oms.module.product.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -40,4 +41,14 @@ public class ProductVariant {
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore
     private Product product;
+
+    @JsonProperty("productName")
+    public String getProductName() {
+        if (this.product != null) {
+            return this.product.getName();
+        }
+        return "Sản phẩm không xác định";
+    }
+    @Column(name = "image_url")
+    private String imageUrl;
 }
