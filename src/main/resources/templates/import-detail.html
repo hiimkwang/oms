@@ -239,17 +239,17 @@
     <script th:inline="javascript">
         function confirmReceive(id) {
             if (!confirm("Xác nhận nhập kho và tính lại giá vốn bình quân?")) return;
-            postAction(`/api/v1/imports/${id}/receive`, "Nhập kho thành công!");
+            postAction(`/api/v1/receipt/${id}/receive`, "Nhập kho thành công!");
         }
 
         function confirmPayment(id) {
             if (!confirm("Xác nhận đã thanh toán cho đơn hàng này?")) return;
-            postAction(`/api/v1/imports/${id}/payment`, "Xác nhận thanh toán thành công!");
+            postAction(`/api/v1/receipt/${id}/payment`, "Xác nhận thanh toán thành công!");
         }
 
         function cancelOrder(id) {
             if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) return;
-            postAction(`/api/v1/imports/${id}/cancel`, "Đã hủy đơn hàng!");
+            postAction(`/api/v1/receipt/${id}/cancel`, "Đã hủy đơn hàng!");
         }
 
         function postAction(url, successMsg) {

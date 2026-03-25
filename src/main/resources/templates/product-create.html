@@ -6,20 +6,91 @@
 
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     <style>
-        .oms-input { background-color: #f8f9fa; border: 1px solid #e2e8f0; border-radius: 6px; }
-        .oms-input:focus { background-color: #fff; border-color: #3b82f6; box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25); }
-        .card-title-custom { font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 1rem; }
-        .form-label { font-size: 0.85rem; color: #475569; font-weight: 500; margin-bottom: 0.3rem; }
-        .ts-control { border: 1px solid #e2e8f0 !important; border-radius: 6px !important; box-shadow: none !important; padding: 6px 10px !important; background-color: #f8f9fa !important; min-height: 38px; }
-        .ts-control.focus { background-color: #ffffff !important; border-color: #3b82f6 !important; }
-        .ts-control > input { font-size: 0.875rem; }
-        .ts-wrapper.multi .ts-control > div { background: #f1f5f9 !important; color: #334155 !important; border: 1px solid #cbd5e1 !important; border-radius: 4px; padding: 2px 8px; font-weight: 500; font-size: 0.85rem; }
-        .ts-wrapper.multi .ts-control > div .remove { border-left-color: #cbd5e1 !important; color: #64748b !important; }
-        .ts-wrapper.multi .ts-control > div .remove:hover { background: #e2e8f0 !important; color: #ef4444 !important; }
-        .ts-dropdown .create { color: #0284c7 !important; font-weight: 600; }
-        .btn-remove-attr { color: #94a3b8; cursor: pointer; transition: 0.2s; }
-        .btn-remove-attr:hover { color: #ef4444; }
-        #variantTableContainer th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.85rem; }
+        .oms-input {
+            background-color: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+
+        .oms-input:focus {
+            background-color: #fff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+        }
+
+        .card-title-custom {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+            color: #475569;
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+        }
+
+        .ts-control {
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            padding: 6px 10px !important;
+            background-color: #f8f9fa !important;
+            min-height: 38px;
+        }
+
+        .ts-control.focus {
+            background-color: #ffffff !important;
+            border-color: #3b82f6 !important;
+        }
+
+        .ts-control > input {
+            font-size: 0.875rem;
+        }
+
+        .ts-wrapper.multi .ts-control > div {
+            background: #f1f5f9 !important;
+            color: #334155 !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .ts-wrapper.multi .ts-control > div .remove {
+            border-left-color: #cbd5e1 !important;
+            color: #64748b !important;
+        }
+
+        .ts-wrapper.multi .ts-control > div .remove:hover {
+            background: #e2e8f0 !important;
+            color: #ef4444 !important;
+        }
+
+        .ts-dropdown .create {
+            color: #0284c7 !important;
+            font-weight: 600;
+        }
+
+        .btn-remove-attr {
+            color: #94a3b8;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-remove-attr:hover {
+            color: #ef4444;
+        }
+
+        #variantTableContainer th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
     </style>
 
     <div class="d-flex justify-content-between align-items-center mb-4 sticky-top bg-white py-3 shadow-sm px-4 rounded-bottom"
@@ -40,12 +111,14 @@
                 <div class="card-title-custom">Thông tin sản phẩm</div>
                 <div class="mb-3">
                     <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
-                    <input type="text" id="name" class="form-control oms-input py-2" placeholder="Nhập tên sản phẩm (tối đa 320 ký tự)" required>
+                    <input type="text" id="name" class="form-control oms-input py-2"
+                           placeholder="Nhập tên sản phẩm (tối đa 320 ký tự)" required>
                 </div>
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label class="form-label">Mã SKU</label>
-                        <input type="text" id="sku" class="form-control oms-input py-2" placeholder="Để trống để tự động sinh">
+                        <input type="text" id="sku" class="form-control oms-input py-2"
+                               placeholder="Để trống để tự động sinh">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Mã vạch/ Barcode</label>
@@ -69,7 +142,8 @@
                             <i class="bi bi-list-ul px-2"></i>
                             <i class="bi bi-image px-2"></i>
                         </div>
-                        <textarea id="description" class="form-control border-0 p-3" rows="6" placeholder="Nhập mô tả sản phẩm..."></textarea>
+                        <textarea id="description" class="form-control border-0 p-3" rows="6"
+                                  placeholder="Nhập mô tả sản phẩm..."></textarea>
                     </div>
                 </div>
             </div>
@@ -80,7 +154,8 @@
                     <div class="col-md-6">
                         <label class="form-label">Giá bán</label>
                         <div class="input-group">
-                            <input type="number" id="price" class="form-control oms-input text-end py-2" placeholder="0" oninput="generateVariantTable()">
+                            <input type="number" id="price" class="form-control oms-input text-end py-2" placeholder="0"
+                                   oninput="generateVariantTable()">
                             <span class="input-group-text bg-light text-muted border-light">đ</span>
                         </div>
                     </div>
@@ -103,7 +178,8 @@
                     <div class="row g-2 mb-3 align-items-start attr-row">
                         <div class="col-md-3">
                             <label class="form-label">Tên thuộc tính</label>
-                            <input type="text" class="form-control oms-input attr-name-input" value="Kích thước" placeholder="VD: Kích thước...">
+                            <input type="text" class="form-control oms-input attr-name-input" value="Kích thước"
+                                   placeholder="VD: Kích thước...">
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">Giá trị</label>
@@ -171,9 +247,11 @@
                         <p class="mt-2 mb-0 fw-medium small">Click để tải ảnh lên</p>
                     </div>
 
-                    <img id="mainImagePreview" src="" class="img-fluid rounded d-none" style="max-height: 140px; object-fit: contain;">
+                    <img id="mainImagePreview" src="" class="img-fluid rounded d-none"
+                         style="max-height: 140px; object-fit: contain;">
 
-                    <input type="file" id="mainImageInput" class="d-none" accept="image/*" onchange="uploadMainImage(this)">
+                    <input type="file" id="mainImageInput" class="d-none" accept="image/*"
+                           onchange="uploadMainImage(this)">
                 </div>
                 <input type="hidden" id="imageUrl" value="">
             </div>
@@ -183,7 +261,7 @@
                     <label class="form-label">Danh mục</label>
                     <select id="category" class="form-control" placeholder="Chọn danh mục...">
                         <option value="">Chọn danh mục</option>
-                        <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}"></option>
+                        <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"></option>
                     </select>
                 </div>
                 <div class="mb-3">
@@ -205,10 +283,10 @@
 
     <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function () {
-            const smartSelectConfig = {
+            // 1. Config Quick Add cho Hãng và Đơn vị tính (Dùng Master Data)
+            const masterDataConfig = {
                 create: function (input, callback) {
-                    let dataType = 'CATEGORY';
-                    if (this.input.id === 'brand') dataType = 'BRAND';
+                    let dataType = 'BRAND';
                     if (this.input.id === 'unit') dataType = 'UNIT';
 
                     fetch('/api/v1/settings/master-data/quick-add', {
@@ -226,9 +304,30 @@
                 }
             };
 
-            new TomSelect('#category', smartSelectConfig);
-            new TomSelect('#brand', smartSelectConfig);
-            new TomSelect('#unit', smartSelectConfig);
+            // 2. Config Quick Add cho Danh mục (Dùng API Category mới)
+            const categoryConfig = {
+                create: function (input, callback) {
+                    const formData = new FormData();
+                    formData.append("name", input);
+                    formData.append("description", "Thêm nhanh từ màn hình tạo sản phẩm");
+
+                    fetch('/api/v1/categories', {
+                        method: 'POST',
+                        body: formData
+                    }).then(res => res.ok ? res.json() : Promise.reject())
+                        .then(data => callback({value: data.id, text: data.name})) // Trả về ID và Name
+                        .catch(() => callback(false));
+                },
+                render: {
+                    option_create: function (data, escape) {
+                        return `<div class="create fw-semibold p-2 text-success"><i class="bi bi-folder-plus me-1"></i> Tạo danh mục mới: <strong>${escape(data.input)}</strong></div>`;
+                    }
+                }
+            };
+
+            new TomSelect('#category', categoryConfig);
+            new TomSelect('#brand', masterDataConfig);
+            new TomSelect('#unit', masterDataConfig);
             new TomSelect('#tags', {create: true, plugins: ['remove_button']});
 
             initAttributeTags();
@@ -274,11 +373,9 @@
             `;
             container.appendChild(newRow);
 
-            // Bắt chính xác cái ô Input vừa được đẻ ra (là phần tử cuối cùng)
             const allTagInputs = container.querySelectorAll('.tag-input');
             const newestInput = allTagInputs[allTagInputs.length - 1];
 
-            // Gắn TomSelect trực tiếp vào Element (Không cần xài ID nữa)
             new TomSelect(newestInput, {
                 create: true,
                 plugins: ['remove_button'],
@@ -332,6 +429,7 @@
             const allValues = validAttributes.map(attr => attr.values);
             const cartesian = (args) => {
                 let r = [], max = args.length - 1;
+
                 function helper(arr, i) {
                     for (let j = 0, l = args[i].length; j < l; j++) {
                         let a = arr.slice(0);
@@ -340,6 +438,7 @@
                         else helper(a, i + 1);
                     }
                 }
+
                 helper([], 0);
                 return r;
             };
@@ -411,8 +510,8 @@
                 sku: skuVal,
                 name: nameVal,
                 imageUrl: document.getElementById("imageUrl").value.trim(),
-                category: document.getElementById("category").value,
-                brand: document.getElementById("brand").value,
+                categoryId: document.getElementById("category").value, // Lấy ID của Category mới
+                brand: document.getElementById("brand").value, // Brand lấy chuỗi text bình thường
                 unit: unitVal,
                 price: parseFloat(document.getElementById("price").value) || 0,
                 stockQuantity: parseInt(document.getElementById("stockQuantity").value) || 0,
@@ -429,7 +528,6 @@
                 payload.variants.push({
                     variantName: variantName,
                     sku: row.querySelector('.var-sku').value,
-                    // Fix: Chỉ lấy 1 lần ảnh, và lấy chuẩn giá trị
                     imageUrl: row.querySelector('.var-image').value.trim(),
                     price: parseFloat(row.querySelector('.var-price').value) || 0,
                     costPrice: parseFloat(row.querySelector('.var-cost').value) || 0,

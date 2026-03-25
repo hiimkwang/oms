@@ -2,6 +2,27 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
 <body>
 <div class="oms-container pb-5">
+    <style>
+        .upload-zone {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #dee2e6;
+            background-color: #f8f9fa;
+        }
+        .upload-zone:hover { border-color: #0d6efd; background-color: #f1f7ff; }
+        #imagePreview { max-width: 100%; max-height: 250px; display: none; border-radius: 8px; }
+        .preview-container { position: relative; display: inline-block; }
+        .btn-remove-img {
+            position: absolute; top: -10px; right: -10px;
+            background: #dc3545; color: white; border-radius: 50%;
+            width: 25px; height: 25px; border: none; display: none;
+        }
+    </style>
 
     <div class="d-flex justify-content-between align-items-center mb-4 sticky-top bg-light py-3" style="z-index: 1000; top: 64px;">
         <div class="d-flex align-items-center gap-3">
@@ -10,107 +31,109 @@
         </div>
         <div class="d-flex gap-2">
             <a href="/ui/categories" class="btn btn-light border">Hủy</a>
-            <button class="btn btn-primary fw-bold px-4" onclick="saveCategory()">Lưu</button>
+            <button class="btn btn-primary fw-bold px-4 shadow-sm" onclick="saveCategory()">Lưu danh mục</button>
         </div>
     </div>
 
     <div class="row g-4">
         <div class="col-lg-8">
-
-            <div class="card p-4 mb-4">
-                <h6 class="fw-bold mb-3">Thông tin danh mục</h6>
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <h6 class="fw-bold mb-3 border-bottom pb-2">Thông tin cơ bản</h6>
                 <div class="mb-4">
-                    <label class="form-label small text-muted mb-1">Tên danh mục <span class="text-danger">*</span></label>
-                    <input type="text" id="categoryName" class="form-control" placeholder="Nhập tên danh mục..." required>
+                    <label class="form-label small fw-bold">Tên danh mục <span class="text-danger">*</span></label>
+                    <input type="text" id="categoryName" class="form-control shadow-none" placeholder="Ví dụ: Bàn phím cơ, Switch, Keycap...">
                 </div>
                 <div>
-                    <label class="form-label small text-muted mb-1">Mô tả</label>
-                    <textarea class="form-control" rows="6" placeholder="Nhập mô tả danh mục..."></textarea>
+                    <label class="form-label small fw-bold">Mô tả</label>
+                    <textarea id="categoryDesc" class="form-control shadow-none" rows="8" placeholder="Mô tả ngắn gọn về danh mục này..."></textarea>
                 </div>
-            </div>
-
-            <div class="card p-4 mb-4">
-                <h6 class="fw-bold mb-3">Điều kiện</h6>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="conditionType" id="manual" checked>
-                    <label class="form-check-label" for="manual">Thủ công</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="conditionType" id="auto">
-                    <label class="form-check-label" for="auto">Tự động</label>
-                </div>
-            </div>
-
-            <div class="card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="fw-bold mb-0">Tối ưu SEO</h6>
-                    <a href="#" class="text-decoration-none small">Tùy chỉnh SEO</a>
-                </div>
-                <p class="text-muted small mb-0">Thiết lập các thẻ mô tả giúp khách hàng dễ dàng tìm thấy sản phẩm trên công cụ tìm kiếm như Google.</p>
             </div>
         </div>
 
         <div class="col-lg-4">
-
-            <div class="card p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold mb-0">Kênh bán hàng</h6>
-                    <a href="#" class="text-decoration-none small">Bỏ chọn tất cả</a>
+            <div class="card border-0 shadow-sm p-4 mb-4">
+                <h6 class="fw-bold mb-3 border-bottom pb-2">Ảnh danh mục</h6>
+                <div class="upload-zone rounded" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                    <div id="uploadInstruction">
+                        <i class="bi bi-cloud-arrow-up fs-1 text-primary"></i>
+                        <p class="mt-2 mb-0 small fw-bold">Tải ảnh lên</p>
+                        <small class="text-muted">Click để chọn ảnh từ máy tính</small>
+                    </div>
+                    <div class="preview-container">
+                        <img id="imagePreview" src="#" alt="Preview">
+                        <button type="button" class="btn-remove-img" id="removeImg" onclick="removeImage(event)"><i class="bi bi-x"></i></button>
+                    </div>
                 </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" checked>
-                    <label class="form-check-label fw-semibold">POS</label>
-                </div>
+                <input type="file" id="fileInput" hidden accept="image/*" onchange="previewImage(this)">
+                <p class="text-muted small mt-2 mb-0 italic">* Nên chọn ảnh tỉ lệ 1:1 hoặc 4:3</p>
             </div>
 
-            <div class="card p-4 mb-4 text-center bg-light border-dashed">
-                <div class="py-4 text-muted">
-                    <i class="bi bi-cloud-arrow-up fs-2"></i>
-                    <p class="mt-2 mb-0 small">Kéo thả hoặc <strong>thêm ảnh từ URL</strong></p>
-                    <small>Tải ảnh từ thiết bị</small>
-                </div>
+            <div class="card border-0 shadow-sm p-4 text-center">
+                <p class="text-muted small mb-0">Danh mục sẽ được hiển thị ngay trên trang chủ sau khi lưu.</p>
             </div>
-
-            <div class="card p-4 mb-4">
-                <h6 class="fw-bold mb-3">Khung giao diện</h6>
-                <select class="form-select text-muted">
-                    <option>collection</option>
-                </select>
-            </div>
-
-            <div class="card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="fw-bold mb-0">Gắn lên menu</h6>
-                    <a href="#" class="text-decoration-none small">Chọn menu</a>
-                </div>
-                <p class="text-muted small mb-0">Thêm danh mục vào menu</p>
-            </div>
-
         </div>
     </div>
 
     <script>
-        function saveCategory() {
+        // 1. Xử lý Xem trước ảnh
+        function previewImage(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                    document.getElementById('uploadInstruction').style.display = 'none';
+                    document.getElementById('removeImg').style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 2. Xóa ảnh đã chọn
+        function removeImage(event) {
+            event.stopPropagation(); // Không cho kích hoạt click của uploadZone
+            document.getElementById('fileInput').value = "";
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('uploadInstruction').style.display = 'block';
+            document.getElementById('removeImg').style.display = 'none';
+        }
+
+        // 3. Gửi dữ liệu (Dùng FormData)
+        async function saveCategory() {
             const name = document.getElementById("categoryName").value;
+            const desc = document.getElementById("categoryDesc").value;
+            const fileInput = document.getElementById("fileInput");
+
             if(!name || name.trim() === "") {
-                alert("Vui lòng nhập tên danh mục!");
+                alert("Ông quên nhập tên danh mục kìa!");
                 return;
             }
 
-            // Tận dụng API Quick Add của Master Data để lưu tên danh mục
-            fetch('/api/v1/settings/master-data/quick-add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: "CATEGORY", value: name })
-            })
-                .then(res => {
-                    if(res.ok) {
-                        alert("Thêm danh mục thành công!");
-                        window.location.href = '/ui/categories';
-                    } else {
-                        alert("Lỗi khi lưu!");
-                    }
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("description", desc);
+            if(fileInput.files[0]) {
+                formData.append("image", fileInput.files[0]);
+            }
+
+            try {
+                const response = await fetch('/api/v1/categories', {
+                    method: 'POST',
+                    body: formData // Không set Content-Type, trình duyệt tự làm
                 });
+
+                if(response.ok) {
+                    alert("Lưu danh mục ngon lành rồi ông nhé!");
+                    window.location.href = '/ui/categories';
+                } else {
+                    const error = await response.text();
+                    alert("Lỗi rồi: " + error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Không gọi được API, check lại Backend đi ông!");
+            }
         }
     </script>
 </div>

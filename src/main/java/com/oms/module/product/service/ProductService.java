@@ -1,5 +1,7 @@
 package com.oms.module.product.service;
 
+import com.oms.module.category.entity.Category;
+import com.oms.module.category.repository.CategoryRepository;
 import com.oms.module.product.dto.ProductRequest;
 import com.oms.module.product.dto.ProductVariantRequest;
 import com.oms.module.product.entity.Product;
@@ -23,6 +25,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final CategoryRepository categoryRepository;
 
     // ================= 1. TẠO MỚI SẢN PHẨM =================
     @Transactional
@@ -32,11 +35,16 @@ public class ProductService {
         if (sku == null || sku.trim().isEmpty() || "AUTO".equals(sku)) {
             sku = "MK-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         }
+        Category category = null;
+        if (request.getCategoryId() != null) {
+            category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục này trong hệ thống!"));
+        }
 
         Product product = Product.builder()
                 .sku(sku)
                 .name(request.getName())
-                .category(request.getCategory())
+                .category(category)
                 .brand(request.getBrand())
                 .conditionStatus(request.getConditionStatus())
                 .unit(request.getUnit())
@@ -97,10 +105,15 @@ public class ProductService {
     @Transactional
     public Product updateProduct(String sku, ProductRequest request) {
         Product existingProduct = getProductBySku(sku); // Tìm theo SKU thay vì ID
-
+        Category category = null;
+        if (request.getCategoryId() != null) {
+            category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục!"));
+            existingProduct.setCategory(category);
+        }
         // Cập nhật thông tin cơ bản
         existingProduct.setName(request.getName());
-        existingProduct.setCategory(request.getCategory());
+        existingProduct.setCategory(category);
         existingProduct.setBrand(request.getBrand());
         existingProduct.setConditionStatus(request.getConditionStatus());
         existingProduct.setUnit(request.getUnit());
@@ -167,9 +180,10 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public List<Product> getFilteredProducts(String keyword, String category, String brand) {
+    public List<Product> getFilteredProducts(String keyword, Long category, String brand) {
         return productRepository.searchAndFilterProducts(keyword, category, brand);
     }
+
     @Transactional(readOnly = true)
     public List<ProductVariant> getFilteredInventory(String keyword, String stockStatus, Integer minStock, Integer maxStock, String dateRange) {
         java.time.LocalDateTime startDate = null;

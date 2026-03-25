@@ -13,7 +13,7 @@ public class ProductRequest {
     @NotBlank(message = "Tên sản phẩm không được để trống")
     private String name;
 
-    private String category;
+    private Long categoryId;
     private String brand;
     private String conditionStatus;
 

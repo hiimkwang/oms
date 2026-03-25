@@ -1,12 +1,15 @@
 package com.oms.module.receipt.controller;
 
 import com.oms.module.receipt.dto.ReceiptRequest;
+import com.oms.module.receipt.dto.SupplierStatsResponse;
 import com.oms.module.receipt.entity.Receipt;
 import com.oms.module.receipt.service.ReceiptService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -25,6 +28,7 @@ public class ReceiptController {
     public ResponseEntity<List<Receipt>> getAll() {
         return ResponseEntity.ok(receiptService.getAllReceipts());
     }
+
     @PostMapping("/{id}/receive")
     public ResponseEntity<?> receiveStock(@PathVariable Long id) {
         try {
@@ -45,5 +49,15 @@ public class ReceiptController {
     public ResponseEntity<?> cancel(@PathVariable Long id) {
         receiptService.cancelReceipt(id);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/api/v1/suppliers/{code}/stats")
+    public ResponseEntity<SupplierStatsResponse> getSupplierStats(
+            @PathVariable String code,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+
+        SupplierStatsResponse stats = receiptService.getSupplierStats(code, start, end);
+        return ResponseEntity.ok(stats);
     }
 }

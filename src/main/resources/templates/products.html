@@ -45,25 +45,32 @@
                            placeholder="Tìm kiếm theo mã sản phẩm, tên sản phẩm, barcode">
                 </div>
 
-                <select name="category" class="form-select text-dark cursor-pointer text-truncate" style="width: auto; max-width: 180px;"
+                <select name="category" class="form-select text-dark cursor-pointer text-truncate"
+                        style="width: auto; max-width: 180px;"
                         onchange="this.form.submit()">
                     <option value="">Loại sản phẩm</option>
-                    <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat}"
-                            th:selected="${cat == selectedCategory}"></option>
+                    <option th:each="cat : ${categories}"
+                            th:value="${cat.id}"
+                            th:text="${cat.name}"
+                            th:selected="${cat.id == selectedCategory}">
+                    </option>
                 </select>
 
-                <select name="brand" class="form-select text-dark cursor-pointer text-truncate" style="width: auto; max-width: 160px;"
+                <select name="brand" class="form-select text-dark cursor-pointer text-truncate"
+                        style="width: auto; max-width: 160px;"
                         onchange="this.form.submit()">
                     <option value="">Nhãn hiệu</option>
                     <option th:each="b : ${brands}" th:value="${b}" th:text="${b}"
                             th:selected="${b == selectedBrand}"></option>
                 </select>
 
-                <select class="form-select text-dark cursor-pointer text-truncate" style="width: auto; max-width: 120px;">
+                <select class="form-select text-dark cursor-pointer text-truncate"
+                        style="width: auto; max-width: 120px;">
                     <option value="">Tag</option>
                 </select>
 
-                <button type="button" class="btn btn-white border bg-white text-dark text-nowrap" data-bs-toggle="offcanvas"
+                <button type="button" class="btn btn-white border bg-white text-dark text-nowrap"
+                        data-bs-toggle="offcanvas"
                         data-bs-target="#offcanvasFilters" aria-controls="offcanvasFilters">
                     <i class="bi bi-funnel me-1"></i> Bộ lọc khác
                 </button>
@@ -190,7 +197,7 @@
 
                         <td>
                             <span class="text-dark"
-                                  th:text="${p.category != null and p.category != '' ? p.category : '---'}"></span>
+                                  th:text="${p.category != null ? p.category.name : '---'}"></span>
                         </td>
 
                         <td>

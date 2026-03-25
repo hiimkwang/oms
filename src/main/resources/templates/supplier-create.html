@@ -57,18 +57,15 @@
 
     <form id="supplierForm">
         <div class="row g-4">
-
             <div class="col-md-8">
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body p-4">
                         <div class="card-title-custom">Thông tin chung</div>
-
                         <div class="mb-4">
                             <label class="form-label-custom">Tên nhà cung cấp<span class="asterisk">*</span></label>
                             <input type="text" id="name" class="form-control form-control-custom"
                                    placeholder="Nhập tên nhà cung cấp" required>
                         </div>
-
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label-custom">Mã nhà cung cấp</label>
@@ -86,7 +83,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label-custom">Email</label>
@@ -99,7 +95,6 @@
                                        placeholder="Nhập mã số thuế">
                             </div>
                         </div>
-
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label-custom">Website</label>
@@ -118,54 +113,48 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
                         <div class="card-title-custom">Địa chỉ</div>
-
                         <div class="mb-4">
                             <label class="form-label-custom">Quốc gia</label>
                             <select id="country" class="form-select form-control-custom">
                                 <option value="Vietnam" selected>Vietnam</option>
                                 <option value="China">China</option>
                                 <option value="US">United States</option>
+                                <option value="Other">Khác</option>
                             </select>
                         </div>
 
                         <div class="bg-light p-3 rounded border mb-4 d-flex align-items-center">
                             <div class="form-check form-switch m-0">
                                 <input class="form-check-input" type="checkbox" role="switch" id="newAddressSwitch"
-                                       checked>
-                                <label class="form-check-label ms-2 small fw-medium" for="newAddressSwitch">Địa chỉ mới
-                                    <i class="bi bi-info-circle info-icon ms-1"></i></label>
+                                       checked disabled>
+                                <label class="form-check-label ms-2 small fw-medium" for="newAddressSwitch">Thông tin
+                                    địa chỉ</label>
                             </div>
                         </div>
 
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label-custom">Tỉnh/Thành phố</label>
-                                <select id="province" class="form-select form-control-custom text-muted">
-                                    <option value="">Chọn tỉnh thành</option>
-                                    <option value="Hà Nội">Hà Nội</option>
-                                    <option value="Hồ Chí Minh">Hồ Chí Minh</option>
-                                    <option value="Thâm Quyến">Thâm Quyến (China)</option>
-                                </select>
+                                <input type="text" id="province" class="form-control form-control-custom"
+                                       placeholder="VD: Hà Nội hoặc Quảng Đông">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label-custom">Quận huyện</label>
-                                <select id="district" class="form-select form-control-custom text-muted">
-                                    <option value="">Chọn quận huyện</option>
-                                </select>
+                                <input type="text" id="district" class="form-control form-control-custom"
+                                       placeholder="VD: Cầu Giấy hoặc Bạch Vân">
                             </div>
                         </div>
 
                         <div class="row g-4">
                             <div class="col-md-6">
                                 <label class="form-label-custom">Phường xã</label>
-                                <select id="ward" class="form-select form-control-custom text-muted">
-                                    <option value="">Chọn phường xã</option>
-                                </select>
+                                <input type="text" id="ward" class="form-control form-control-custom"
+                                       placeholder="VD: Dịch Vọng">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label-custom">Địa chỉ cụ thể</label>
                                 <input type="text" id="addressDetail" class="form-control form-control-custom"
-                                       placeholder="Nhập địa chỉ cụ thể">
+                                       placeholder="Số nhà, tên đường, tòa nhà...">
                             </div>
                         </div>
                     </div>
@@ -196,7 +185,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <div class="d-flex justify-content-end mt-4 border-top pt-4">
@@ -208,8 +196,7 @@
 
     <script>
         async function submitSupplier() {
-            // Lấy dữ liệu từ form
-            const name = document.getElementById('name').value;
+            const name = document.getElementById('name').value.trim();
             if (!name) {
                 alert('Tên nhà cung cấp không được để trống!');
                 return;
@@ -217,23 +204,22 @@
 
             const payload = {
                 name: name,
-                code: document.getElementById('code').value,
-                phone: document.getElementById('phone').value,
-                email: document.getElementById('email').value,
-                taxCode: document.getElementById('taxCode').value,
-                website: document.getElementById('website').value,
-                fax: document.getElementById('fax').value,
+                code: document.getElementById('code').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                taxCode: document.getElementById('taxCode').value.trim(),
+                website: document.getElementById('website').value.trim(),
+                fax: document.getElementById('fax').value.trim(),
                 country: document.getElementById('country').value,
-                province: document.getElementById('province').value,
-                district: document.getElementById('district').value,
-                ward: document.getElementById('ward').value,
-                addressDetail: document.getElementById('addressDetail').value,
+                province: document.getElementById('province').value.trim(),
+                district: document.getElementById('district').value.trim(),
+                ward: document.getElementById('ward').value.trim(),
+                addressDetail: document.getElementById('addressDetail').value.trim(),
                 assignee: document.getElementById('assignee').value,
-                tags: document.getElementById('tags').value
+                tags: document.getElementById('tags').value.trim()
             };
 
             try {
-                // Bắn API lên REST Controller
                 const response = await fetch('/api/v1/suppliers', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -242,7 +228,7 @@
 
                 if (response.ok) {
                     alert('Thêm mới nhà cung cấp thành công!');
-                    window.location.href = '/ui/suppliers'; // Chuyển về trang danh sách
+                    window.location.href = '/ui/suppliers';
                 } else {
                     const errorData = await response.json();
                     alert('Lỗi: ' + (errorData.message || 'Không thể thêm nhà cung cấp.'));

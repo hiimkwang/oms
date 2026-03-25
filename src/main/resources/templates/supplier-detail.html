@@ -18,20 +18,9 @@
             margin-bottom: 4px;
         }
 
-        .text-value {
-            font-size: 14px;
-            font-weight: 500;
-            color: #333;
-        }
-
-        .text-value-empty {
-            font-size: 14px;
-            color: #adb5bd;
-        }
-
         .stat-value-blue {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 16px;
+            font-weight: 700;
             color: #0d6efd;
             margin-bottom: 2px;
         }
@@ -39,9 +28,9 @@
         .stat-value-gray {
             font-size: 13px;
             color: #6c757d;
+            font-weight: 500;
         }
 
-        /* Badge trạng thái */
         .badge-active {
             background-color: #e6f6ee;
             color: #008a47;
@@ -63,88 +52,74 @@
             border-color: #dce0e4;
             box-shadow: none;
             height: 38px;
-        }
-
-        .icon-edit {
-            color: #adb5bd;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .icon-edit:hover {
-            color: #0d6efd;
-        }
-
-        /* Trạng thái lỗi tải / trống */
-        .empty-state-box {
-            text-align: center;
-            padding: 40px 0;
-        }
-
-        .empty-state-icon {
-            width: 64px;
-            height: 64px;
-            background-color: #f4f6f8;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 16px;
-            color: #adb5bd;
-            font-size: 28px;
+            margin-bottom: 10px;
         }
     </style>
 
-    <div class="d-flex align-items-center gap-3 mb-4">
-        <a th:href="@{/ui/suppliers}" class="btn btn-white border shadow-sm px-2"><i class="bi bi-arrow-left"></i></a>
-        <h3 class="fw-bold text-dark mb-0" th:text="${supplier.name}">Tên nhà cung cấp</h3>
-
-        <span th:if="${supplier.status.name() == 'ACTIVE'}"
-              class="badge rounded-pill badge-active">Đang hoạt động</span>
-        <span th:if="${supplier.status.name() == 'INACTIVE'}"
-              class="badge rounded-pill badge-inactive">Ngừng hoạt động</span>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a th:href="@{/ui/suppliers}" class="btn btn-white border shadow-sm px-2"><i
+                    class="bi bi-arrow-left"></i></a>
+            <h3 class="fw-bold text-dark mb-0" th:text="${supplier.name}">Tên nhà cung cấp</h3>
+            <span th:class="${supplier.status.name() == 'ACTIVE' ? 'badge rounded-pill badge-active' : 'badge rounded-pill badge-inactive'}"
+                  th:text="${supplier.status.name() == 'ACTIVE' ? 'Đang hoạt động' : 'Ngừng hoạt động'}"></span>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnDeleteSupplier"
+                    class="btn btn-white border border-danger text-danger fw-medium shadow-sm px-4">Xóa nhà cung cấp
+            </button>
+            <button type="button" class="btn btn-primary fw-bold shadow-sm px-4" onclick="updateSupplier()">Lưu thay
+                đổi
+            </button>
+        </div>
     </div>
+
+    <input type="hidden" id="supplierId" th:value="${supplier.id}">
+    <input type="hidden" id="supplierCode" th:value="${supplier.code}">
 
     <div class="row g-4">
         <div class="col-md-8">
-
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div class="fw-bold text-dark" style="font-size: 15px;">Mã nhà cung cấp: <span
                                 th:text="${supplier.code}">---</span></div>
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-white text-dark dropdown-toggle fw-medium" type="button"
-                                    data-bs-toggle="dropdown">
-                                Tháng này (01/03/2026 - 31/03/2026)
+                            <button class="btn btn-sm btn-white border text-dark dropdown-toggle fw-medium"
+                                    type="button" id="timeFilterBtn" data-bs-toggle="dropdown">
+                                Tháng này
                             </button>
                             <ul class="dropdown-menu shadow">
-                                <li><a class="dropdown-item small" href="#">Tháng trước</a></li>
-                                <li><a class="dropdown-item small" href="#">Năm nay</a></li>
+                                <li><a class="dropdown-item small" href="javascript:void(0)"
+                                       onclick="changePeriod('thisMonth')">Tháng này</a></li>
+                                <li><a class="dropdown-item small" href="javascript:void(0)"
+                                       onclick="changePeriod('lastMonth')">Tháng trước</a></li>
+                                <li><a class="dropdown-item small" href="javascript:void(0)"
+                                       onclick="changePeriod('thisYear')">Năm nay</a></li>
                             </ul>
                         </div>
                     </div>
 
-                    <div class="row g-3">
-                        <div class="col-md-3">
+                    <div class="row g-3 text-center text-md-start">
+                        <div class="col-md-3 border-end">
                             <div class="text-label">Đơn nhập<br>đã tạo</div>
+                            <div class="stat-value-blue" id="stat-count">0 đơn</div>
+                            <div class="stat-value-gray" id="stat-total">0đ</div>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <div class="text-label">Nợ cần trả<br>(Chưa thanh toán)</div>
+                            <div class="stat-value-blue text-danger" id="stat-debt">0đ</div>
+                            <div class="stat-value-gray">Tiền hàng chưa trả</div>
+                        </div>
+                        <div class="col-md-3 border-end">
+                            <div class="text-label">Đơn trả hàng<br>đã tạo</div>
                             <div class="stat-value-blue">0 đơn</div>
                             <div class="stat-value-gray">0đ</div>
                         </div>
                         <div class="col-md-3">
-                            <div class="text-label">Đơn đã nhập<br>chưa thanh toán</div>
-                            <div class="stat-value-blue">0 đơn</div>
-                            <div class="stat-value-gray">0đ</div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-label">Đơn trả<br>đã tạo</div>
-                            <div class="stat-value-blue">0 đơn</div>
-                            <div class="stat-value-gray">0đ</div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-label">Đơn trả<br>chưa nhận hoàn tiền</div>
-                            <div class="stat-value-blue">0 đơn</div>
-                            <div class="stat-value-gray">0đ</div>
+                            <div class="text-label">Hoàn tiền<br>chưa nhận</div>
+                            <div class="stat-value-blue text-success">0đ</div>
+                            <div class="stat-value-gray">Tiền NCC nợ mình</div>
                         </div>
                     </div>
                 </div>
@@ -152,114 +127,201 @@
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <div class="card-title-custom">Lịch sử nhập/trả hàng</div>
-                    <p class="text-muted small mb-0">Không có đơn nhập/ đơn trả của nhà cung cấp trong khoảng thời gian
-                        đang chọn.</p>
+                    <div class="card-title-custom">Thông tin chi tiết</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-label">Tên nhà cung cấp</label>
+                            <input type="text" id="name" class="form-control form-control-custom"
+                                   th:value="${supplier.name}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-label">Mã số thuế</label>
+                            <input type="text" id="taxCode" class="form-control form-control-custom"
+                                   th:value="${supplier.taxCode}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-label">Số điện thoại</label>
+                            <input type="text" id="phone" class="form-control form-control-custom"
+                                   th:value="${supplier.phone}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-label">Email</label>
+                            <input type="email" id="email" class="form-control form-control-custom"
+                                   th:value="${supplier.email}">
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <i class="bi bi-journal-text text-warning fs-5"></i>
-                        <div class="card-title-custom mb-0">Quản lý công nợ</div>
-                    </div>
-                    <div class="empty-state-box">
-                        <div class="empty-state-icon"><i class="bi bi-file-earmark-x"></i></div>
-                        <h6 class="fw-bold text-dark mb-3">Lỗi tải dữ liệu</h6>
-                        <button class="btn btn-primary fw-bold px-4 shadow-sm">Tải lại</button>
+                    <div class="card-title-custom">Lịch sử nhập hàng trong kỳ</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="historyTable">
+                            <thead class="bg-light">
+                            <tr class="small text-muted">
+                                <th>Mã đơn</th>
+                                <th>Ngày tạo</th>
+                                <th>Trạng thái đơn</th>
+                                <th>Thanh toán</th>
+                                <th class="text-end">Tổng tiền</th>
+                            </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        <div id="emptyHistory" class="text-center py-4 d-none">
+                            <p class="text-muted small mb-0">Không có dữ liệu.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-
         </div>
 
         <div class="col-md-4">
-
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="card-title-custom mb-0">Liên hệ</div>
-                        <i class="bi bi-pencil icon-edit"></i>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="text-label">Số điện thoại</div>
-                        <div th:if="${supplier.phone != null and supplier.phone != ''}" class="text-value"
-                             th:text="${supplier.phone}"></div>
-                        <div th:unless="${supplier.phone != null and supplier.phone != ''}" class="text-value-empty">
-                            Không có số điện thoại
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div th:if="${supplier.email != null and supplier.email != ''}" class="text-value"
-                             th:text="${supplier.email}"></div>
-                        <div th:unless="${supplier.email != null and supplier.email != ''}" class="text-value-empty">
-                            Không có email
-                        </div>
-                    </div>
-
-                    <div>
-                        <div th:if="${supplier.addressDetail != null and supplier.addressDetail != ''}"
-                             class="text-value" th:text="${supplier.addressDetail}"></div>
-                        <div th:unless="${supplier.addressDetail != null and supplier.addressDetail != ''}"
-                             class="text-value-empty">Không có địa chỉ
-                        </div>
-                    </div>
+                    <div class="card-title-custom">Địa chỉ</div>
+                    <label class="text-label">Quốc gia</label>
+                    <input type="text" id="country" class="form-control form-control-custom"
+                           th:value="${supplier.country}">
+                    <label class="text-label">Tỉnh / Thành phố</label>
+                    <input type="text" id="province" class="form-control form-control-custom"
+                           th:value="${supplier.province}">
+                    <label class="text-label">Quận / Huyện</label>
+                    <input type="text" id="district" class="form-control form-control-custom"
+                           th:value="${supplier.district}">
+                    <label class="text-label">Phường / Xã</label>
+                    <input type="text" id="ward" class="form-control form-control-custom" th:value="${supplier.ward}">
+                    <label class="text-label">Địa chỉ chi tiết</label>
+                    <textarea id="addressDetail" class="form-control form-control-custom" rows="2"
+                              th:text="${supplier.addressDetail}"></textarea>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <div class="card-title-custom">Nhân viên phụ trách</div>
-                    <label class="text-label mb-2 d-block">Nhân viên phụ trách</label>
-                    <select class="form-select form-select-custom">
-                        <option th:text="${supplier.assignee != null and supplier.assignee != '' ? supplier.assignee : 'Chưa phân công'}"
-                                selected></option>
-                        <option value="QUANG BUI">QUANG BUI</option>
-                        <option value="ADMIN">ADMIN</option>
+                    <select id="assignee" class="form-select form-select-custom">
+                        <option value="QUANG BUI" th:selected="${supplier.assignee == 'QUANG BUI'}">QUANG BUI</option>
+                        <option value="ADMIN" th:selected="${supplier.assignee == 'ADMIN'}">ADMIN</option>
                     </select>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="card-title-custom mb-0">Tag</div>
-                        <a href="javascript:void(0)" class="text-primary small text-decoration-none fw-medium">Danh sách
-                            tag</a>
-                    </div>
-                    <input type="text" class="form-control form-control-custom" th:value="${supplier.tags}"
-                           placeholder="Tìm kiếm hoặc thêm mới tag">
+                    <div class="card-title-custom">Tag</div>
+                    <input type="text" id="tags" class="form-control form-control-custom" th:value="${supplier.tags}"
+                           placeholder="tag1, tag2...">
                 </div>
             </div>
-
         </div>
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-4 pt-4">
-        <button type="button" class="btn btn-white border border-danger text-danger fw-medium shadow-sm px-4"
-                th:onclick="'deleteSupplier(\'' + ${supplier.id} + '\')'">Xóa
-        </button>
-        <button type="button" class="btn btn-light fw-medium border shadow-sm px-4 text-muted">Lưu</button>
-    </div>
+    <script>
+        const formatMoney = (v) => new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(v || 0);
+        const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN');
 
-</div>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mặc định load tháng này khi vào trang
+            changePeriod('thisMonth');
 
-<script>
-    async function deleteSupplier(id) {
-        if (confirm("Bạn có chắc chắn muốn xóa nhà cung cấp này không? Dữ liệu không thể khôi phục!")) {
+            // Bắt sự kiện Xóa bằng ID để tránh lỗi Thymeleaf Parsing
+            document.getElementById('btnDeleteSupplier').addEventListener('click', function () {
+                const code = document.getElementById('supplierCode').value;
+                if (confirm("Xác nhận xóa (ngừng hoạt động) nhà cung cấp này?")) {
+                    deleteSupplier(code);
+                }
+            });
+        });
+
+        async function changePeriod(period) {
+            const now = new Date();
+            let start, end;
+
+            if (period === 'thisMonth') {
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+                document.getElementById('timeFilterBtn').innerText = "Tháng này";
+            } else if (period === 'lastMonth') {
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+                document.getElementById('timeFilterBtn').innerText = "Tháng trước";
+            } else if (period === 'thisYear') {
+                start = new Date(now.getFullYear(), 0, 1);
+                end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+                document.getElementById('timeFilterBtn').innerText = "Năm nay";
+            }
+
+            const code = document.getElementById('supplierCode').value;
             try {
-                // (Giả sử ông đã viết DELETE mapping trong SupplierController)
-                // const response = await fetch('/api/v1/suppliers/' + id, { method: 'DELETE' });
-                // if (response.ok) { window.location.href = '/ui/suppliers'; }
-                alert("Đã gửi lệnh xóa NCC có ID: " + id);
-            } catch (error) {
-                console.error('Error:', error);
+                const res = await fetch(`/api/v1/suppliers/${code}/stats?start=${start.toISOString()}&end=${end.toISOString()}`);
+                const data = await res.json();
+
+                document.getElementById('stat-count').innerText = `${data.totalOrders} đơn`;
+                document.getElementById('stat-total').innerText = formatMoney(data.totalAmount);
+                document.getElementById('stat-debt').innerText = formatMoney(data.totalDebt);
+
+                const tbody = document.querySelector('#historyTable tbody');
+                if (data.history && data.history.length > 0) {
+                    document.getElementById('emptyHistory').classList.add('d-none');
+                    tbody.innerHTML = data.history.map(h => `
+                        <tr>
+                            <td><span class="fw-bold">${h.code}</span></td>
+                            <td>${formatDate(h.createdAt)}</td>
+                            <td><span class="badge ${h.status === 'COMPLETED' ? 'bg-success' : 'bg-warning text-dark'}">${h.status}</span></td>
+                            <td><span class="text-${h.paymentStatus === 'PAID' ? 'success' : 'danger'} small fw-bold">${h.paymentStatus}</span></td>
+                            <td class="text-end fw-bold">${formatMoney(h.totalAmount)}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = "";
+                    document.getElementById('emptyHistory').classList.remove('d-none');
+                }
+            } catch (e) {
+                console.error(e);
             }
         }
-    }
-</script>
+
+        async function updateSupplier() {
+            const id = document.getElementById('supplierId').value;
+            const payload = {
+                name: document.getElementById('name').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                taxCode: document.getElementById('taxCode').value.trim(),
+                country: document.getElementById('country').value.trim(),
+                province: document.getElementById('province').value.trim(),
+                district: document.getElementById('district').value.trim(),
+                ward: document.getElementById('ward').value.trim(),
+                addressDetail: document.getElementById('addressDetail').value.trim(),
+                assignee: document.getElementById('assignee').value,
+                tags: document.getElementById('tags').value.trim()
+            };
+
+            const res = await fetch(`/api/v1/suppliers/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("Đã lưu thay đổi!");
+                location.reload();
+            } else {
+                alert("Lỗi cập nhật!");
+            }
+        }
+
+        async function deleteSupplier(code) {
+            const res = await fetch('/api/v1/suppliers/bulk-delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify([code])
+            });
+            if (res.ok) window.location.href = '/ui/suppliers';
+        }
+    </script>
+</div>
 </body>
 </html>

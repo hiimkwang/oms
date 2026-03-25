@@ -1,4 +1,5 @@
 package com.oms.module.supplier.service;
+
 import com.oms.module.supplier.dto.SupplierRequest;
 import com.oms.module.supplier.entity.Supplier;
 import com.oms.module.supplier.enums.SupplierStatus;
@@ -65,5 +66,13 @@ public class SupplierService {
         supplier.setAddressDetail(request.getAddressDetail());
         supplier.setAssignee(request.getAssignee());
         supplier.setTags(request.getTags());
+    }
+
+    @Transactional
+    public void bulkDeleteByCodes(List<String> codes) {
+        if (codes == null || codes.isEmpty()) {
+            return;
+        }
+        supplierRepository.deleteAllByCodeIn(codes);
     }
 }

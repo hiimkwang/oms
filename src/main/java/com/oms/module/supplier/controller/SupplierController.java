@@ -43,4 +43,14 @@ public class SupplierController {
             @Valid @RequestBody SupplierRequest request) {
         return ResponseEntity.ok(supplierService.updateSupplier(supplierCode, request));
     }
+    @PostMapping("/bulk-delete")
+    public ResponseEntity<?> bulkDelete(@RequestBody List<String> codes) {
+        try {
+            // Viết logic xóa danh sách NCC theo Code vào SupplierService
+            supplierService.bulkDeleteByCodes(codes);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.oms.module.product.entity;
 
+import com.oms.module.category.entity.Category;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,8 +27,9 @@ public class Product {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "category", length = 100)
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id") // Khóa ngoại trỏ sang bảng categories mới
+    private Category category;
 
     @Column(name = "brand", length = 100)
     private String brand;
