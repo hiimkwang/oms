@@ -24,11 +24,6 @@
             height: 36px;
         }
 
-        .form-control-custom:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .1);
-        }
-
         .info-card {
             background-color: #fff;
             padding: 20px;
@@ -36,23 +31,35 @@
             border: 1px solid #e2e8f0;
             margin-bottom: 15px;
         }
+
+        .auto-selected {
+            border-color: #0d6efd !important;
+            background-color: #f0f7ff !important;
+            transition: all 0.5s;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
     </style>
 
     <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
         <div class="d-flex align-items-center gap-3">
             <a th:href="@{/ui/customers}" class="btn btn-white border bg-white shadow-sm px-2"><i
                     class="bi bi-arrow-left"></i></a>
-            <h4 class="fw-bold text-dark mb-0">Thêm mới khách hàng</h4>
+            <h4 class="fw-bold text-dark mb-0" id="pageTitle">Thêm mới khách hàng</h4>
         </div>
         <div class="d-flex gap-2">
             <a th:href="@{/ui/customers}" class="btn btn-white border bg-white px-4">Hủy</a>
-            <button type="button" class="btn btn-primary fw-bold px-4" onclick="saveCustomer()">Lưu</button>
+            <button type="button" class="btn btn-primary fw-bold px-4 shadow-sm" onclick="saveCustomer()">Lưu khách
+                hàng
+            </button>
         </div>
     </div>
 
     <div class="row g-3">
         <div class="col-md-8">
-            <div class="info-card">
+            <div class="info-card shadow-sm">
                 <div class="card-title-custom">Thông tin cơ bản</div>
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -80,140 +87,230 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label-custom">Giới tính</label>
-                        <div class="d-flex gap-3 mt-1">
+                        <div class="d-flex gap-4 mt-1">
                             <div class="form-check"><input class="form-check-input" type="radio" name="gender" id="gNam"
-                                                           value="NAM"><label class="small" for="gNam">Nam</label></div>
+                                                           value="NAM" checked><label class="small cursor-pointer"
+                                                                                      for="gNam">Nam</label></div>
                             <div class="form-check"><input class="form-check-input" type="radio" name="gender" id="gNu"
-                                                           value="NU"><label class="small" for="gNu">Nữ</label></div>
+                                                           value="NU"><label class="small cursor-pointer"
+                                                                             for="gNu">Nữ</label></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="info-card">
+            <div class="info-card shadow-sm">
                 <div class="card-title-custom">Địa chỉ nhận hàng</div>
                 <div class="row g-3">
-                    <div class="col-md-6"><label class="form-label-custom">Họ</label><input type="text"
-                                                                                            id="shipLastName"
-                                                                                            class="form-control form-control-custom">
-                    </div>
-                    <div class="col-md-6"><label class="form-label-custom">Tên</label><input type="text"
-                                                                                             id="shipFirstName"
-                                                                                             class="form-control form-control-custom">
-                    </div>
-                    <div class="col-md-12"><label class="form-label-custom">Công ty</label><input type="text"
-                                                                                                  id="shipCompany"
-                                                                                                  class="form-control form-control-custom">
-                    </div>
                     <div class="col-md-12">
                         <label class="form-label-custom">Địa chỉ chi tiết</label>
                         <textarea id="shipAddressDetail" class="form-control" rows="2"
-                                  placeholder="Nhập số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố..."></textarea>
+                                  placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."></textarea>
                     </div>
                 </div>
             </div>
 
-            <div class="info-card">
+            <div class="info-card shadow-sm">
                 <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="hasInvoice"
-                           onchange="document.getElementById('invBlock').classList.toggle('d-none')">
-                    <label class="fw-bold" for="hasInvoice">Khách có thông tin xuất hóa đơn</label>
+                    <input class="form-check-input cursor-pointer" type="checkbox" id="hasInvoice"
+                           onchange="document.getElementById('invBlock').classList.toggle('d-none', !this.checked)">
+                    <label class="fw-bold text-dark cursor-pointer" for="hasInvoice">Khách có thông tin xuất hóa
+                        đơn</label>
                 </div>
-                <div id="invBlock" class="d-none">
+                <div id="invBlock" class="d-none pt-3 border-top">
                     <div class="row g-3">
-                        <div class="col-md-6"><label class="form-label-custom">Mã số thuế</label><input type="text"
-                                                                                                        id="taxCode"
-                                                                                                        class="form-control form-control-custom">
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Mã số thuế</label>
+                            <input type="text" id="taxCode" class="form-control form-control-custom" placeholder="MST">
                         </div>
-                        <div class="col-md-6"><label class="form-label-custom">Tên công ty</label><input type="text"
-                                                                                                         id="companyName"
-                                                                                                         class="form-control form-control-custom">
+                        <div class="col-md-8">
+                            <label class="form-label-custom">Tên công ty</label>
+                            <input type="text" id="companyName" class="form-control form-control-custom"
+                                   placeholder="Tên công ty xuất hóa đơn">
                         </div>
-                        <div class="col-md-12"><label class="form-label-custom">Địa chỉ công ty</label><input
-                                type="text" id="companyAddress" class="form-control form-control-custom"></div>
+                        <div class="col-md-12">
+                            <label class="form-label-custom">Địa chỉ công ty</label>
+                            <input type="text" id="companyAddress" class="form-control form-control-custom"
+                                   placeholder="Địa chỉ trên hóa đơn">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="info-card">
+            <div class="info-card shadow-sm">
                 <label class="form-label-custom">Nhóm khách hàng</label>
                 <select id="customerGroup" class="form-select form-select-custom">
-                    <option value="Khách lẻ">Khách lẻ</option>
-                    <option value="VIP">VIP</option>
-                    <option value="Đại lý">Đại lý</option>
+                    <option value="">Đang tải nhóm...</option>
                 </select>
+                <div id="autoCheckNote" class="small text-primary mt-2 d-none">
+                    <i class="bi bi-magic"></i> Đã tự động chọn nhóm phù hợp
+                </div>
             </div>
-            <div class="info-card">
+
+            <div class="info-card shadow-sm">
                 <label class="form-label-custom">Ghi chú</label>
-                <textarea id="note" class="form-control" rows="4" placeholder="Nhập ghi chú..."></textarea>
-            </div>
-            <div class="info-card">
-                <label class="form-label-custom">Tags</label>
-                <input type="text" id="tags" class="form-control form-control-custom"
-                       placeholder="Gõ tag và nhấn enter">
+                <textarea id="note" class="form-control" rows="4"
+                          placeholder="Nhập ghi chú về khách hàng..."></textarea>
             </div>
         </div>
     </div>
 
-    <script th:inline="none">
+    <script th:inline="javascript">
+        // 1. Phân tích URL để biết là Thêm hay Sửa
+        const pathSegments = window.location.pathname.split('/');
+        const editCustomerCode = pathSegments.length > 3 ? pathSegments[3] : null;
+
+        let allGroups = [];
+        let stats = {orderCount: 0, totalSpent: 0};
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load nhóm trước
+            await fetchGroups();
+
+            // Nếu là sửa, load data khách hàng
+            if (editCustomerCode && editCustomerCode !== 'create') {
+                document.getElementById('pageTitle').innerText = "Chỉnh sửa khách hàng";
+                await fetchCustomerData(editCustomerCode);
+            } else {
+                document.getElementById('customerGroup').value = "Khách lẻ";
+            }
+        });
+
+        async function fetchGroups() {
+            try {
+                const res = await fetch('/api/v1/customer-groups');
+                allGroups = await res.json();
+                const select = document.getElementById('customerGroup');
+                select.innerHTML = '<option value="Khách lẻ">Khách lẻ</option>';
+
+                allGroups.forEach(g => {
+                    if (g.name !== "Khách lẻ") {
+                        select.innerHTML += `<option value="${g.name}">${g.name}</option>`;
+                    }
+                });
+            } catch (e) {
+                console.error("Lỗi tải nhóm:", e);
+            }
+        }
+
+        async function fetchCustomerData(code) {
+            try {
+                const res = await fetch(`/api/v1/customers/${code}`);
+                const c = await res.json();
+
+                // Fill thông tin cơ bản
+                document.getElementById('firstName').value = c.firstName || '';
+                document.getElementById('lastName').value = c.lastName || '';
+                document.getElementById('email').value = c.email || '';
+                document.getElementById('phoneNumber').value = c.phoneNumber || '';
+                document.getElementById('dob').value = c.dob || '';
+                document.getElementById('note').value = c.note || '';
+                document.getElementById('shipAddressDetail').value = c.shipAddressDetail || '';
+                if (c.gender) document.querySelector(`input[name="gender"][value="${c.gender}"]`).checked = true;
+
+                // Fill thông tin hóa đơn
+                if (c.hasInvoice) {
+                    document.getElementById('hasInvoice').checked = true;
+                    document.getElementById('invBlock').classList.remove('d-none');
+                    document.getElementById('taxCode').value = c.taxCode || '';
+                    document.getElementById('companyName').value = c.companyName || '';
+                    document.getElementById('companyAddress').value = c.companyAddress || '';
+                }
+
+                // Lưu stats để auto check
+                stats.orderCount = c.orderCount || 0;
+                stats.totalSpent = c.totalSpent || 0;
+
+                // Tự động kiểm tra nhóm
+                autoCheckGroup(c.customerGroup);
+
+            } catch (e) {
+                console.error("Lỗi tải dữ liệu khách hàng:", e);
+            }
+        }
+
+        function autoCheckGroup(manualGroup) {
+            let suggested = manualGroup || "Khách lẻ";
+            let isAuto = false;
+
+            allGroups.forEach(g => {
+                if (g.autoUpdate && g.conditions) {
+                    try {
+                        const cond = JSON.parse(g.conditions);
+                        const results = cond.rules.map(r => {
+                            const val = (r.field === 'TOTAL_SPENT') ? stats.totalSpent : stats.orderCount;
+                            const target = parseFloat(r.value);
+                            if (r.operator === '>') return val > target;
+                            if (r.operator === '<') return val < target;
+                            if (r.operator === '=') return val == target;
+                            return false;
+                        });
+
+                        const isMatch = (cond.matchType === 'ALL') ? results.every(res => res) : results.some(res => res);
+                        if (isMatch) {
+                            suggested = g.name;
+                            isAuto = true;
+                        }
+                    } catch (e) {
+                    }
+                }
+            });
+
+            const select = document.getElementById('customerGroup');
+            select.value = suggested;
+            if (isAuto && suggested !== manualGroup) {
+                select.classList.add('auto-selected');
+                document.getElementById('autoCheckNote').classList.remove('d-none');
+            }
+        }
+
         async function saveCustomer() {
-            // 1. Kiểm tra bắt buộc
             const firstName = document.getElementById('firstName').value.trim();
             const phone = document.getElementById('phoneNumber').value.trim();
 
-            if (!firstName || !phone) {
-                return alert("Vui lòng nhập đầy đủ Tên và Số điện thoại!");
-            }
+            if (!firstName || !phone) return alert("Vui lòng nhập Tên và Số điện thoại!");
 
-            const lastName = document.getElementById('lastName').value.trim();
-            const fullName = lastName ? (lastName + ' ' + firstName) : firstName;
-
-            // 2. Gom toàn bộ data
             const payload = {
                 firstName: firstName,
-                lastName: lastName,
-                fullName: fullName,
+                lastName: document.getElementById('lastName').value.trim(),
+                fullName: document.getElementById('lastName').value.trim() + ' ' + firstName,
                 email: document.getElementById('email').value.trim(),
                 phoneNumber: phone,
                 dob: document.getElementById('dob').value,
                 gender: document.querySelector('input[name="gender"]:checked')?.value,
                 customerGroup: document.getElementById('customerGroup').value,
                 note: document.getElementById('note').value.trim(),
-                tags: document.getElementById('tags').value.trim(),
-
-                // Shipping
-                shipFirstName: document.getElementById('shipFirstName').value.trim(),
-                shipLastName: document.getElementById('shipLastName').value.trim(),
-                shipCompany: document.getElementById('shipCompany').value.trim(),
                 shipAddressDetail: document.getElementById('shipAddressDetail').value.trim(),
 
-                // Invoice
+                // Invoice Data
                 hasInvoice: document.getElementById('hasInvoice').checked,
                 taxCode: document.getElementById('taxCode').value.trim(),
                 companyName: document.getElementById('companyName').value.trim(),
                 companyAddress: document.getElementById('companyAddress').value.trim()
             };
 
-            // 3. Bắn về Backend
+            const isEdit = editCustomerCode && editCustomerCode !== 'create';
+            const url = isEdit ? `/api/v1/customers/${editCustomerCode}` : '/api/v1/customers';
+            const method = isEdit ? 'PUT' : 'POST';
+
             try {
-                const res = await fetch('/api/v1/customers', {
-                    method: 'POST',
+                const res = await fetch(url, {
+                    method: method,
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
 
                 if (res.ok) {
-                    alert("Lưu thành công khách hàng mới!");
+                    alert(isEdit ? "Cập nhật thành công!" : "Thêm mới thành công!");
                     window.location.href = "/ui/customers";
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Không thể lưu khách hàng!"));
+                    alert("Lỗi: " + (err.message || "Thao tác thất bại"));
                 }
             } catch (e) {
-                console.error(e);
-                alert("Lỗi server, vui lòng thử lại sau!");
+                alert("Lỗi kết nối server!");
             }
         }
     </script>
