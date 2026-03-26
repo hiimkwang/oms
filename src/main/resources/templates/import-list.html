@@ -93,7 +93,7 @@
             <table class="table table-hover align-middle mb-0 text-center text-nowrap" id="importTable">
                 <thead>
                 <tr>
-                    <th class="ps-4" style="width: 40px;"><input class="form-check-input" type="checkbox"></th>
+                    <th class="ps-4" style="width: 40px;"></th>
                     <th class="text-start">Mã đơn nhập</th>
                     <th>Ngày tạo</th>
                     <th>Chi nhánh nhập</th>
@@ -112,9 +112,9 @@
                     th:data-trading-status="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}"
                     th:data-import-status="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập'}">
 
-                    <td class="ps-4"><input class="form-check-input" type="checkbox"></td>
+                    <td class="ps-4"></td>
                     <td class="text-start col-code">
-                        <a th:href="@{/ui/imports/{id}(id=${order.id})}"
+                        <a th:href="@{/ui/imports/{code}(code=${order.code})}"
                            class="text-primary text-decoration-none fw-medium" th:text="${order.code}"></a>
                     </td>
                     <td class="text-muted small"

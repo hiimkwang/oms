@@ -231,4 +231,8 @@ public class ProductService {
                 null  // endDate
         );
     }
+    @Transactional
+    public void deleteProductsBulk(List<Long> ids) {
+        productRepository.deleteAllByIdInBatch(ids);
+    }
 }

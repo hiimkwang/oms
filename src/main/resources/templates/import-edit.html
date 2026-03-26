@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .card-title-custom {
+            font-size: 15px;
+            font-weight: 700;
+            color: #2b3445;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-label-custom {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        .form-control-custom, .form-select-custom {
+            font-size: 14px;
+            border-color: #dce0e4;
+            box-shadow: none;
+            height: 38px;
+        }
+
+        .form-control-custom:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .1);
+        }
+
+        .table-product th {
+            font-size: 13px;
+            color: #6c757d;
+            font-weight: 600;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 12px 10px;
+        }
+
+        .table-product td {
+            vertical-align: middle;
+            border-bottom: 1px solid #e9ecef;
+            padding: 12px 10px;
+        }
+
+        .custom-dropdown-list {
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1050;
+            display: none;
+        }
+
+        .custom-dropdown-list.show {
+            display: block;
+        }
+
+        .dropdown-item-hover:hover {
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+
+        /* Bảng tóm tắt tiền */
+        .summary-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 15px;
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+
+        /* Cục Nhà cung cấp đã chọn */
+        .selected-supplier-box {
+            background-color: #f0f7ff;
+            border: 1px solid #cce3fd;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .selected-supplier-box:hover {
+            border-color: #99c9fb;
+        }
+
+        .btn-remove-supplier {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 20px;
+            transition: 0.2s;
+        }
+
+        .btn-remove-supplier:hover {
+            color: #ef4444;
+            transform: scale(1.1);
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-3">
+            <a th:href="@{/ui/imports/{code}(code=${order.code})}" class="btn btn-white border shadow-sm px-2"><i
+                    class="bi bi-arrow-left"></i></a>
+            <div>
+                <h3 class="fw-bold text-dark mb-0">Sửa phiếu nhập: <span class="text-primary"
+                                                                         th:text="${order.code}"></span></h3>
+                <div class="text-muted small mt-1">Sửa đổi thông tin giỏ hàng và chi phí</div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/ui/imports/{code}(code=${order.code})}"
+               class="btn btn-white border fw-medium shadow-sm text-dark px-4">Hủy bỏ</a>
+            <button type="button" onclick="submitImportOrder()" class="btn btn-primary fw-bold shadow-sm px-4"><i
+                    class="bi bi-save me-1"></i> Lưu thay đổi
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="card-title-custom"><i class="bi bi-box-seam text-primary"></i> Chi tiết sản phẩm</div>
+
+                    <div class="d-flex gap-2 mb-4 mt-3">
+                        <div class="position-relative flex-grow-1">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i
+                                        class="bi bi-search text-muted"></i></span>
+                                <input type="text" id="productSearchInput"
+                                       class="form-control form-control-custom border-start-0 ps-0"
+                                       placeholder="Gõ tên, mã SKU để tìm thêm sản phẩm vào đơn... (F3)"
+                                       autocomplete="off">
+                            </div>
+                            <ul class="dropdown-menu w-100 shadow border mt-1 p-0 position-absolute custom-dropdown-list"
+                                id="productDropdownList"></ul>
+                        </div>
+                    </div>
+
+                    <div id="emptyProductState" class="empty-state d-none">
+                        <i class="bi bi-cart-x text-muted" style="font-size: 3rem;"></i>
+                        <h6 class="mt-3 text-dark fw-bold">Giỏ hàng đang trống</h6>
+                        <p class="text-muted small mb-0">Vui lòng tìm và chọn sản phẩm ở ô tìm kiếm phía trên.</p>
+                    </div>
+
+                    <div id="filledProductState">
+                        <div class="table-responsive border rounded">
+                            <table class="table table-product table-hover align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th style="width: 45%;" class="ps-3">Sản phẩm</th>
+                                    <th style="width: 15%; text-align: center;">Số lượng</th>
+                                    <th style="width: 20%; text-align: right;">Đơn giá nhập</th>
+                                    <th style="width: 15%; text-align: right;">Thành tiền</th>
+                                    <th style="width: 5%;"></th>
+                                </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="card-title-custom mb-4"><i class="bi bi-cash-coin text-primary"></i> Thông tin thanh
+                        toán
+                    </div>
+
+                    <div class="summary-box ms-auto" style="max-width: 450px;">
+                        <div class="d-flex justify-content-between align-items-center mb-3 text-muted">
+                            <span class="fw-medium">Tổng tiền hàng <span class="ms-1 fw-bold text-dark"
+                                                                         id="totalQtyLabel">(0)</span></span>
+                            <span class="fw-bold text-dark" id="totalAmountLabel">0₫</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted fw-medium">Giảm giá</span>
+                            <div class="input-group input-group-sm" style="width: 140px;">
+                                <input type="number" id="discountInput" class="form-control text-end fw-medium"
+                                       th:value="${order.discount != null ? order.discount : 0}" min="0"
+                                       onchange="calculateFinalAmount()">
+                                <span class="input-group-text bg-white">₫</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                            <span class="text-muted fw-medium">Chi phí nhập hàng</span>
+                            <div class="input-group input-group-sm" style="width: 140px;">
+                                <input type="number" id="shippingFeeInput" class="form-control text-end fw-medium"
+                                       th:value="${order.shippingFee != null ? order.shippingFee : 0}" min="0"
+                                       onchange="calculateFinalAmount()">
+                                <span class="input-group-text bg-white">₫</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span class="fw-bold text-dark fs-6">Tổng cần trả NCC mới</span>
+                            <span class="fw-bold text-primary fs-4" id="finalAmountLabel">0₫</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4 position-relative">
+                    <label class="card-title-custom"><i class="bi bi-shop text-primary"></i> Nhà cung cấp</label>
+
+                    <div id="supplierSearchWrapper" class="d-none mt-3">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control form-control-custom border-start-0 ps-0"
+                                   id="supplierSearchInput" placeholder="Tìm đổi nhà cung cấp..." autocomplete="off">
+                        </div>
+                        <ul class="dropdown-menu w-100 shadow border mt-1 p-0 position-absolute custom-dropdown-list"
+                            id="supplierDropdownList" style="left: 0;"></ul>
+                    </div>
+
+                    <div id="supplierSelectedWrapper" class="selected-supplier-box mt-3">
+                        <i class="bi bi-x btn-remove-supplier" onclick="clearSupplier()"></i>
+                        <input type="hidden" id="selectedSupplierCode" th:value="${order.supplier.code}">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                                 style="width: 45px; height: 45px;"><i class="bi bi-person fs-5"></i></div>
+                            <div>
+                                <div class="fw-bold text-dark fs-6" id="selectedSupName"
+                                     th:text="${order.supplier.name}"></div>
+                                <div class="text-muted small" id="selectedSupPhone"
+                                     th:text="${order.supplier.phone ?: 'Chưa có SĐT'}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <label class="card-title-custom"><i class="bi bi-info-circle text-primary"></i> Thông tin bổ
+                        sung</label>
+
+                    <div class="mt-3 mb-3">
+                        <label class="form-label-custom">Chi nhánh nhập</label>
+                        <select id="branchName" class="form-select form-select-custom">
+                            <option th:value="${order.branchName}" th:text="${order.branchName}" selected></option>
+                            <option value="Cửa hàng chính">Cửa hàng chính</option>
+                            <option value="Chi nhánh 2">Chi nhánh 2</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label-custom">Ghi chú phiếu nhập</label>
+                        <textarea class="form-control form-control-custom" id="orderNote" rows="4"
+                                  placeholder="Nhập ghi chú cho đơn hàng này..." th:text="${order.note}"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        // 1. LẤY DỮ LIỆU TỪ SPRING BOOT VÀO JS (ĐÃ FIX LỖI VÒNG LẶP TRÀN BỘ NHỚ)
+        const orderCode = /*[[${order.code}]]*/ '';
+
+        let cart = [];
+
+        // Dùng vòng lặp an toàn của Thymeleaf để bóc tách từng chi tiết sản phẩm
+        /*[# th:each="item : ${order.details}"]*/
+        cart.push({
+            sku: /*[[${item.sku}]]*/ '',
+            name: /*[[${item.productName ?: item.sku}]]*/ '',
+            importPrice: /*[[${item.importPrice}]]*/ 0,
+            quantity: /*[[${item.quantity}]]*/ 1
+        });
+        /*[/]*/
+
+        let totalItemsAmount = 0;
+        let finalAmountToPay = 0;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Hiển thị giỏ hàng ngay khi vừa load xong trang
+            renderCart();
+            setupSearchBox();
+        });
+
+        // 2. Logic Tìm Kiếm
+        function setupSearchBox() {
+            const productInput = document.getElementById('productSearchInput');
+            const supplierInput = document.getElementById('supplierSearchInput');
+            let productTimeout, supplierTimeout;
+
+            productInput.addEventListener('input', e => {
+                clearTimeout(productTimeout);
+                productTimeout = setTimeout(() => searchProducts(e.target.value), 300);
+            });
+            productInput.addEventListener('focus', e => searchProducts(e.target.value));
+            supplierInput.addEventListener('input', e => {
+                clearTimeout(supplierTimeout);
+                supplierTimeout = setTimeout(() => searchSuppliers(e.target.value), 300);
+            });
+            supplierInput.addEventListener('focus', e => searchSuppliers(e.target.value));
+
+            document.addEventListener('click', (e) => {
+                if (!productInput.contains(e.target) && !document.getElementById('productDropdownList').contains(e.target)) document.getElementById('productDropdownList').classList.remove('show');
+                if (!document.getElementById('supplierSearchWrapper').contains(e.target)) document.getElementById('supplierDropdownList').classList.remove('show');
+            });
+        }
+
+        async function searchProducts(keyword) {
+            const listEl = document.getElementById('productDropdownList');
+            if (!keyword.trim()) {
+                listEl.classList.remove('show');
+                return;
+            }
+            listEl.classList.add('show');
+            try {
+                const res = await fetch(`/api/v1/products/variants/search?keyword=${keyword}`);
+                const variants = await res.json();
+                let html = '';
+                variants.forEach(v => {
+                    const vStr = encodeURIComponent(JSON.stringify(v));
+                    html += `<li class="p-2 border-bottom dropdown-item-hover" onclick="addToCart('${vStr}')">
+                                <div class="fw-bold text-primary" style="font-size: 14px;">${v.productName}</div>
+                                <div class="text-muted" style="font-size: 12px;">SKU: ${v.sku} | Tồn: ${v.stockQuantity || 0}</div>
+                             </li>`;
+                });
+                listEl.innerHTML = html || `<li class="p-3 text-muted text-center small">Không tìm thấy sản phẩm</li>`;
+            } catch (error) {
+            }
+        }
+
+        async function searchSuppliers(keyword) {
+            const listEl = document.getElementById('supplierDropdownList');
+            listEl.classList.add('show');
+            try {
+                const res = await fetch(`/api/v1/suppliers?keyword=${keyword}`);
+                const suppliers = await res.json();
+                let html = '';
+                suppliers.forEach(s => {
+                    html += `<li class="p-2 dropdown-item-hover border-bottom" onclick="selectSupplier('${s.code}', '${s.name}', '${s.phone || ''}')">
+                                <div class="fw-medium text-dark">${s.name}</div><div class="small text-muted">${s.code}</div>
+                            </li>`;
+                });
+                listEl.innerHTML = html || `<li class="p-3 text-muted text-center small">Không tìm thấy NCC</li>`;
+            } catch (error) {
+            }
+        }
+
+        // 3. Logic UI Giỏ hàng và NCC
+        function selectSupplier(code, name, phone) {
+            document.getElementById('supplierSearchWrapper').classList.add('d-none');
+            document.getElementById('supplierSelectedWrapper').classList.remove('d-none');
+            document.getElementById('selectedSupplierCode').value = code;
+            document.getElementById('selectedSupName').innerText = name;
+            document.getElementById('selectedSupPhone').innerText = phone || 'Chưa có SĐT';
+        }
+
+        function clearSupplier() {
+            document.getElementById('supplierSelectedWrapper').classList.add('d-none');
+            document.getElementById('supplierSearchWrapper').classList.remove('d-none');
+            document.getElementById('supplierSearchInput').value = '';
+            document.getElementById('selectedSupplierCode').value = '';
+        }
+
+        function addToCart(variantJsonStr) {
+            const v = JSON.parse(decodeURIComponent(variantJsonStr));
+            document.getElementById('productDropdownList').classList.remove('show');
+            document.getElementById('productSearchInput').value = '';
+
+            const idx = cart.findIndex(item => item.sku === v.sku);
+            if (idx > -1) cart[idx].quantity += 1;
+            else cart.push({sku: v.sku, name: v.productName || "Sản phẩm", importPrice: v.costPrice || 0, quantity: 1});
+            renderCart();
+        }
+
+        function updateCartItem(index, field, value) {
+            let num = parseFloat(value) || 0;
+            if (num < 0) num = 0;
+            cart[index][field] = num;
+            renderCart();
+        }
+
+        function removeCartItem(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+        }
+
+        function renderCart() {
+            const tbody = document.querySelector('#filledProductState tbody');
+            if (cart.length === 0) {
+                document.getElementById('emptyProductState').classList.remove('d-none');
+                document.getElementById('filledProductState').classList.add('d-none');
+                document.getElementById('totalQtyLabel').innerText = `(0)`;
+                document.getElementById('totalAmountLabel').innerText = '0₫';
+                calculateFinalAmount();
+                return;
+            }
+
+            document.getElementById('emptyProductState').classList.add('d-none');
+            document.getElementById('filledProductState').classList.remove('d-none');
+
+            let html = '', totalQty = 0;
+            totalItemsAmount = 0;
+            cart.forEach((item, index) => {
+                const lineTotal = item.quantity * item.importPrice;
+                totalItemsAmount += lineTotal;
+                totalQty += item.quantity;
+                html += `
+                    <tr>
+                        <td class="ps-3">
+                            <div class="fw-bold text-primary" style="font-size: 14px;">${item.name}</div>
+                            <div class="text-muted" style="font-size: 12px;">${item.sku}</div>
+                        </td>
+                        <td class="text-center"><input type="number" min="1" class="form-control form-control-custom text-center mx-auto" value="${item.quantity}" onchange="updateCartItem(${index}, 'quantity', this.value)" style="width: 80px;"></td>
+                        <td class="text-end"><input type="number" min="0" class="form-control form-control-custom text-end ms-auto" style="width: 120px;" value="${item.importPrice}" onchange="updateCartItem(${index}, 'importPrice', this.value)"></td>
+                        <td class="text-end fw-bold text-dark pe-3">${formatMoney(lineTotal)}</td>
+                        <td class="text-center"><i class="bi bi-trash text-danger cursor-pointer fs-5" onclick="removeCartItem(${index})"></i></td>
+                    </tr>`;
+            });
+            tbody.innerHTML = html;
+            document.getElementById('totalQtyLabel').innerText = `(${totalQty})`;
+            document.getElementById('totalAmountLabel').innerText = formatMoney(totalItemsAmount);
+            calculateFinalAmount();
+        }
+
+        function calculateFinalAmount() {
+            const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+            const fee = parseFloat(document.getElementById('shippingFeeInput').value) || 0;
+            finalAmountToPay = totalItemsAmount - discount + fee;
+            if (finalAmountToPay < 0) finalAmountToPay = 0;
+            document.getElementById('finalAmountLabel').innerText = formatMoney(finalAmountToPay);
+        }
+
+        // 4. Submit Update (Gọi API PUT)
+        async function submitImportOrder() {
+            const supCode = document.getElementById('selectedSupplierCode').value;
+            if (!supCode) {
+                alert("Vui lòng chọn Nhà cung cấp!");
+                return;
+            }
+            if (cart.length === 0) {
+                alert("Giỏ hàng không được để trống!");
+                return;
+            }
+
+            const payload = {
+                supplierCode: supCode,
+                branchName: document.getElementById('branchName').value,
+                note: document.getElementById('orderNote').value,
+                itemsAmount: totalItemsAmount,
+                discount: parseFloat(document.getElementById('discountInput').value) || 0,
+                shippingFee: parseFloat(document.getElementById('shippingFeeInput').value) || 0,
+                totalAmount: finalAmountToPay,
+                items: cart.map(i => ({sku: i.sku, quantity: i.quantity, importPrice: i.importPrice}))
+            };
+
+            try {
+                const res = await fetch(`/api/v1/receipt/${orderCode}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    alert("Lưu thay đổi thành công!");
+                    window.location.href = `/ui/imports/${orderCode}`;
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi: " + (err.message || "Kiểm tra lại dữ liệu"));
+                }
+            } catch (e) {
+                alert("Lỗi kết nối Server!");
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

@@ -199,10 +199,24 @@ public class WebController {
         return "import-list";
     }
 
-    @GetMapping("/ui/imports/{id}")
-    public String detailImportPage(@PathVariable Long id, Model model) {
-        Receipt order = receiptService.getReceiptById(id);
-        model.addAttribute("order", order);
+    @GetMapping("/ui/imports/{code}")
+    public String receiptDetailPage(@PathVariable String code, Model model) {
+        // Gọi Service lấy thông tin phiếu nhập theo mã
+        Receipt receipt = receiptService.getReceiptByCode(code);
+        model.addAttribute("order", receipt);
+
         return "import-detail";
+    }
+    @GetMapping("/ui/imports/edit/{code}")
+    public String editImportPage(@PathVariable String code, Model model) {
+        Receipt receipt = receiptService.getReceiptByCode(code);
+
+        // Chỉ cho phép sửa khi đơn chưa hoàn thành và chưa nhập kho
+        if ("COMPLETED".equals(receipt.getStatus()) || "COMPLETED".equals(receipt.getImportStatus())) {
+            return "redirect:/ui/imports/" + code; // Nếu cố tình vào thì đá về trang chi tiết
+        }
+
+        model.addAttribute("order", receipt);
+        return "import-edit"; // Mở file import-edit.html
     }
 }

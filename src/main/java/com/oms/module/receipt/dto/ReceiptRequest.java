@@ -1,6 +1,7 @@
 package com.oms.module.receipt.dto;
 
 import lombok.Data;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -8,15 +9,25 @@ import java.util.List;
 public class ReceiptRequest {
     private String supplierCode;
     private String branchName;
-    private List<ItemRequest> items;
-    private BigDecimal totalAmount;
     private String note;
+
+    private BigDecimal itemsAmount;  // Tổng tiền hàng
+    private BigDecimal discount;     // Giảm giá
+    private BigDecimal shippingFee;  // Phí nhập hàng
+    private BigDecimal totalAmount;  // Tổng cần trả
+    private BigDecimal amountPaid;   // Đã trả
+
     private String paymentStatus;
+    private String paymentMethod;
+
+    private Boolean isImportStock;
+
+    private List<ItemRequest> items;
 
     @Data
     public static class ItemRequest {
         private String sku;
-        private Integer quantity;
+        private int quantity;
         private BigDecimal importPrice;
     }
 }

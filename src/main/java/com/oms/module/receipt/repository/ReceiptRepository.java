@@ -30,10 +30,10 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
                            @Param("end") LocalDateTime end);
 
     // 3. Tính nợ (Công nợ): Những đơn đã NHẬP KHO (RECEIVED/COMPLETED) nhưng CHƯA trả tiền (UNPAID)
-    @Query("SELECT SUM(r.totalAmount) FROM Receipt r " +
+    @Query("SELECT SUM(r.totalAmount - COALESCE(r.amountPaid, 0)) FROM Receipt r " +
             "WHERE r.supplier.code = :code " +
-            "AND r.paymentStatus = 'UNPAID' " +
-            "AND r.status IN ('RECEIVED', 'COMPLETED') " +
+            "AND r.paymentStatus IN ('UNPAID', 'PARTIAL') " +
+            "AND r.status != 'CANCELLED' " +
             "AND r.createdAt BETWEEN :start AND :end")
     BigDecimal getTotalDebt(@Param("code") String code,
                             @Param("start") LocalDateTime start,

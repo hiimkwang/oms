@@ -1,5 +1,6 @@
 package com.oms.module.receipt.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -17,10 +18,12 @@ public class ReceiptDetail {
 
     @ManyToOne
     @JoinColumn(name = "receipt_id")
+    @JsonIgnore
     private Receipt receipt;
 
     private String sku;
     private String productName;
     private Integer quantity;
     private BigDecimal importPrice; // Giá nhập tại thời điểm đó
+
 }

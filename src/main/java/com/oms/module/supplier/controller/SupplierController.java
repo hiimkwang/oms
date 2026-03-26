@@ -1,13 +1,16 @@
 package com.oms.module.supplier.controller;
+import com.oms.module.receipt.dto.SupplierStatsResponse;
 import com.oms.module.supplier.dto.SupplierRequest;
 import com.oms.module.supplier.entity.Supplier;
 import com.oms.module.supplier.service.SupplierService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -50,6 +53,32 @@ public class SupplierController {
             supplierService.bulkDeleteByCodes(codes);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @GetMapping("/{code}/stats")
+    public ResponseEntity<SupplierStatsResponse> getSupplierStats(
+            @PathVariable String code,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+
+        // Gọi Service để xử lý logic
+        SupplierStatsResponse stats = supplierService.getSupplierStats(code, start, end);
+        return ResponseEntity.ok(stats);
+    }
+
+    @PutMapping("/{code}/status")
+    public ResponseEntity<?> updateSupplierStatus(
+            @PathVariable String code,
+            @RequestParam String status) {
+        try {
+            // Gọi Service để đổi trạng thái
+            supplierService.updateStatus(code, status);
+
+            // Trả về JSON thông báo thành công
+            return ResponseEntity.ok().body("Cập nhật trạng thái thành công");
+        } catch (Exception e) {
+            // Lỗi thì ném về 400 Bad Request kèm lý do
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

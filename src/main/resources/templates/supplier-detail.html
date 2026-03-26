@@ -54,6 +54,15 @@
             height: 38px;
             margin-bottom: 10px;
         }
+
+        /* Hiệu ứng ô khóa */
+        .editable-field:disabled {
+            background-color: #f8f9fa;
+            border-color: transparent;
+            color: #495057;
+            cursor: not-allowed;
+            font-weight: 500;
+        }
     </style>
 
     <div class="d-flex align-items-center justify-content-between mb-4">
@@ -65,11 +74,24 @@
                   th:text="${supplier.status.name() == 'ACTIVE' ? 'Đang hoạt động' : 'Ngừng hoạt động'}"></span>
         </div>
         <div class="d-flex gap-2">
-            <button type="button" id="btnDeleteSupplier"
-                    class="btn btn-white border border-danger text-danger fw-medium shadow-sm px-4">Xóa nhà cung cấp
+
+            <button th:if="${supplier.status.name() == 'ACTIVE'}" type="button"
+                    class="btn btn-white border border-danger text-danger fw-medium shadow-sm px-3"
+                    onclick="toggleStatus('INACTIVE')">
+                <i class="bi bi-lock me-1"></i> Ngừng hoạt động
             </button>
-            <button type="button" class="btn btn-primary fw-bold shadow-sm px-4" onclick="updateSupplier()">Lưu thay
-                đổi
+            <button th:if="${supplier.status.name() == 'INACTIVE'}" type="button"
+                    class="btn btn-white border border-success text-success fw-medium shadow-sm px-3"
+                    onclick="toggleStatus('ACTIVE')">
+                <i class="bi bi-unlock me-1"></i> Mở hoạt động lại
+            </button>
+
+            <button type="button" id="btnEditMode" class="btn btn-white border fw-medium shadow-sm px-3"
+                    onclick="enableEditMode()">
+                <i class="bi bi-pencil me-1"></i> Sửa thông tin
+            </button>
+            <button type="button" id="btnSaveSupplier" class="btn btn-primary fw-bold shadow-sm px-4 d-none"
+                    onclick="updateSupplier()">Lưu thay đổi
             </button>
         </div>
     </div>
@@ -102,22 +124,22 @@
 
                     <div class="row g-3 text-center text-md-start">
                         <div class="col-md-3 border-end">
-                            <div class="text-label">Đơn nhập<br>đã tạo</div>
+                            <div class="text-label">Đơn nhập đã tạo</div>
                             <div class="stat-value-blue" id="stat-count">0 đơn</div>
                             <div class="stat-value-gray" id="stat-total">0đ</div>
                         </div>
                         <div class="col-md-3 border-end">
-                            <div class="text-label">Nợ cần trả<br>(Chưa thanh toán)</div>
+                            <div class="text-label">Nợ cần trả</div>
                             <div class="stat-value-blue text-danger" id="stat-debt">0đ</div>
                             <div class="stat-value-gray">Tiền hàng chưa trả</div>
                         </div>
                         <div class="col-md-3 border-end">
-                            <div class="text-label">Đơn trả hàng<br>đã tạo</div>
+                            <div class="text-label">Đơn trả đã tạo</div>
                             <div class="stat-value-blue">0 đơn</div>
                             <div class="stat-value-gray">0đ</div>
                         </div>
                         <div class="col-md-3">
-                            <div class="text-label">Hoàn tiền<br>chưa nhận</div>
+                            <div class="text-label">Hoàn tiền</div>
                             <div class="stat-value-blue text-success">0đ</div>
                             <div class="stat-value-gray">Tiền NCC nợ mình</div>
                         </div>
@@ -131,23 +153,28 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="text-label">Tên nhà cung cấp</label>
-                            <input type="text" id="name" class="form-control form-control-custom"
-                                   th:value="${supplier.name}">
+                            <input type="text" id="name" class="form-control form-control-custom editable-field"
+                                   th:value="${supplier.name}" disabled>
                         </div>
                         <div class="col-md-6">
                             <label class="text-label">Mã số thuế</label>
-                            <input type="text" id="taxCode" class="form-control form-control-custom"
-                                   th:value="${supplier.taxCode}">
+                            <input type="text" id="taxCode" class="form-control form-control-custom editable-field"
+                                   th:value="${supplier.taxCode}" disabled>
                         </div>
                         <div class="col-md-6">
                             <label class="text-label">Số điện thoại</label>
-                            <input type="text" id="phone" class="form-control form-control-custom"
-                                   th:value="${supplier.phone}">
+                            <input type="text" id="phone" class="form-control form-control-custom editable-field"
+                                   th:value="${supplier.phone}" disabled>
                         </div>
                         <div class="col-md-6">
                             <label class="text-label">Email</label>
-                            <input type="email" id="email" class="form-control form-control-custom"
-                                   th:value="${supplier.email}">
+                            <input type="email" id="email" class="form-control form-control-custom editable-field"
+                                   th:value="${supplier.email}" disabled>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-label">Website</label>
+                            <input type="text" id="website" class="form-control form-control-custom editable-field"
+                                   th:value="${supplier.website}" disabled>
                         </div>
                     </div>
                 </div>
@@ -182,28 +209,30 @@
                 <div class="card-body p-4">
                     <div class="card-title-custom">Địa chỉ</div>
                     <label class="text-label">Quốc gia</label>
-                    <input type="text" id="country" class="form-control form-control-custom"
-                           th:value="${supplier.country}">
+                    <input type="text" id="country" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.country}" disabled>
                     <label class="text-label">Tỉnh / Thành phố</label>
-                    <input type="text" id="province" class="form-control form-control-custom"
-                           th:value="${supplier.province}">
+                    <input type="text" id="province" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.province}" disabled>
                     <label class="text-label">Quận / Huyện</label>
-                    <input type="text" id="district" class="form-control form-control-custom"
-                           th:value="${supplier.district}">
+                    <input type="text" id="district" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.district}" disabled>
                     <label class="text-label">Phường / Xã</label>
-                    <input type="text" id="ward" class="form-control form-control-custom" th:value="${supplier.ward}">
+                    <input type="text" id="ward" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.ward}" disabled>
                     <label class="text-label">Địa chỉ chi tiết</label>
-                    <textarea id="addressDetail" class="form-control form-control-custom" rows="2"
-                              th:text="${supplier.addressDetail}"></textarea>
+                    <textarea id="addressDetail" class="form-control form-control-custom editable-field" rows="2"
+                              th:text="${supplier.addressDetail}" disabled></textarea>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <div class="card-title-custom">Nhân viên phụ trách</div>
-                    <select id="assignee" class="form-select form-select-custom">
+                    <select id="assignee" class="form-select form-select-custom editable-field" disabled>
                         <option value="QUANG BUI" th:selected="${supplier.assignee == 'QUANG BUI'}">QUANG BUI</option>
                         <option value="ADMIN" th:selected="${supplier.assignee == 'ADMIN'}">ADMIN</option>
+                        <option value="" th:selected="${supplier.assignee == null}">Chưa phân công</option>
                     </select>
                 </div>
             </div>
@@ -211,8 +240,8 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <div class="card-title-custom">Tag</div>
-                    <input type="text" id="tags" class="form-control form-control-custom" th:value="${supplier.tags}"
-                           placeholder="tag1, tag2...">
+                    <input type="text" id="tags" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.tags}" disabled>
                 </div>
             </div>
         </div>
@@ -223,22 +252,45 @@
         const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN');
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Mặc định load tháng này khi vào trang
             changePeriod('thisMonth');
-
-            // Bắt sự kiện Xóa bằng ID để tránh lỗi Thymeleaf Parsing
-            document.getElementById('btnDeleteSupplier').addEventListener('click', function () {
-                const code = document.getElementById('supplierCode').value;
-                if (confirm("Xác nhận xóa (ngừng hoạt động) nhà cung cấp này?")) {
-                    deleteSupplier(code);
-                }
-            });
         });
 
+        // 1. CHỈ 1 NÚT EDIT DUY NHẤT
+        function enableEditMode() {
+            document.querySelectorAll('.editable-field').forEach(el => el.removeAttribute('disabled'));
+            document.getElementById('btnSaveSupplier').classList.remove('d-none');
+            document.getElementById('btnEditMode').classList.add('d-none');
+            document.getElementById('name').focus();
+        }
+
+        // 2. LOGIC THAY ĐỔI TRẠNG THÁI (KHOÁ/MỞ KHOÁ)
+        async function toggleStatus(newStatus) {
+            const actionText = newStatus === 'ACTIVE' ? "mở hoạt động lại" : "ngừng hoạt động";
+            if (!confirm(`Xác nhận ${actionText} nhà cung cấp này?`)) return;
+
+            // ĐÃ FIX: Lấy supplierCode thay vì supplierId
+            const code = document.getElementById('supplierCode').value;
+
+            try {
+                // ĐÃ FIX: Truyền code vào URL thay vì ID
+                const res = await fetch(`/api/v1/suppliers/${code}/status?status=${newStatus}`, {
+                    method: 'PUT'
+                });
+
+                if (res.ok) {
+                    location.reload();
+                } else {
+                    alert("Lỗi khi thay đổi trạng thái!");
+                }
+            } catch (e) {
+                alert("Lỗi kết nối Server!");
+            }
+        }
+
+        // 3. LOGIC STATS VÀ UPDATE GIỮ NGUYÊN BẢN CHUẨN
         async function changePeriod(period) {
             const now = new Date();
             let start, end;
-
             if (period === 'thisMonth') {
                 start = new Date(now.getFullYear(), now.getMonth(), 1);
                 end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
@@ -257,7 +309,6 @@
             try {
                 const res = await fetch(`/api/v1/suppliers/${code}/stats?start=${start.toISOString()}&end=${end.toISOString()}`);
                 const data = await res.json();
-
                 document.getElementById('stat-count').innerText = `${data.totalOrders} đơn`;
                 document.getElementById('stat-total').innerText = formatMoney(data.totalAmount);
                 document.getElementById('stat-debt').innerText = formatMoney(data.totalDebt);
@@ -267,13 +318,12 @@
                     document.getElementById('emptyHistory').classList.add('d-none');
                     tbody.innerHTML = data.history.map(h => `
                         <tr>
-                            <td><span class="fw-bold">${h.code}</span></td>
+                            <td><a href="/ui/imports/${h.code}" class="text-decoration-none fw-bold">${h.code}</a></td>
                             <td>${formatDate(h.createdAt)}</td>
                             <td><span class="badge ${h.status === 'COMPLETED' ? 'bg-success' : 'bg-warning text-dark'}">${h.status}</span></td>
                             <td><span class="text-${h.paymentStatus === 'PAID' ? 'success' : 'danger'} small fw-bold">${h.paymentStatus}</span></td>
                             <td class="text-end fw-bold">${formatMoney(h.totalAmount)}</td>
-                        </tr>
-                    `).join('');
+                        </tr>`).join('');
                 } else {
                     tbody.innerHTML = "";
                     document.getElementById('emptyHistory').classList.remove('d-none');
@@ -284,12 +334,14 @@
         }
 
         async function updateSupplier() {
-            const id = document.getElementById('supplierId').value;
+            // ĐÃ FIX: Lấy supplierCode thay vì supplierId
+            const code = document.getElementById('supplierCode').value;
             const payload = {
                 name: document.getElementById('name').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 taxCode: document.getElementById('taxCode').value.trim(),
+                website: document.getElementById('website').value.trim(),
                 country: document.getElementById('country').value.trim(),
                 province: document.getElementById('province').value.trim(),
                 district: document.getElementById('district').value.trim(),
@@ -299,7 +351,8 @@
                 tags: document.getElementById('tags').value.trim()
             };
 
-            const res = await fetch(`/api/v1/suppliers/${id}`, {
+            // ĐÃ FIX: Truyền code vào URL
+            const res = await fetch(`/api/v1/suppliers/${code}`, {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
@@ -311,15 +364,6 @@
             } else {
                 alert("Lỗi cập nhật!");
             }
-        }
-
-        async function deleteSupplier(code) {
-            const res = await fetch('/api/v1/suppliers/bulk-delete', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify([code])
-            });
-            if (res.ok) window.location.href = '/ui/suppliers';
         }
     </script>
 </div>

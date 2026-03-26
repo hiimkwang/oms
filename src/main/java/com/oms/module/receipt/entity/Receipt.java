@@ -40,9 +40,12 @@ public class Receipt {
     // Thêm field này để fix lỗi chữ "Chưa nhập kho" bị đứng im
     private String importStatus; // PENDING, COMPLETED
     private String status;       // TRADING, CANCELLED
-    @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReceiptDetail> details;
-
+    private BigDecimal itemsAmount;
+    private BigDecimal discount;
+    private BigDecimal shippingFee;
+    private BigDecimal amountPaid;
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

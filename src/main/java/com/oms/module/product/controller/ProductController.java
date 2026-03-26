@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/products")
@@ -50,5 +51,15 @@ public class ProductController {
     @GetMapping("/variants/search")
     public ResponseEntity<List<ProductVariant>> searchVariants(@RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(productService.searchVariantsForOrder(keyword));
+    }
+    // Hứng request Xóa hàng loạt
+    @DeleteMapping("/bulk")
+    public ResponseEntity<?> deleteBulkProducts(@RequestBody List<Long> ids) {
+        try {
+            productService.deleteProductsBulk(ids);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }

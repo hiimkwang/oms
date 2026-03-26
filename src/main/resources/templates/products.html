@@ -121,7 +121,6 @@
             </div>
             <span class="text-dark">Đã chọn <span id="selectedCount" class="fw-bold">0</span> sản phẩm</span>
 
-            <a href="javascript:void(0)" class="text-decoration-none text-primary ms-2">Sửa sản phẩm</a>
             <a href="javascript:void(0)" class="text-decoration-none text-primary ms-2" onclick="deleteSelected()">Xóa
                 sản phẩm</a>
 
@@ -290,21 +289,35 @@
             }
         }
 
-        function deleteSelected() {
+        async function deleteSelected() {
             const checkedBoxes = document.querySelectorAll('.item-check:checked');
             if (checkedBoxes.length === 0) return;
-            if (!confirm(`Ông có chắc chắn muốn xóa ${checkedBoxes.length} sản phẩm?`)) return;
 
-            const deletePromises = Array.from(checkedBoxes).map(cb => fetch('/api/v1/products/' + cb.value, {method: 'DELETE'}));
+            // 1. Gom tất cả các value (ID) của checkbox thành 1 mảng duy nhất
+            const ids = Array.from(checkedBoxes).map(cb => cb.value);
 
-            Promise.all(deletePromises)
-                .then(responses => {
-                    if (responses.some(res => !res.ok)) alert("Có lỗi xảy ra, F5 kiểm tra lại!");
-                    else {
-                        window.location.reload();
-                    }
-                })
-                .catch(err => alert("Lỗi kết nối: " + err));
+            if (!confirm(`Ông có chắc chắn muốn xóa ${ids.length} sản phẩm?`)) return;
+
+            try {
+                // 2. Chỉ bắn ĐÚNG 1 REQUEST lên Backend, nhét mảng IDs vào Body
+                const res = await fetch('/api/v1/products/bulk', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(ids)
+                });
+
+                if (res.ok) {
+                    // (Tùy chọn) Thêm thông báo toast ở đây cho mượt thay vì alert
+                    window.location.reload();
+                } else {
+                    const err = await res.json();
+                    alert("Có lỗi xảy ra: " + (err.message || "Kiểm tra lại server!"));
+                }
+            } catch (err) {
+                alert("Lỗi kết nối Server: " + err);
+            }
         }
     </script>
 </div>
