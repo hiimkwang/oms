@@ -77,19 +77,38 @@
             background: #0d6efd;
         }
 
+        /* Tùy chỉnh ô Search chuẩn */
         .search-box {
             max-width: 500px;
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            background: white;
+            transition: all 0.2s ease-in-out;
         }
 
-        .search-box .form-control {
-            font-size: 13px;
-            height: 36px;
-            border-color: #dce0e4;
+        /* Khi click vào input thì viền cả khung sáng lên */
+        .search-box:focus-within {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
         }
 
         .search-box .input-group-text {
-            background: white;
-            border-color: #dce0e4;
+            background: transparent;
+            border: none;
+            padding-right: 8px;
+        }
+
+        .search-box .form-control {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding-left: 0;
+            font-size: 13px;
+            height: 36px;
+        }
+
+        .search-box .form-control:focus {
+            box-shadow: none;
         }
 
         .badge-group {
@@ -104,12 +123,12 @@
         }
     </style>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
         <h4 class="fw-bold mb-0">Khách hàng</h4>
         <div class="d-flex gap-2">
             <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
             <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-download me-2"></i>Nhập file</button>
-            <a th:href="@{/ui/orders/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
+            <a th:href="@{/ui/customers/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
                 <i class="bi bi-plus-circle me-2"></i>Thêm khách hàng
             </a>
         </div>
@@ -125,25 +144,39 @@
         <div class="card-body p-0">
             <div class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
                 <div class="input-group search-box flex-grow-1">
-                    <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
+                    <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
                     <input type="text" id="cusSearchInput" class="form-control"
                            placeholder="Tìm kiếm khách hàng theo mã, tên, SĐT...">
                 </div>
                 <div class="d-flex gap-2">
                     <select class="form-select filter-btn w-auto" id="groupFilter">
-                        <option value="">Nhóm khách hàng</option>
+                        <option value="">Tất cả phân loại</option>
                         <option value="Khách lẻ">Khách lẻ</option>
                         <option value="VIP">VIP</option>
                         <option value="Đại lý">Đại lý</option>
                     </select>
-                    <select class="form-select filter-btn w-auto">
-                        <option>Trạng thái</option>
-                    </select>
-                    <button class="btn filter-btn px-3"><i class="bi bi-filter me-2"></i>Bộ lọc khác</button>
                 </div>
             </div>
 
-            <div class="table-responsive">
+            <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
+                 style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4;">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-medium" style="color: #0369a1; font-size: 13px;">
+                        Đã chọn <span id="deleteCount" class="fw-bold fs-6">0</span> khách hàng
+                    </span>
+                    <span class="text-muted small">|</span>
+                    <a href="javascript:void(0)" class="text-decoration-none fw-medium"
+                       style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
+                </div>
+                <div>
+                    <button class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
+                            style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;" onclick="deleteSelected()">
+                        Xóa khách hàng
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive" style="min-height: 300px;">
                 <table class="table table-customer table-hover mb-0">
                     <thead>
                     <tr>
@@ -188,94 +221,169 @@
             </div>
         </div>
     </div>
-</div>
 
-<script th:inline="none">
-    document.addEventListener('DOMContentLoaded', function () {
-        loadCustomers();
+    <script th:inline="none">
+        document.addEventListener('DOMContentLoaded', function () {
+            loadCustomers();
 
-        // Xử lý Search với Debounce (chờ gõ xong mới gọi API)
-        let timeout = null;
-        document.getElementById('cusSearchInput').addEventListener('input', function () {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                loadCustomers(this.value);
-            }, 400);
+            // Xử lý Search với Debounce
+            let timeout = null;
+            document.getElementById('cusSearchInput').addEventListener('input', function () {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    loadCustomers(this.value);
+                }, 400);
+            });
+
+            // Xử lý Bộ lọc nhóm khách hàng
+            document.getElementById('groupFilter').addEventListener('change', function () {
+                loadCustomers(document.getElementById('cusSearchInput').value);
+            });
+
+            // Xử lý Checkbox Chọn tất cả
+            document.getElementById('checkAll').addEventListener('change', function () {
+                const isChecked = this.checked;
+                document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = isChecked);
+                toggleBulkActionBar();
+            });
         });
 
-        // Xử lý Checkbox All
-        document.getElementById('checkAll').addEventListener('change', function () {
-            const isChecked = this.checked;
-            document.querySelectorAll('#customerTableBody .form-check-input').forEach(cb => cb.checked = isChecked);
-        });
-    });
+        // Hàm ẩn/hiện thanh Thao tác hàng loạt (Bulk Action Bar)
+        function toggleBulkActionBar() {
+            const checkedCount = document.querySelectorAll('.customer-checkbox:checked').length;
+            const bulkBar = document.getElementById('bulkActionBar');
+            const countSpan = document.getElementById('deleteCount');
 
-    async function loadCustomers(keyword = '') {
-        const tbody = document.getElementById('customerTableBody');
-        const info = document.getElementById('recordInfo');
+            if (checkedCount > 0) {
+                countSpan.innerText = checkedCount;
+                bulkBar.classList.remove('d-none');
+                bulkBar.classList.add('d-flex');
+            } else {
+                bulkBar.classList.add('d-none');
+                bulkBar.classList.remove('d-flex');
+            }
+        }
 
-        try {
-            // API gọi đến CustomerController trả về List<CustomerRequest>
-            const response = await fetch(`/api/v1/customers?keyword=${encodeURIComponent(keyword)}`);
-            const customers = await response.json();
+        // Hàm Bỏ chọn tất cả checkbox
+        function clearSelection() {
+            document.querySelectorAll('.customer-checkbox, #checkAll').forEach(cb => cb.checked = false);
+            toggleBulkActionBar();
+        }
 
-            if (!customers || customers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block mb-2"></i>Không tìm thấy khách hàng nào</td></tr>';
-                info.innerText = 'Hiển thị 0 khách hàng';
+        // Hàm xóa hàng loạt bằng cách gọi 1 API Bulk Delete
+        async function deleteSelected() {
+            const checkboxes = document.querySelectorAll('.customer-checkbox:checked');
+            if (checkboxes.length === 0) return;
+
+            if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} khách hàng đã chọn không?`)) {
                 return;
             }
 
-            let html = '';
-            customers.forEach(c => {
-                // 1. Xử lý Avatar: Lấy chữ cái đầu của các từ trong tên
-                const nameParts = c.fullName ? c.fullName.split(' ') : ['K', 'H'];
-                const initials = nameParts.length > 1
-                    ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-                    : nameParts[0][0].toUpperCase();
+            // Gom mã khách hàng vào 1 mảng
+            const codes = Array.from(checkboxes).map(cb => cb.value);
 
-                // 2. Định dạng ngày tháng
-                const lastDate = c.lastOrder ? new Date(c.lastOrder).toLocaleDateString('vi-VN') : '---';
+            try {
+                const res = await fetch('/api/v1/customers/bulk-delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(codes)
+                });
 
-                // 3. Định dạng tiền tệ
-                const totalSpent = new Intl.NumberFormat('vi-VN').format(c.totalSpent || 0) + '₫';
+                if (res.ok) {
+                    alert(`Đã xóa thành công ${codes.length} khách hàng!`);
+                    clearSelection();
+                    loadCustomers(document.getElementById('cusSearchInput').value);
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi: " + (err.message || "Không thể xóa khách hàng!"));
+                }
+            } catch (e) {
+                console.error("Lỗi xóa khách hàng:", e);
+                alert("Lỗi server, vui lòng thử lại sau!");
+            }
+        }
 
-                // 4. Màu Badge theo nhóm
-                let badgeClass = 'bg-secondary';
-                if (c.customerGroup === 'VIP') badgeClass = 'bg-danger';
-                if (c.customerGroup === 'Đại lý') badgeClass = 'bg-info text-white';
+        // Tải danh sách khách hàng
+        async function loadCustomers(keyword = '') {
+            const tbody = document.getElementById('customerTableBody');
+            const info = document.getElementById('recordInfo');
+            const groupFilterValue = document.getElementById('groupFilter').value;
 
-                html += `
-                    <tr>
-                        <td class="ps-4"><input type="checkbox" class="form-check-input"></td>
-                        <td>
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="avatar-circle">${initials}</div>
-                                <div class="lh-sm">
-                                    <a href="/ui/customers/${c.customerCode}" class="text-decoration-none fw-bold text-primary">${c.fullName}</a>
-                                    <div class="mt-1">
-                                        <span class="badge-group ${badgeClass} text-white">${c.customerGroup || 'Khách lẻ'}</span>
-                                        <small class="text-muted ms-2">${c.customerCode}</small>
+            try {
+                const response = await fetch(`/api/v1/customers?keyword=${encodeURIComponent(keyword)}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                let customers = await response.json();
+
+                // Lọc thêm theo Nhóm khách hàng
+                if (groupFilterValue !== "") {
+                    customers = customers.filter(c => c.customerGroup === groupFilterValue);
+                }
+
+                if (!customers || customers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block mb-2"></i>Không tìm thấy khách hàng nào</td></tr>';
+                    info.innerText = 'Hiển thị 0 khách hàng';
+                    clearSelection();
+                    return;
+                }
+
+                let html = '';
+                customers.forEach(c => {
+                    const fullName = c.fullName || 'Chưa có tên';
+                    const customerCode = c.customerCode || '---';
+                    const nameParts = fullName.split(' ');
+                    const initials = nameParts.length > 1
+                        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+                        : nameParts[0][0].toUpperCase();
+
+                    const lastDate = c.lastOrder ? new Date(c.lastOrder).toLocaleDateString('vi-VN') : '---';
+                    const totalSpent = new Intl.NumberFormat('vi-VN').format(c.totalSpent || 0) + '₫';
+
+                    let badgeClass = 'bg-secondary';
+                    if (c.customerGroup === 'VIP') badgeClass = 'bg-danger';
+                    if (c.customerGroup === 'Đại lý') badgeClass = 'bg-info text-white';
+
+                    html += `
+                        <tr>
+                            <td class="ps-4">
+                                <input type="checkbox" class="form-check-input customer-checkbox" value="${customerCode}" onchange="toggleBulkActionBar()">
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar-circle">${initials}</div>
+                                    <div class="lh-sm">
+                                        <a href="/ui/customers/${customerCode}" class="text-decoration-none fw-bold text-primary">${fullName}</a>
+                                        <div class="mt-1">
+                                            <span class="badge-group ${badgeClass} text-white">${c.customerGroup || 'Khách lẻ'}</span>
+                                            <small class="text-muted ms-2">${customerCode}</small>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td>${c.email || '---'}</td>
-                        <td>${c.phoneNumber || '---'}</td>
-                        <td class="text-center fw-medium">${c.orderCount || 0}</td>
-                        <td class="text-muted">${lastDate}</td>
-                        <td class="text-end pe-4 fw-bold">${totalSpent}</td>
-                    </tr>
-                `;
-            });
+                            </td>
+                            <td>${c.email || '---'}</td>
+                            <td>${c.phoneNumber || '---'}</td>
+                            <td class="text-center fw-medium">${c.orderCount || 0}</td>
+                            <td class="text-muted">${lastDate}</td>
+                            <td class="text-end pe-4 fw-bold">${totalSpent}</td>
+                        </tr>
+                    `;
+                });
 
-            tbody.innerHTML = html;
-            info.innerText = `Hiển thị 1 - ${customers.length} trên tổng số ${customers.length} khách hàng`;
+                tbody.innerHTML = html;
+                info.innerText = `Hiển thị 1 - ${customers.length} trên tổng số ${customers.length} khách hàng`;
 
-        } catch (error) {
-            console.error("Lỗi tải khách hàng:", error);
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-danger">Có lỗi xảy ra khi tải dữ liệu!</td></tr>';
+                // Reset giao diện thao tác hàng loạt mỗi lần reload bảng
+                clearSelection();
+
+            } catch (error) {
+                console.error("Lỗi tải khách hàng:", error);
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">Có lỗi xảy ra khi tải dữ liệu! <br> <small>${error.message}</small></td></tr>`;
+            }
         }
-    }
-</script>
+    </script>
+</div>
 </body>
 </html>

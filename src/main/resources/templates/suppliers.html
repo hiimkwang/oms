@@ -3,295 +3,345 @@
 <head></head>
 <body>
 <div class="oms-container pb-5">
-
     <style>
-        .oms-toolbar .btn, .oms-toolbar .input-group-text, .oms-toolbar .form-control {
-            height: 38px;
+        /* Thống nhất style chuẩn hệ thống */
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #4b566b;
+            font-size: 13px;
+            font-weight: 500;
+            height: 36px;
             display: flex;
             align-items: center;
         }
 
+        .filter-btn:hover {
+            background-color: #f8f9fb;
+            border-color: #cbd5e1;
+        }
+
         .table-custom thead th {
-            background-color: #f4f6f8;
-            font-size: 14px;
-            color: #333;
+            background: #f8f9fb;
+            color: #4b566b;
             font-weight: 600;
-            border-bottom: 1px solid #e2e8f0;
-            padding-top: 12px;
-            padding-bottom: 12px;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+            padding: 12px 10px;
         }
 
-        .table-custom tbody tr {
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .table-custom tbody td {
+        .table-custom td {
             vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #666;
+            font-weight: 500;
+            padding: 10px 20px;
             font-size: 14px;
-            padding-top: 12px;
-            padding-bottom: 12px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+            font-weight: 600;
+        }
+
+        .nav-tabs-custom .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .search-box {
+            max-width: 500px;
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            background: white;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .search-box:focus-within {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            padding-right: 8px;
+        }
+
+        .search-box .form-control {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding-left: 0;
+            font-size: 13px;
+            height: 36px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid;
+            display: inline-block;
         }
 
         .status-active {
             background-color: #e6f6ee;
             color: #008a47;
-            border: 1px solid #c2ebd5;
-            border-radius: 12px;
-            padding: 4px 12px;
-            font-size: 12px;
-            font-weight: 500;
+            border-color: #c2ebd5;
         }
 
         .status-inactive {
-            background-color: #f8f9fa;
-            color: #6c757d;
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-            padding: 4px 12px;
-            font-size: 12px;
-            font-weight: 500;
+            background-color: #f1f5f9;
+            color: #475569;
+            border-color: #cbd5e1;
         }
 
-        /* Style cho thanh Bulk Actions */
-        #bulkActionsBar {
-            background-color: #f4f6f8;
-            height: 70px;
-        }
-
-        .bulk-action-link {
-            color: #dc3545;
+        .cursor-pointer {
             cursor: pointer;
-            font-weight: 500;
-            text-decoration: none;
-            transition: 0.2s;
-        }
-
-        .bulk-action-link:hover {
-            color: #b02a37;
-            text-decoration: underline;
         }
     </style>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-dark mb-0">Danh sách nhà cung cấp</h3>
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <h4 class="fw-bold mb-0 text-dark">Nhà cung cấp</h4>
         <div class="d-flex gap-2">
-            <button class="btn btn-white border fw-medium shadow-sm text-dark"><i class="bi bi-box-arrow-up me-1"></i>
-                Xuất file
-            </button>
-            <button class="btn btn-white border fw-medium shadow-sm text-dark"><i
-                    class="bi bi-box-arrow-in-down me-1"></i> Nhập file
-            </button>
-            <a th:href="@{/ui/suppliers/create}" class="btn btn-primary fw-bold shadow-sm px-3"><i
-                    class="bi bi-plus-lg me-1"></i> Thêm nhà cung cấp</a>
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-download me-2"></i>Nhập file</button>
+            <a th:href="@{/ui/suppliers/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-2"></i>Thêm nhà cung cấp
+            </a>
         </div>
     </div>
 
-    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4"
+         role="alert">
         <i class="bi bi-check-circle-fill me-2"></i>
         <span th:text="${successMessage}"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 
-    <div class="card border-0 shadow-sm overflow-hidden">
-        <div class="border-bottom px-4 pt-3">
-            <ul class="nav nav-underline border-0">
-                <li class="nav-item">
-                    <a class="nav-link active fw-semibold text-primary border-primary border-bottom border-2 pb-2"
-                       href="#">Tất cả</a>
-                </li>
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+
+        <div class="card-header bg-white border-0 p-0">
+            <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3">
+                <li class="nav-item"><a class="nav-link active" href="javascript:void(0)">Tất cả nhà cung cấp</a></li>
             </ul>
         </div>
 
-        <form id="filterForm" method="GET" action="/ui/suppliers" class="m-0">
-            <div id="searchFilterBar" class="oms-toolbar p-3 bg-white border-bottom d-flex gap-2 align-items-center flex-nowrap">
+        <div class="card-body p-0">
+            <form id="filterForm" method="GET" th:action="@{/ui/suppliers}" class="m-0">
+                <div id="defaultToolbar"
+                     class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
+                    <div class="input-group search-box flex-grow-1">
+                        <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
+                        <input type="text" name="keyword" th:value="${keyword}" class="form-control"
+                               placeholder="Tìm theo tên, mã, SĐT nhà cung cấp...">
+                    </div>
 
-                <div class="input-group flex-grow-1">
-                    <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
-                    <input type="text" name="keyword" th:value="${keyword}"
-                           class="form-control border-start-0 ps-0 shadow-none"
-                           placeholder="Tìm kiếm theo tên, mã, SĐT nhà cung cấp">
+                    <div class="d-flex gap-2">
+                        <select name="assignee" class="form-select filter-btn w-auto">
+                            <option value="">Tất cả nhân viên</option>
+                            <option value="QUANG BUI" th:selected="${assignee == 'QUANG BUI'}">QUANG BUI</option>
+                            <option value="ADMIN" th:selected="${assignee == 'ADMIN'}">ADMIN</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary fw-bold px-4" style="font-size: 13px;">Lọc</button>
+                        <button type="button" class="btn filter-btn px-3"
+                                onclick="window.location.href='/ui/suppliers'">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Làm mới
+                        </button>
+                    </div>
                 </div>
+            </form>
 
-                <select name="assignee" class="form-select border shadow-none text-dark w-auto" style="height: 38px;">
-                    <option value="">Tất cả nhân viên</option>
-                    <option value="QUANG BUI" th:selected="${assignee == 'QUANG BUI'}">QUANG BUI</option>
-                    <option value="ADMIN" th:selected="${assignee == 'ADMIN'}">ADMIN</option>
-                </select>
-
-                <button type="submit" class="btn btn-light border fw-medium text-dark px-4 text-nowrap">Lọc</button>
-            </div>
-        </form>
-
-        <div id="bulkActionsBar" class="p-3 d-none align-items-center gap-4 border-bottom">
-            <div class="d-flex align-items-center gap-2">
-                <input class="form-check-input mt-0" type="checkbox" id="bulkSelectAll" checked onclick="unselectAll()">
-                <span class="text-dark">Đã chọn <strong id="selectedCount">0</strong> nhà cung cấp</span>
-            </div>
-            <div class="d-flex gap-4 align-items-center">
-                <a class="bulk-action-link" onclick="deleteSelectedSuppliers()"><i class="bi bi-trash me-1"></i> Xóa nhà
-                    cung cấp</a>
-                <div class="dropdown">
-                    <button class="btn btn-white border btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        Thao tác khác
+            <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
+                 style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4;">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-medium" style="color: #0369a1; font-size: 13px;">
+                        Đã chọn <span id="selectedCount" class="fw-bold fs-6">0</span> nhà cung cấp
+                    </span>
+                    <span class="text-muted small">|</span>
+                    <a href="javascript:void(0)" class="text-decoration-none fw-medium"
+                       style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
+                </div>
+                <div class="d-flex gap-2">
+                    <div class="dropdown">
+                        <button class="btn btn-white border fw-medium px-3 shadow-sm bg-white"
+                                style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;"
+                                data-bs-toggle="dropdown">
+                            Thao tác khác <i class="bi bi-chevron-down ms-1 small"></i>
+                        </button>
+                        <ul class="dropdown-menu shadow-sm border-0">
+                            <li><a class="dropdown-item" href="#">Ngừng hoạt động</a></li>
+                            <li><a class="dropdown-item" href="#">Cho phép hoạt động</a></li>
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
+                            style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;"
+                            onclick="deleteSelectedSuppliers()">
+                        Xóa nhà cung cấp
                     </button>
-                    <ul class="dropdown-menu shadow-sm">
-                        <li><a class="dropdown-item" href="#">Ngừng hoạt động</a></li>
-                        <li><a class="dropdown-item" href="#">Gán thẻ (Tags)</a></li>
-                    </ul>
                 </div>
             </div>
-        </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover table-custom mb-0 text-center text-nowrap">
-                <thead>
-                <tr>
-                    <th class="ps-4" style="width: 40px;">
-                        <input class="form-check-input" type="checkbox" id="selectAll">
-                    </th>
-                    <th class="text-start">Mã NCC</th>
-                    <th class="text-start">Tên NCC</th>
-                    <th>Trạng thái</th>
-                    <th>Số điện thoại</th>
-                    <th class="pe-4">Email</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="s : ${suppliers}" class="supplier-row" th:data-code="${s.code}">
-                    <td class="ps-4" onclick="event.stopPropagation()">
-                        <input class="form-check-input row-checkbox" type="checkbox" th:value="${s.code}">
-                    </td>
-                    <td class="text-start">
-                        <span class="text-primary text-decoration-none fw-bold" th:text="${s.code}"></span>
-                    </td>
-                    <td class="text-start text-dark fw-medium" th:text="${s.name}"></td>
-                    <td>
-                        <span th:if="${s.status != null and s.status.name() == 'ACTIVE'}" class="status-active">Đang hoạt động</span>
-                        <span th:if="${s.status != null and s.status.name() == 'INACTIVE'}" class="status-inactive">Ngừng hoạt động</span>
-                    </td>
-                    <td class="text-muted" th:text="${s.phone != null and s.phone != '' ? s.phone : '---'}"></td>
-                    <td class="text-muted pe-4" th:text="${s.email != null and s.email != '' ? s.email : '---'}"></td>
-                </tr>
+            <div class="table-responsive" style="min-height: 350px;">
+                <table class="table table-custom table-hover align-middle mb-0 text-nowrap" id="supplierTable">
+                    <thead>
+                    <tr>
+                        <th class="ps-4" style="width: 40px;">
+                            <input class="form-check-input" type="checkbox" id="checkAll" onchange="toggleAll(this)">
+                        </th>
+                        <th class="text-start">Mã NCC</th>
+                        <th class="text-start">Tên nhà cung cấp</th>
+                        <th class="text-center">Trạng thái</th>
+                        <th>Số điện thoại</th>
+                        <th class="pe-4">Email</th>
+                    </tr>
+                    </thead>
+                    <tbody id="supplierTableBody">
+                    <tr th:each="s : ${suppliers}" class="cursor-pointer supplier-row" th:data-code="${s.code}">
+                        <td class="ps-4" onclick="event.stopPropagation()">
+                            <input class="form-check-input item-check" type="checkbox" th:value="${s.code}"
+                                   onchange="updateBulkAction()">
+                        </td>
+                        <td class="text-start">
+                            <span class="fw-bold text-primary" th:text="${s.code}"></span>
+                        </td>
+                        <td class="text-start fw-bold text-dark" th:text="${s.name}"></td>
+                        <td class="text-center">
+                            <span class="status-badge"
+                                  th:classappend="${s.status != null and s.status.name() == 'ACTIVE'} ? 'status-active' : 'status-inactive'"
+                                  th:text="${s.status != null and s.status.name() == 'ACTIVE'} ? 'Đang hoạt động' : 'Ngừng hoạt động'"></span>
+                        </td>
+                        <td class="text-muted" th:text="${s.phone != null and s.phone != '' ? s.phone : '---'}"></td>
+                        <td class="text-muted pe-4"
+                            th:text="${s.email != null and s.email != '' ? s.email : '---'}"></td>
+                    </tr>
 
-                <tr th:if="${#lists.isEmpty(suppliers)}">
-                    <td colspan="6" class="text-center py-5 text-muted">
-                        <i class="bi bi-inbox fs-2 d-block mb-2"></i>
-                        Chưa có nhà cung cấp nào.
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center text-muted small">
-            <div>
-                <span th:if="${not #lists.isEmpty(suppliers)}"
-                      th:text="'Từ 1 đến ' + ${#lists.size(suppliers)} + ' trên tổng ' + ${#lists.size(suppliers)}"></span>
+                    <tr th:if="${#lists.isEmpty(suppliers)}">
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>Chưa có nhà cung cấp nào.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
-            <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center gap-2">
-                    <span>Hiển thị</span>
-                    <select class="form-select form-select-sm shadow-none" style="width: 60px;">
-                        <option value="20" selected>20</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                    <span>Kết quả</span>
+
+            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
+                <div class="text-muted small">
+                    <span th:if="${not #lists.isEmpty(suppliers)}"
+                          th:text="'Hiển thị 1 - ' + ${#lists.size(suppliers)} + ' trên tổng số ' + ${#lists.size(suppliers)} + ' kết quả'"></span>
+                    <span th:unless="${not #lists.isEmpty(suppliers)}">Hiển thị 0 kết quả</span>
                 </div>
-                <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-white border text-muted" disabled><i class="bi bi-chevron-left"></i>
-                    </button>
-                    <button class="btn btn-sm btn-primary">1</button>
-                    <button class="btn btn-sm btn-white border text-muted" disabled><i class="bi bi-chevron-right"></i>
-                    </button>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted">Hiển thị</span>
+                        <select class="form-select form-select-sm w-auto shadow-none">
+                            <option>20</option>
+                        </select>
+                        <span class="small text-muted">kết quả</span>
+                    </div>
+                    <nav th:if="${not #lists.isEmpty(suppliers)}">
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item disabled"><a class="page-link" href="#"><i
+                                    class="bi bi-chevron-left"></i></a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item disabled"><a class="page-link" href="#"><i
+                                    class="bi bi-chevron-right"></i></a></li>
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
+    <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function () {
-            const selectAll = document.getElementById('selectAll');
-            const bulkSelectAll = document.getElementById('bulkSelectAll');
-            const rowCheckboxes = document.querySelectorAll('.row-checkbox');
-            const searchBar = document.getElementById('searchFilterBar');
-            const bulkBar = document.getElementById('bulkActionsBar');
-            const selectedCountSpan = document.getElementById('selectedCount');
-
-            // 1. Logic click dòng (Row) nhảy sang trang chi tiết (Sử dụng data-code)
+            // 1. Click dòng nhảy chi tiết (Trừ Checkbox)
             const rows = document.querySelectorAll('.supplier-row');
             rows.forEach(row => {
                 row.addEventListener('click', function (e) {
-                    // Tránh việc bấm vào checkbox mà cũng bị nhảy trang
-                    if (e.target.tagName.toLowerCase() === 'input' || e.target.closest('td:first-child')) {
-                        return;
-                    }
+                    if (e.target.type === 'checkbox' || e.target.classList.contains('form-check-input')) return;
                     const code = this.getAttribute('data-code');
-                    if (code) {
-                        window.location.href = `/ui/suppliers/${code}`;
-                    }
+                    if (code) window.location.href = `/ui/suppliers/${code}`;
                 });
             });
-
-            // 2. Logic Checkbox & Bulk Bar
-            if (selectAll) {
-                selectAll.addEventListener('change', function () {
-                    rowCheckboxes.forEach(cb => cb.checked = this.checked);
-                    toggleBulkBar();
-                });
-            }
-
-            rowCheckboxes.forEach(cb => {
-                cb.addEventListener('change', toggleBulkBar);
-            });
-
-            function toggleBulkBar() {
-                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-                const count = checkedBoxes.length;
-
-                if (count > 0) {
-                    selectedCountSpan.innerText = count;
-                    searchBar.classList.add('d-none');
-                    searchBar.classList.remove('d-flex');
-                    bulkBar.classList.remove('d-none');
-                    bulkBar.classList.add('d-flex');
-                    bulkSelectAll.checked = true;
-                    selectAll.checked = (count === rowCheckboxes.length);
-                } else {
-                    searchBar.classList.remove('d-none');
-                    searchBar.classList.add('d-flex');
-                    bulkBar.classList.add('d-none');
-                    bulkBar.classList.remove('d-flex');
-                    selectAll.checked = false;
-                }
-            }
-
-            window.unselectAll = function () {
-                if (selectAll) selectAll.checked = false;
-                rowCheckboxes.forEach(cb => cb.checked = false);
-                toggleBulkBar();
-            }
         });
 
-        // 3. API Xoá hàng loạt
-        function deleteSelectedSuppliers() {
-            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        // 2. Xử lý Checkbox & Bulk Actions
+        function toggleAll(source) {
+            const checkboxes = document.querySelectorAll('.item-check');
+            checkboxes.forEach(cb => cb.checked = source.checked);
+            updateBulkAction();
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.item-check, #checkAll').forEach(cb => cb.checked = false);
+            updateBulkAction();
+        }
+
+        function updateBulkAction() {
+            const count = document.querySelectorAll('.item-check:checked').length;
+            const bulkBar = document.getElementById('bulkActionBar');
+            const toolbar = document.getElementById('defaultToolbar');
+            const selectedCountSpan = document.getElementById('selectedCount');
+
+            if (count > 0) {
+                selectedCountSpan.innerText = count;
+                toolbar.classList.add('d-none');
+                bulkBar.classList.remove('d-none');
+                bulkBar.classList.add('d-flex');
+            } else {
+                toolbar.classList.remove('d-none');
+                bulkBar.classList.add('d-none');
+                bulkBar.classList.remove('d-flex');
+            }
+
+            const total = document.querySelectorAll('.item-check').length;
+            document.getElementById('checkAll').checked = (count > 0 && count === total);
+        }
+
+        // 3. Gọi API Xóa hàng loạt
+        async function deleteSelectedSuppliers() {
+            const checkedBoxes = document.querySelectorAll('.item-check:checked');
+            if (checkedBoxes.length === 0) return;
+
             const codes = Array.from(checkedBoxes).map(cb => cb.value);
 
-            if (!confirm(`Xác nhận xoá ${codes.length} nhà cung cấp đã chọn? Hành động này có thể ảnh hưởng đến các phiếu nhập cũ.`)) return;
+            if (!confirm(`Xác nhận xóa vĩnh viễn ${codes.length} nhà cung cấp đã chọn? Việc này không thể hoàn tác.`)) return;
 
-            fetch('/api/v1/suppliers/bulk-delete', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(codes)
-            }).then(res => {
+            try {
+                const res = await fetch('/api/v1/suppliers/bulk-delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(codes)
+                });
+
                 if (res.ok) {
-                    location.reload();
+                    alert(`Đã xóa thành công ${codes.length} nhà cung cấp!`);
+                    window.location.reload();
                 } else {
-                    res.text().then(msg => alert("Lỗi khi xoá: " + msg));
+                    const msg = await res.text();
+                    alert("Lỗi khi xóa: " + msg);
                 }
-            }).catch(err => alert("Lỗi kết nối Backend!"));
+            } catch (err) {
+                alert("Lỗi kết nối máy chủ!");
+            }
         }
     </script>
 </div>

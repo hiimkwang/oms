@@ -4,262 +4,258 @@
 <body>
 <div class="oms-container pb-5">
     <style>
-        /* Giao diện Modal điều chỉnh cột */
-        .column-settings-list {
-            max-height: 380px;
-            overflow-y: auto;
-        }
-
-        .column-item {
-            padding: 10px 12px;
-            background: #fff;
-            border: 1px solid #eee;
-            margin-bottom: 8px;
-            border-radius: 6px;
+        /* Thống nhất style chuẩn hệ thống */
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #4b566b;
+            font-size: 13px;
+            font-weight: 500;
+            height: 36px;
             display: flex;
             align-items: center;
-            cursor: grab;
-            transition: all 0.2s;
         }
 
-        .column-item:hover {
-            background: #f8f9fa;
-            border-color: #d1d9e0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        .filter-btn:hover {
+            background-color: #f8f9fb;
+            border-color: #cbd5e1;
         }
 
-        .drag-handle {
-            color: #adb5bd;
-            margin-right: 12px;
-            font-size: 18px;
-            cursor: grab;
-        }
-
-        .settings-pane {
-            border: 1px solid #eef0f2;
-            border-radius: 8px;
-            padding: 15px;
-            background: #fcfcfc;
-            min-height: 380px;
-        }
-
-        .settings-title {
-            font-size: 13px;
+        .table-custom thead th {
+            background: #f8f9fb !important;
+            color: #4b566b;
             font-weight: 600;
-            color: #555;
-            margin-bottom: 12px;
-        }
-
-        /* Ẩn cột */
-        .d-none-column {
-            display: none !important;
-        }
-
-        /* ----------------------------------------------------------- */
-        /* FIX MÀU TIÊU ĐỀ VÀ STICKY COLUMNS */
-        /* ----------------------------------------------------------- */
-
-        /* Toàn bộ header màu xám nhạt */
-        #inventoryTable thead th {
-            background-color: #f4f6f8 !important; /* Màu xám nhạt chuẩn Sapo */
             font-size: 13px;
-            color: #333;
-            font-weight: 600;
-            border-bottom: 1px solid #e2e8f0;
+            border-top: 1px solid #dee2e6;
+            padding: 12px 10px;
             vertical-align: middle;
         }
 
-        /* Định vị sticky cho Header và Body */
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #666;
+            font-weight: 500;
+            padding: 10px 20px;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+        }
+
+        .nav-tabs-custom .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .search-box {
+            max-width: 500px;
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            background: white;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .search-box:focus-within {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            padding-right: 8px;
+        }
+
+        .search-box .form-control {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding-left: 0;
+            font-size: 13px;
+            height: 36px;
+        }
+
+        /* Sticky Columns */
         .sticky-col-1 {
             position: sticky;
             left: 0;
-            z-index: 3;
+            z-index: 5;
+            background-color: #f8f9fb !important;
+            border-right: 1px solid #dee2e6 !important;
         }
 
         .sticky-col-2 {
             position: sticky;
             left: 40px;
-            z-index: 3;
-            border-right: 1px solid #e2e8f0;
+            z-index: 5;
+            background-color: #f8f9fb !important;
+            border-right: 1px solid #dee2e6 !important;
         }
 
-        /* Ép nội dung bảng (td) màu trắng cho các cột sticky để không bị lộ nền xám khi cuộn */
-        #inventoryTable tbody td.sticky-col-1,
-        #inventoryTable tbody td.sticky-col-2 {
+        #inventoryTable tbody td.sticky-col-1, #inventoryTable tbody td.sticky-col-2 {
             background-color: #ffffff !important;
+            z-index: 4;
         }
 
-        /* ----------------------------------------------------------- */
+        .product-img {
+            width: 45px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
 
-        /* Placeholder ảnh Mechkey xịn */
         .img-placeholder {
             width: 45px;
             height: 45px;
-            background-color: #f2f5f8;
-            border: 1px solid #e2e8f0;
             border-radius: 6px;
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: #94a3b8;
         }
 
-        .img-placeholder i {
-            color: #adb5bd;
-            font-size: 20px;
-        }
-
-        /* Đồng nhất chiều cao Toolbar (Fix lỗi phình to) */
-        .oms-toolbar .btn, .oms-toolbar .input-group-text, .oms-toolbar .form-control {
-            height: 38px;
+        /* Modal Column Settings */
+        .column-item {
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
+            cursor: grab;
         }
 
-        .nav-underline .nav-link.active {
-            font-weight: 600;
-            color: #0d6efd !important;
-            border-bottom: 2px solid #0d6efd;
+        .drag-handle {
+            color: #cbd5e1;
+            margin-right: 12px;
+            font-size: 18px;
         }
 
-        .cursor-pointer {
-            cursor: pointer;
+        .d-none-column {
+            display: none !important;
         }
     </style>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-dark mb-0">Quản lý kho: <span
-                class="fw-normal text-muted fs-5 ms-1">Cửa hàng chính</span></h3>
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <h4 class="fw-bold mb-0 text-dark">Quản lý kho <span
+                class="fw-normal text-muted fs-6 ms-2">| Cửa hàng chính</span></h4>
         <div class="d-flex gap-2">
-            <button class="btn btn-light border fw-medium shadow-sm text-dark"><i class="bi bi-list-ul me-1"></i> Danh
-                sách lô - HSD
-            </button>
-            <button class="btn btn-light border fw-medium shadow-sm text-dark"><i class="bi bi-box-arrow-up me-1"></i>
-                Xuất file
-            </button>
-            <button class="btn btn-light border fw-medium shadow-sm text-dark"><i
-                    class="bi bi-box-arrow-in-down me-1"></i> Nhập file
-            </button>
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-list-ul me-2"></i>Lô - HSD</button>
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-download me-2"></i>Nhập file</button>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="border-bottom px-4 pt-3">
-            <ul class="nav nav-underline border-0">
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+
+        <div class="card-header bg-white border-0 p-0">
+            <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3">
                 <li class="nav-item">
-                    <a class="nav-link pb-2"
-                       th:classappend="${stockStatus == null or stockStatus == ''} ? 'active' : 'text-muted'"
+                    <a class="nav-link" th:classappend="${stockStatus == null or stockStatus == ''} ? 'active' : ''"
                        th:href="@{/ui/inventory(keyword=${keyword}, dateRange=${dateRange})}">Tất cả</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link pb-2" th:classappend="${stockStatus == 'in_stock'} ? 'active' : 'text-muted'"
+                    <a class="nav-link" th:classappend="${stockStatus == 'in_stock'} ? 'active' : ''"
                        th:href="@{/ui/inventory(stockStatus='in_stock', keyword=${keyword}, dateRange=${dateRange})}">Còn
                         hàng</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link pb-2" th:classappend="${stockStatus == 'out_of_stock'} ? 'active' : 'text-muted'"
+                    <a class="nav-link" th:classappend="${stockStatus == 'out_of_stock'} ? 'active' : ''"
                        th:href="@{/ui/inventory(stockStatus='out_of_stock', keyword=${keyword}, dateRange=${dateRange})}">Hết
                         hàng</a>
                 </li>
             </ul>
         </div>
 
-        <form id="filterForm" method="GET" action="/ui/inventory" class="m-0">
+        <form id="filterForm" method="GET" th:action="@{/ui/inventory}" class="m-0">
             <input type="hidden" name="stockStatus" th:value="${stockStatus}">
             <input type="hidden" name="dateRange" id="dateRangeInput" th:value="${dateRange}">
 
             <div id="defaultToolbar"
-                 class="oms-toolbar p-3 bg-white border-bottom d-flex gap-2 align-items-center transition-all flex-nowrap"
-                 style="overflow: visible;">
-                <div class="input-group flex-grow-1" style="min-width: 150px;">
-                    <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
-                    <input type="text" name="keyword" th:value="${keyword}"
-                           class="form-control border-start-0 ps-0 shadow-none"
+                 class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white border-bottom">
+                <div class="input-group search-box flex-grow-1">
+                    <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
+                    <input type="text" name="keyword" th:value="${keyword}" class="form-control"
                            placeholder="Tìm theo mã SKU, tên sản phẩm, barcode...">
                 </div>
 
-                <div class="dropdown">
-                    <button class="btn border bg-white dropdown-toggle"
-                            th:classappend="${dateRange != null and dateRange != ''} ? 'text-primary border-primary' : 'text-dark'"
-                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">Ngày tạo
-                    </button>
-                    <div class="dropdown-menu shadow p-3" style="width: 320px; border-radius: 8px;">
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <button type="button" data-range="today"
-                                        class="btn btn-outline-secondary bg-white text-dark border w-100 btn-sm py-2 date-btn"
-                                        th:classappend="${dateRange == 'today'} ? 'active border-primary text-primary' : ''">
-                                    Hôm nay
-                                </button>
+                <div class="d-flex gap-2">
+                    <div class="dropdown">
+                        <button class="btn filter-btn dropdown-toggle"
+                                th:classappend="${dateRange != null and dateRange != ''} ? 'text-primary border-primary' : ''"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <i class="bi bi-calendar3 me-2"></i>Ngày tạo
+                        </button>
+                        <div class="dropdown-menu shadow p-3 border-0" style="width: 300px; border-radius: 8px;">
+                            <div class="row g-2 mb-3">
+                                <div class="col-6"
+                                     th:each="range : ${ {'today', 'yesterday', '7days', '30days', 'this_month', 'last_month'} }">
+                                    <button type="button" th:data-range="${range}"
+                                            class="btn btn-outline-light text-dark border w-100 btn-sm py-2 date-btn small"
+                                            th:classappend="${dateRange == range} ? 'active border-primary text-primary' : ''"
+                                            th:text="${range == 'today' ? 'Hôm nay' : (range == 'yesterday' ? 'Hôm qua' : (range == '7days' ? '7 ngày qua' : (range == '30days' ? '30 ngày qua' : (range == 'this_month' ? 'Tháng này' : 'Tháng trước'))))}">
+                                    </button>
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <button type="button" data-range="yesterday"
-                                        class="btn btn-outline-secondary bg-white text-dark border w-100 btn-sm py-2 date-btn"
-                                        th:classappend="${dateRange == 'yesterday'} ? 'active border-primary text-primary' : ''">
-                                    Hôm qua
+                            <div class="d-flex gap-2 pt-2 border-top">
+                                <button type="button" onclick="resetDateSelection()" class="btn btn-light btn-sm w-50">
+                                    Bỏ chọn
                                 </button>
+                                <button type="submit" class="btn btn-primary btn-sm w-50 fw-bold">Lọc</button>
                             </div>
-                            <div class="col-6">
-                                <button type="button" data-range="7days"
-                                        class="btn btn-outline-secondary bg-white text-dark border w-100 btn-sm py-2 date-btn"
-                                        th:classappend="${dateRange == '7days'} ? 'active border-primary text-primary' : ''">
-                                    7 ngày qua
-                                </button>
-                            </div>
-                            <div class="col-6">
-                                <button type="button" data-range="30days"
-                                        class="btn btn-outline-secondary bg-white text-dark border w-100 btn-sm py-2 date-btn"
-                                        th:classappend="${dateRange == '30days'} ? 'active border-primary text-primary' : ''">
-                                    30 ngày qua
-                                </button>
-                            </div>
-                            <div class="col-6">
-                                <button type="button" data-range="this_month"
-                                        class="btn btn-outline-secondary bg-white text-dark border w-100 btn-sm py-2 date-btn"
-                                        th:classappend="${dateRange == 'this_month'} ? 'active border-primary text-primary' : ''">
-                                    Tháng này
-                                </button>
-                            </div>
-                            <div class="col-6">
-                                <button type="button" data-range="last_month"
-                                        class="btn btn-outline-secondary bg-white text-dark border w-100 btn-sm py-2 date-btn"
-                                        th:classappend="${dateRange == 'last_month'} ? 'active border-primary text-primary' : ''">
-                                    Tháng trước
-                                </button>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-2 pt-2 border-top">
-                            <button type="button" onclick="resetDateSelection()" class="btn btn-light w-50">Bỏ chọn
-                            </button>
-                            <button type="submit" class="btn btn-primary w-50 fw-bold">Lọc</button>
                         </div>
                     </div>
-                </div>
 
-                <div class="dropdown">
-                    <button class="btn border bg-white dropdown-toggle"
-                            th:classappend="${minStock != null or maxStock != null} ? 'text-primary border-primary' : 'text-dark'"
-                            type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">Tồn kho
-                    </button>
-                    <div class="dropdown-menu shadow p-3" style="width: 250px;">
-                        <div class="d-flex gap-2 mb-3">
-                            <input type="number" name="minStock" th:value="${minStock}" class="form-control"
-                                   placeholder="Từ">
-                            <input type="number" name="maxStock" th:value="${maxStock}" class="form-control"
-                                   placeholder="Đến">
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="button" onclick="clearStockFilter()" class="btn btn-light w-50 small">Bỏ
-                                chọn
-                            </button>
-                            <button type="submit" class="btn btn-primary w-50 fw-bold">Lọc</button>
+                    <div class="dropdown">
+                        <button class="btn filter-btn dropdown-toggle"
+                                th:classappend="${minStock != null or maxStock != null} ? 'text-primary border-primary' : ''"
+                                type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            Tồn kho
+                        </button>
+                        <div class="dropdown-menu shadow p-3 border-0" style="width: 250px;">
+                            <label class="small fw-bold mb-2">Khoảng tồn kho</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <input type="number" name="minStock" th:value="${minStock}"
+                                       class="form-control form-control-sm" placeholder="Từ">
+                                <input type="number" name="maxStock" th:value="${maxStock}"
+                                       class="form-control form-control-sm" placeholder="Đến">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" onclick="clearStockFilter()" class="btn btn-light btn-sm w-50">Bỏ
+                                    chọn
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-sm w-50 fw-bold">Lọc</button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <button type="button" class="btn border btn-white text-nowrap" data-bs-toggle="offcanvas"
-                        data-bs-target="#offcanvasFilters"><i class="bi bi-funnel me-1"></i> Bộ lọc khác
-                </button>
-                <a th:href="@{/ui/inventory}" class="btn border btn-light text-danger text-nowrap px-3">Xóa lọc</a>
+                    <button type="button" class="btn filter-btn px-3" data-bs-toggle="offcanvas"
+                            data-bs-target="#offcanvasFilters">
+                        <i class="bi bi-funnel me-2"></i>Bộ lọc khác
+                    </button>
+                    <a th:href="@{/ui/inventory}"
+                       class="btn filter-btn px-3 text-danger border-danger bg-danger bg-opacity-10">Xóa lọc</a>
+                </div>
             </div>
 
             <div class="offcanvas offcanvas-end shadow" tabindex="-1" id="offcanvasFilters" style="width: 400px;">
@@ -267,75 +263,62 @@
                     <h5 class="offcanvas-title fw-bold text-dark fs-5">Bộ lọc khác</h5>
                     <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
                 </div>
-                <div class="offcanvas-body p-0" style="overflow-y: auto;">
+                <div class="offcanvas-body p-0">
                     <div class="list-group list-group-flush">
-                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-bottom cursor-pointer"><span>Ngày tạo</span>
-                            <i class="bi bi-chevron-right text-muted small"></i></a>
-                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-bottom cursor-pointer"
-                           data-bs-toggle="collapse" href="#collStockOff"><span>Tồn kho</span> <i
-                                class="bi bi-chevron-right text-muted small"></i></a>
-                        <div class="collapse bg-light px-3 py-3" id="collStockOff">
-                            <div class="d-flex gap-2"><input type="number" class="form-control" placeholder="Từ"><input
-                                    type="number" class="form-control" placeholder="Đến"></div>
+                        <div class="list-group-item py-3 border-bottom">
+                            <span class="text-dark fw-medium">Ngày tạo</span>
+                            <i class="bi bi-chevron-right float-end text-muted small"></i>
                         </div>
-                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-bottom cursor-pointer"><span>Đang về kho</span>
-                            <i class="bi bi-chevron-right text-muted small"></i></a>
-                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-bottom cursor-pointer"><span>Có thể bán</span>
-                            <i class="bi bi-chevron-right text-muted small"></i></a>
-                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-bottom cursor-pointer"><span>Loại sản phẩm</span>
-                            <i class="bi bi-chevron-right text-muted small"></i></a>
-                        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 border-bottom cursor-pointer"><span>Nhãn hiệu</span>
-                            <i class="bi bi-chevron-right text-muted small"></i></a>
                     </div>
                 </div>
-                <div class="offcanvas-footer border-top p-3 d-flex justify-content-between align-items-center bg-white sticky-bottom">
+                <div class="offcanvas-footer border-top p-3 d-flex justify-content-between bg-white">
                     <button type="button" class="btn btn-outline-danger px-4"
-                            onclick="window.location.href='/ui/inventory'">Xóa hết bộ lọc
+                            onclick="window.location.href='/ui/inventory'">Xóa hết
                     </button>
                     <button type="submit" class="btn btn-primary px-5 fw-bold">Lọc</button>
                 </div>
             </div>
         </form>
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 text-center text-nowrap" id="inventoryTable">
+        <div class="table-responsive" style="min-height: 400px;">
+            <table class="table table-custom table-hover align-middle mb-0 text-nowrap" id="inventoryTable">
                 <thead>
                 <tr>
-                    <th class="ps-4 sticky-col-1 py-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <a href="javascript:void(0)" class="text-primary" data-bs-toggle="modal"
-                               data-bs-target="#columnSettingsModal"><i class="bi bi-gear-fill"></i></a>
-                        </div>
+                    <th class="ps-4 sticky-col-1">
+                        <a href="javascript:void(0)" class="text-primary" data-bs-toggle="modal"
+                           data-bs-target="#columnSettingsModal">
+                            <i class="bi bi-gear-fill"></i>
+                        </a>
                     </th>
-                    <th class="col-product text-start sticky-col-2 py-3">Sản phẩm</th>
-                    <th class="col-sku py-3">SKU</th>
-                    <th class="col-barcode py-3">Barcode</th>
-                    <th class="col-unit py-3">Đơn vị</th>
-                    <th class="col-lot py-3">Lô - HSD</th>
-                    <th class="col-stock py-3 text-primary">Tồn kho</th>
-                    <th class="col-available py-3 text-success">Có thể bán</th>
-                    <th class="col-not-available py-3 text-muted small">Không thể bán</th>
-                    <th class="col-transaction py-3 text-muted small">Đang giao dịch</th>
-                    <th class="col-inbound py-3 text-muted small">Đang về kho</th>
-                    <th class="col-price-cost py-3">Giá vốn</th>
-                    <th class="col-price-sell py-3">Giá bán</th>
-                    <th class="col-created text-end pe-4 py-3">Ngày tạo</th>
+                    <th class="col-product text-start sticky-col-2">Sản phẩm</th>
+                    <th class="col-sku">SKU</th>
+                    <th class="col-barcode">Barcode</th>
+                    <th class="col-unit">Đơn vị</th>
+                    <th class="col-lot">Lô - HSD</th>
+                    <th class="col-stock text-primary">Tồn kho</th>
+                    <th class="col-available text-success">Có thể bán</th>
+                    <th class="col-not-available text-muted">Không thể bán</th>
+                    <th class="col-transaction text-muted">Đang giao dịch</th>
+                    <th class="col-inbound text-muted">Đang về kho</th>
+                    <th class="col-price-cost">Giá vốn</th>
+                    <th class="col-price-sell text-primary">Giá bán</th>
+                    <th class="col-created text-end pe-4">Ngày tạo</th>
                 </tr>
                 </thead>
                 <tbody>
                 <th:block th:each="v : ${variants}">
                     <tr>
-                        <td class="col-product text-start sticky-col-2" style="min-width: 300px;">
+                        <td class="ps-4 sticky-col-1"></td>
+                        <td class="col-product text-start sticky-col-2">
                             <div class="d-flex align-items-center gap-3 py-1">
                                 <img th:if="${(v.imageUrl != null and v.imageUrl != '') or (v.product.imageUrl != null and v.product.imageUrl != '')}"
                                      th:src="${v.imageUrl != null and v.imageUrl != '' ? v.imageUrl : v.product.imageUrl}"
-                                     class="border rounded object-fit-cover shadow-sm"
-                                     style="width: 45px; height: 45px;">
+                                     class="product-img shadow-sm">
                                 <div th:unless="${(v.imageUrl != null and v.imageUrl != '') or (v.product.imageUrl != null and v.product.imageUrl != '')}"
                                      class="img-placeholder shadow-sm"><i class="bi bi-image"></i></div>
-                                <div>
+                                <div class="lh-sm">
                                     <a th:href="@{/ui/products/{sku}(sku=${v.product.sku})}"
-                                       class="fw-medium text-primary text-decoration-none d-block mb-1"
+                                       class="fw-bold text-primary text-decoration-none d-block mb-1"
                                        th:text="${v.product.name}"></a>
                                     <small class="text-muted" th:text="${v.variantName}"></small>
                                 </div>
@@ -352,7 +335,7 @@
                         <td class="col-inbound text-muted">0</td>
                         <td class="col-price-cost"
                             th:text="${v['costPrice'] != null ? #numbers.formatDecimal(v['costPrice'], 0, 'COMMA', 0, 'POINT') : '0'}"></td>
-                        <td class="col-price-sell fw-medium text-primary"
+                        <td class="col-price-sell fw-bold text-primary"
                             th:text="${v['price'] != null ? #numbers.formatDecimal(v['price'], 0, 'COMMA', 0, 'POINT') : '0'}"></td>
                         <td class="col-created text-end text-muted pe-4"
                             th:text="${v.product.createdAt != null ? #temporals.format(v.product.createdAt, 'dd/MM/yyyy') : '---'}"></td>
@@ -361,42 +344,51 @@
                 </tbody>
             </table>
         </div>
-        <div class="card-footer bg-white border-0 py-3 text-muted small text-start">
+
+        <div class="p-3 bg-white border-top text-muted small d-flex justify-content-between align-items-center">
             <span th:if="${not #lists.isEmpty(variants)}"
-                  th:text="'Từ 1 đến ' + ${#lists.size(variants)} + ' trên tổng ' + ${#lists.size(variants)}"></span>
+                  th:text="'Hiển thị 1 - ' + ${#lists.size(variants)} + ' trên tổng số ' + ${#lists.size(variants)}"></span>
+            <nav th:if="${not #lists.isEmpty(variants)}">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>
+                    </li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
+                </ul>
+            </nav>
         </div>
     </div>
 
-    <div class="modal fade" id="columnSettingsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="columnSettingsModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header border-bottom py-3">
-                    <h5 class="modal-title fw-bold">Điều chỉnh cột hiển thị</h5>
+                    <h6 class="modal-title fw-bold">Điều chỉnh cột hiển thị</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4">
+                <div class="modal-body p-4 bg-light">
                     <div class="row g-4">
                         <div class="col-md-6">
-                            <div class="settings-pane h-100">
-                                <div class="settings-title">Thêm cột hiển thị</div>
-                                <div class="input-group mb-3 border rounded shadow-sm">
+                            <div class="p-3 bg-white rounded border h-100">
+                                <div class="fw-bold small mb-3">Thêm cột hiển thị</div>
+                                <div class="input-group mb-3 border rounded shadow-sm overflow-hidden">
                                     <span class="input-group-text bg-white border-0"><i class="bi bi-search small"></i></span>
                                     <input type="text" id="searchColumn" class="form-control border-0 shadow-none small"
                                            placeholder="Tìm tên cột...">
                                 </div>
-                                <div id="availableColumns" class="column-settings-list pe-2"></div>
+                                <div id="availableColumns" style="max-height: 300px; overflow-y: auto;"></div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="settings-pane h-100">
-                                <div class="settings-title">Cột hiển thị (Kéo thả sắp xếp)</div>
-                                <div id="selectedColumnsSortable" class="column-settings-list pe-2"></div>
+                            <div class="p-3 bg-white rounded border h-100">
+                                <div class="fw-bold small mb-3">Thứ tự hiển thị (Kéo thả)</div>
+                                <div id="selectedColumnsSortable" style="max-height: 350px; overflow-y: auto;"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light border-top py-3">
-                    <button type="button" class="btn btn-link text-decoration-none text-dark me-auto"
+                <div class="modal-footer bg-white border-top py-3">
+                    <button type="button" class="btn btn-link text-decoration-none text-dark me-auto small"
                             onclick="resetToDefault()">Mặc định
                     </button>
                     <button type="button" class="btn btn-primary fw-bold px-4" onclick="saveColumnSettings()">Lưu cấu
@@ -408,7 +400,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script>
+    <script th:inline="javascript">
         const DEFAULT_COLUMNS = [
             {id: 'col-product', label: 'Sản phẩm', visible: true, canHide: false},
             {id: 'col-sku', label: 'SKU', visible: true, canHide: true},
@@ -428,15 +420,16 @@
         let config = JSON.parse(localStorage.getItem('inventory_column_config')) || [...DEFAULT_COLUMNS];
 
         document.addEventListener('DOMContentLoaded', function () {
-            const dateButtons = document.querySelectorAll('.date-btn');
-            dateButtons.forEach(btn => {
+            // Xử lý nút ngày
+            document.querySelectorAll('.date-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
-                    dateButtons.forEach(b => b.classList.remove('active', 'border-primary', 'text-primary'));
+                    document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active', 'border-primary', 'text-primary'));
                     this.classList.add('active', 'border-primary', 'text-primary');
                     document.getElementById('dateRangeInput').value = this.getAttribute('data-range');
                 });
             });
 
+            // Kéo thả
             new Sortable(document.getElementById('selectedColumnsSortable'), {
                 animation: 150, handle: '.drag-handle',
                 onEnd: function (evt) {
@@ -453,13 +446,6 @@
                 }
             });
 
-            document.getElementById('searchColumn').addEventListener('input', function (e) {
-                const val = e.target.value.toLowerCase();
-                document.querySelectorAll('#availableColumns .form-check').forEach(item => {
-                    item.style.display = item.innerText.toLowerCase().includes(val) ? '' : 'none';
-                });
-            });
-
             renderSettings();
             applyConfig();
         });
@@ -467,7 +453,6 @@
         function renderSettings() {
             const availDiv = document.getElementById('availableColumns');
             const sortDiv = document.getElementById('selectedColumnsSortable');
-            if (!availDiv || !sortDiv) return;
             availDiv.innerHTML = '';
             sortDiv.innerHTML = '';
             config.forEach(col => {
@@ -489,7 +474,6 @@
         function applyConfig() {
             const hRow = document.querySelector('#inventoryTable thead tr');
             const bRows = document.querySelectorAll('#inventoryTable tbody tr');
-            if (!hRow) return;
             config.forEach(col => {
                 const hCell = hRow.querySelector(`.${col.id}`);
                 if (hCell) {

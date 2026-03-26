@@ -2,9 +2,11 @@ package com.oms.module.product.repository;
 
 import com.oms.module.product.entity.ProductVariant;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,4 +34,8 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     );
 
     Optional<ProductVariant> findBySku(String sku);
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM ProductVariant v WHERE v.product.id IN :productIds")
+    void deleteByProductIdIn(@Param("productIds") List<Long> productIds);
 }

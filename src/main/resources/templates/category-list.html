@@ -1,138 +1,247 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
 <body>
 <div class="oms-container pb-5">
     <style>
-        .table-hover tbody tr {
-            cursor: pointer;
-            transition: background-color 0.2s;
+        /* Thống nhất style chuẩn hệ thống */
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #4b566b;
+            font-size: 13px;
+            font-weight: 500;
+            height: 36px;
+            display: flex;
+            align-items: center;
         }
 
-        .category-img {
+        .filter-btn:hover {
+            background-color: #f8f9fb;
+            border-color: #cbd5e1;
+        }
+
+        .table-custom thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+            padding: 12px 10px;
+        }
+
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #666;
+            font-weight: 500;
+            padding: 10px 20px;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+        }
+
+        .nav-tabs-custom .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .search-box {
+            max-width: 500px;
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            background: white;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .search-box:focus-within {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            padding-right: 8px;
+        }
+
+        .search-box .form-control {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding-left: 0;
+            font-size: 13px;
+            height: 36px;
+        }
+
+        .product-img {
             width: 40px;
             height: 40px;
             object-fit: cover;
             border-radius: 4px;
-            border: 1px solid #eee;
+            border: 1px solid #e2e8f0;
         }
 
-        /* Style cho thanh Bulk Actions giống ảnh Sapo */
-        #bulkActionsBar {
-            background-color: #f4f6f8;
-            border-bottom: 1px solid #dee2e6;
+        .product-img-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
         }
 
-        .bulk-action-link {
-            color: #007bff;
+        .cursor-pointer {
             cursor: pointer;
-            font-weight: 500;
-            text-decoration: none;
-            transition: 0.2s;
         }
 
-        .bulk-action-link:hover {
-            color: #0056b3;
-            text-decoration: underline;
+        .table-hover tbody tr:hover {
+            background-color: #f8fafc;
         }
     </style>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-dark mb-0">Danh mục sản phẩm</h3>
-        <a href="/ui/categories/create" class="btn btn-primary fw-bold shadow-sm px-4">
-            <i class="bi bi-plus-lg me-1"></i> Thêm danh mục
-        </a>
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <h4 class="fw-bold mb-0 text-dark">Danh mục sản phẩm</h4>
+        <div class="d-flex gap-2">
+            <a th:href="@{/ui/categories/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-2"></i>Thêm danh mục
+            </a>
+        </div>
     </div>
 
-    <div class="card border-0 shadow-sm overflow-hidden">
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
 
-        <div id="searchFilterBar" class="p-3 bg-white border-bottom d-flex gap-2 align-items-center">
-            <div class="input-group flex-grow-1">
-                <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
-                <input type="text" id="catSearchInput" class="form-control border-start-0 ps-0 shadow-none"
-                       placeholder="Tìm kiếm theo tên danh mục...">
-            </div>
-            <button class="btn btn-white border px-3" onclick="window.location.reload()">
-                <i class="bi bi-arrow-clockwise"></i>
-            </button>
+        <div class="card-header bg-white border-0 p-0">
+            <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3">
+                <li class="nav-item"><a class="nav-link active" href="javascript:void(0)">Tất cả danh mục</a></li>
+            </ul>
         </div>
 
-        <div id="bulkActionsBar" class="p-3 d-none align-items-center gap-4">
-            <div class="d-flex align-items-center gap-2">
-                <input class="form-check-input mt-0" type="checkbox" id="bulkSelectAll" checked onclick="unselectAll()">
-                <span class="text-dark">Đã chọn <strong id="selectedCount">0</strong> danh mục</span>
+        <div id="defaultToolbar" class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
+            <div class="input-group search-box flex-grow-1">
+                <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
+                <input type="text" id="catSearchInput" class="form-control" placeholder="Tìm kiếm theo tên danh mục...">
             </div>
-            <div class="d-flex gap-4 align-items-center">
-                <a class="bulk-action-link" onclick="deleteSelectedCategories()">Xóa danh mục</a>
-
-                <div class="dropdown">
-                    <button class="btn btn-white border btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        Thao tác khác
-                    </button>
-                    <ul class="dropdown-menu shadow-sm">
-                        <li><a class="dropdown-item" href="#">Ẩn danh mục</a></li>
-                        <li><a class="dropdown-item" href="#">Hiện danh mục</a></li>
-                    </ul>
-                </div>
+            <div class="d-flex gap-2">
+                <button class="btn filter-btn px-3" onclick="window.location.reload()">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Làm mới
+                </button>
             </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="categoryTable">
-                <thead class="table-light">
+        <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
+             style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4;">
+            <div class="d-flex align-items-center gap-3">
+                <span class="fw-medium" style="color: #0369a1; font-size: 13px;">
+                    Đã chọn <span id="selectedCount" class="fw-bold fs-6">0</span> danh mục
+                </span>
+                <span class="text-muted small">|</span>
+                <a href="javascript:void(0)" class="text-decoration-none fw-medium"
+                   style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
+                        style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;"
+                        onclick="deleteSelectedCategories()">
+                    Xóa danh mục
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive" style="min-height: 300px;">
+            <table class="table table-custom table-hover align-middle mb-0">
+                <thead>
                 <tr>
                     <th class="ps-4" style="width: 40px;">
-                        <input class="form-check-input" type="checkbox" id="selectAll">
+                        <input class="form-check-input" type="checkbox" id="checkAll" onchange="toggleAll(this)">
                     </th>
-                    <th>Danh mục</th>
+                    <th>Tên danh mục</th>
                     <th class="text-center">Số lượng sản phẩm</th>
                     <th class="text-end pe-4">Ngày tạo</th>
                 </tr>
                 </thead>
                 <tbody id="categoryTableBody">
-                <tr th:each="cat : ${categories}" class="category-row"
-                    th:data-name="${cat.name != null ? cat.name : cat.dataValue}"
-                    th:onclick="'window.location.href=\'/ui/categories/edit/' + ${cat.id} + '\''">
 
-                    <td class="ps-4" onclick="event.stopPropagation()">
-                        <input class="form-check-input row-checkbox" type="checkbox" th:value="${cat.id}">
-                    </td>
+                <th:block th:each="cat : ${categories}">
+                    <tr class="cursor-pointer category-row"
+                        th:data-name="${cat.name != null ? cat.name : cat.dataValue}"
+                        th:onclick="'window.location.href=\'/ui/categories/edit/' + ${cat.id} + '\''">
 
-                    <td>
-                        <div class="d-flex align-items-center gap-3">
-                            <img th:if="${cat.imageUrl != null}" th:src="${cat.imageUrl}" class="category-img">
-                            <div th:unless="${cat.imageUrl != null}"
-                                 class="bg-light border rounded d-flex align-items-center justify-content-center text-muted"
-                                 style="width: 40px; height: 40px;">
-                                <i class="bi bi-image"></i>
+                        <td class="ps-4" onclick="event.stopPropagation()">
+                            <input class="form-check-input item-check" type="checkbox" th:value="${cat.id}"
+                                   onchange="updateBulkAction()">
+                        </td>
+
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <img th:if="${cat.imageUrl != null and cat.imageUrl != ''}" th:src="${cat.imageUrl}"
+                                     class="product-img shadow-sm">
+                                <div th:unless="${cat.imageUrl != null and cat.imageUrl != ''}"
+                                     class="product-img-placeholder shadow-sm">
+                                    <i class="bi bi-folder fs-6"></i>
+                                </div>
+                                <span class="fw-bold text-primary"
+                                      th:text="${cat.name != null ? cat.name : cat.dataValue}"></span>
                             </div>
-                            <span class="fw-semibold text-primary"
-                                  th:text="${cat.name != null ? cat.name : cat.dataValue}"></span>
-                        </div>
+                        </td>
+                        <td class="text-center fw-medium text-dark">0</td>
+                        <td class="text-end text-muted pe-4">
+                            <span th:text="${cat.createdAt != null ? #temporals.format(cat.createdAt, 'dd/MM/yyyy') : '---'}"></span>
+                        </td>
+                    </tr>
+                </th:block>
+
+                <tr th:if="${#lists.isEmpty(categories)}">
+                    <td colspan="4" class="text-center py-5 text-muted">
+                        <i class="bi bi-folder-x fs-2 d-block mb-2"></i>Chưa có danh mục nào.
                     </td>
-                    <td class="text-center text-muted">0</td>
-                    <td class="text-end pe-4 text-muted small"
-                        th:text="${#temporals.format(cat.createdAt, 'dd/MM/yyyy')}">25/03/2026
-                    </td>
-                </tr>
-                <tr id="noDataRow" th:if="${#lists.isEmpty(categories)}">
-                    <td colspan="4" class="text-center py-5 text-muted">Chưa có danh mục nào.</td>
                 </tr>
                 </tbody>
             </table>
         </div>
+
+        <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
+            <div class="text-muted small" id="recordInfo">
+                <span th:if="${not #lists.isEmpty(categories)}"
+                      th:text="'Hiển thị 1 - ' + ${#lists.size(categories)} + ' trên tổng số ' + ${#lists.size(categories)} + ' danh mục'"></span>
+                <span th:unless="${not #lists.isEmpty(categories)}">Hiển thị 0 danh mục</span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
     </div>
 
-    <script>
+    <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function () {
+            // Logic Tìm kiếm nội bộ (Client-side)
             const searchInput = document.getElementById('catSearchInput');
-            const selectAll = document.getElementById('selectAll');
-            const bulkSelectAll = document.getElementById('bulkSelectAll');
-            const rowCheckboxes = document.querySelectorAll('.row-checkbox');
-            const bulkBar = document.getElementById('bulkActionsBar');
-            const searchBar = document.getElementById('searchFilterBar');
-            const selectedCountSpan = document.getElementById('selectedCount');
-
-            // 1. Logic Tìm kiếm
             searchInput.addEventListener('input', function () {
                 const val = this.value.trim().toLowerCase();
                 const rows = document.querySelectorAll('.category-row');
@@ -141,71 +250,72 @@
                     row.style.display = name.includes(val) ? "" : "none";
                 });
             });
-
-            // 2. Logic Chọn tất cả từ thead
-            selectAll.addEventListener('change', function () {
-                rowCheckboxes.forEach(cb => {
-                    if (cb.closest('tr').style.display !== 'none') {
-                        cb.checked = this.checked;
-                    }
-                });
-                toggleBulkBar();
-            });
-
-            // 3. Logic Chọn từng dòng
-            rowCheckboxes.forEach(cb => {
-                cb.addEventListener('change', toggleBulkBar);
-            });
-
-            function toggleBulkBar() {
-                const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-                const count = checkedBoxes.length;
-
-                if (count > 0) {
-                    selectedCountSpan.innerText = count;
-                    searchBar.classList.add('d-none');
-                    searchBar.classList.remove('d-flex');
-                    bulkBar.classList.remove('d-none');
-                    bulkBar.classList.add('d-flex');
-                    bulkSelectAll.checked = true; // Luôn tích ô checkbox trên thanh bulk action
-
-                    // Update thead checkbox
-                    selectAll.checked = (count === rowCheckboxes.length);
-                } else {
-                    searchBar.classList.remove('d-none');
-                    searchBar.classList.add('d-flex');
-                    bulkBar.classList.add('d-none');
-                    bulkBar.classList.remove('d-flex');
-                    selectAll.checked = false;
-                }
-            }
-
-            // Hàm Hủy chọn tất cả (khi bấm vào checkbox trên thanh bulk action)
-            window.unselectAll = function () {
-                selectAll.checked = false;
-                rowCheckboxes.forEach(cb => cb.checked = false);
-                toggleBulkBar();
-            }
         });
 
-        // Xoá hàng loạt
-        function deleteSelectedCategories() {
-            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-            const ids = Array.from(checkedBoxes).map(cb => cb.value);
-
-            if (!confirm(`Xác nhận xoá ${ids.length} danh mục đã chọn?`)) return;
-
-            fetch('/ui/categories/bulk-delete', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(ids)
-            }).then(res => {
-                if (res.ok) {
-                    location.reload();
-                } else {
-                    alert("Lỗi khi xoá! Hãy kiểm tra xem danh mục có đang chứa sản phẩm không.");
+        // Xử lý Checkbox & Bulk Actions
+        function toggleAll(source) {
+            const checkboxes = document.querySelectorAll('.item-check');
+            checkboxes.forEach(cb => {
+                // Chỉ chọn những dòng đang hiển thị (không bị ẩn bởi tìm kiếm)
+                if (cb.closest('tr').style.display !== 'none') {
+                    cb.checked = source.checked;
                 }
             });
+            updateBulkAction();
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.item-check, #checkAll').forEach(cb => cb.checked = false);
+            updateBulkAction();
+        }
+
+        function updateBulkAction() {
+            const count = document.querySelectorAll('.item-check:checked').length;
+            const bulkBar = document.getElementById('bulkActionBar');
+            const toolbar = document.getElementById('defaultToolbar');
+
+            if (count > 0) {
+                document.getElementById('selectedCount').innerText = count;
+                toolbar.classList.add('d-none');
+                bulkBar.classList.remove('d-none');
+                bulkBar.classList.add('d-flex');
+            } else {
+                toolbar.classList.remove('d-none');
+                bulkBar.classList.add('d-none');
+                bulkBar.classList.remove('d-flex');
+            }
+
+            // Cập nhật trạng thái của nút Check All
+            const totalVisible = Array.from(document.querySelectorAll('.item-check')).filter(cb => cb.closest('tr').style.display !== 'none').length;
+            document.getElementById('checkAll').checked = (count > 0 && count === totalVisible);
+        }
+
+        // Gọi API Xóa hàng loạt
+        async function deleteSelectedCategories() {
+            const checkedBoxes = document.querySelectorAll('.item-check:checked');
+            if (checkedBoxes.length === 0) return;
+
+            const ids = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (!confirm(`Xác nhận xoá vĩnh viễn ${ids.length} danh mục đã chọn?`)) return;
+
+            try {
+                const res = await fetch('/ui/categories/bulk-delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(ids)
+                });
+
+                if (res.ok) {
+                    alert(`Đã xóa thành công ${ids.length} danh mục!`);
+                    window.location.reload();
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi khi xoá: " + (err.message || "Hãy kiểm tra xem danh mục có đang chứa sản phẩm không."));
+                }
+            } catch (err) {
+                alert("Lỗi kết nối Server: " + err);
+            }
         }
     </script>
 </div>

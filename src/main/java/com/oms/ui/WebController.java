@@ -72,19 +72,46 @@ public class WebController {
 
         return "products";
     }
-    @Controller
-    @RequestMapping("/ui/customers")
-    public class CustomerUIController {
-        @GetMapping
-        public String listPage() {
-            return "customers";
-        }
+
+    // Mở trang danh sách khách hàng
+    @GetMapping("/ui/customers")
+    public String listCustomersPage() {
+        return "customers";
+    }
+
+    // Mở trang tạo mới khách hàng
+    @GetMapping("/ui/customers/create")
+    public String createCustomerPage() {
+        return "customer-create";
+    }
+
+    // Mở trang chi tiết / sửa khách hàng
+    @GetMapping("/ui/customers/{code}")
+    public String editCustomerPage(@PathVariable String code, Model model) {
+        model.addAttribute("customer", customerService.getCustomerByCode(code));
+        return "customer-edit"; // Chuyển sang view edit
+    }
+
+    @GetMapping("/ui/customer-groups")
+    public String listCustomerGroupsPage() {
+        return "customer-groups";
+    }
+
+    @GetMapping("/ui/customer-groups/create")
+    public String createCustomerGroupPage() {
+        return "customer-group-create";
+    }
+
+    @GetMapping("/ui/customer-groups/{code}")
+    public String editCustomerGroupPage(@PathVariable String code, Model model) {
+        model.addAttribute("groupCode", code);
+        return "customer-group-edit";
     }
 
     @GetMapping("/ui/orders/create")
     public String createOrderPage(Model model) {
         model.addAttribute("products", productService.getAllProducts());
-       // model.addAttribute("customers", customerService.getAllCustomers());
+        // model.addAttribute("customers", customerService.getAllCustomers());
 
         String randomOrderCode = "DH" + LocalDate.now().toString().replace("-", "").substring(2) + "-" + (int) (Math.random() * 10000);
         model.addAttribute("defaultOrderCode", randomOrderCode);
@@ -115,6 +142,7 @@ public class WebController {
     public String createCategoryPage() {
         return "category-create";
     }
+
     // Mở trang Chi tiết / Sửa Danh mục
     @GetMapping("/ui/categories/edit/{id}")
     public String editCategoryPage(@PathVariable Long id, Model model) {
@@ -123,6 +151,7 @@ public class WebController {
 
         return "category-edit"; // Trỏ đúng tên file category-edit.html anh em vừa tạo
     }
+
     // API Xóa hàng loạt
     @PostMapping("/ui/categories/bulk-delete")
     public ResponseEntity<?> bulkDelete(@RequestBody List<Long> ids) {
@@ -133,6 +162,7 @@ public class WebController {
             return ResponseEntity.badRequest().body("Lỗi khi xóa: " + e.getMessage());
         }
     }
+
     // Sửa sản phẩm
     @GetMapping("/ui/products/{sku}")
     public String editProductPage(@PathVariable String sku, Model model) {
@@ -215,6 +245,7 @@ public class WebController {
 
         return "import-detail";
     }
+
     @GetMapping("/ui/imports/edit/{code}")
     public String editImportPage(@PathVariable String code, Model model) {
         Receipt receipt = receiptService.getReceiptByCode(code);

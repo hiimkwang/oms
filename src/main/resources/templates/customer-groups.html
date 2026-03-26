@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #4b566b;
+            font-size: 13px;
+            font-weight: 500;
+            height: 36px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-btn:hover {
+            background-color: #f8f9fb;
+            border-color: #cbd5e1;
+        }
+
+        .table-custom thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+            padding: 12px 10px;
+        }
+
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #666;
+            font-weight: 500;
+            padding: 10px 20px;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+        }
+
+        .nav-tabs-custom .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .search-box {
+            max-width: 500px;
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            background: white;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .search-box:focus-within {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            padding-right: 8px;
+        }
+
+        .search-box .form-control {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding-left: 0;
+            font-size: 13px;
+            height: 36px;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <h4 class="fw-bold mb-0">Nhóm khách hàng</h4>
+        <div class="d-flex gap-2">
+            <a th:href="@{/ui/customer-groups/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-2"></i>Thêm nhóm khách hàng
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+        <div class="card-header bg-white border-0 p-0">
+            <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3">
+                <li class="nav-item"><a class="nav-link active" href="javascript:void(0)">Tất cả</a></li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
+                <div class="input-group search-box flex-grow-1">
+                    <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
+                    <input type="text" id="groupSearchInput" class="form-control"
+                           placeholder="Tìm kiếm theo mã nhóm, tên nhóm...">
+                </div>
+                <div class="d-flex gap-2">
+                    <select class="form-select filter-btn w-auto" id="typeFilter">
+                        <option value="">Tất cả loại nhóm</option>
+                        <option value="true">Nhóm tự động</option>
+                        <option value="false">Nhóm thủ công</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
+                 style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4;">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-medium" style="color: #0369a1; font-size: 13px;">
+                        Đã chọn <span id="deleteCount" class="fw-bold fs-6">0</span> nhóm trên trang này
+                    </span>
+                    <span class="text-muted small">|</span>
+                    <a href="javascript:void(0)" class="text-decoration-none fw-medium"
+                       style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
+                </div>
+                <div>
+                    <button class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
+                            style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;" onclick="deleteSelected()">
+                        Xóa nhóm khách hàng
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive" style="min-height: 300px;">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th class="ps-4" style="width: 40px;"><input type="checkbox" class="form-check-input"
+                                                                     id="checkAll"></th>
+                        <th>Mã nhóm</th>
+                        <th>Tên nhóm</th>
+                        <th class="text-center">Số lượng khách</th>
+                        <th>Ngày tạo</th>
+                    </tr>
+                    </thead>
+                    <tbody id="groupTableBody">
+                    <tr>
+                        <td colspan="5" class="text-center py-5">Đang tải dữ liệu...</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 d-flex justify-content-between align-items-center border-top">
+                <div class="text-muted small" id="recordInfo">Đang tải...</div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted">Hiển thị</span>
+                        <select class="form-select form-select-sm w-auto">
+                            <option>20</option>
+                        </select>
+                        <span class="small text-muted">kết quả</span>
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item disabled"><a class="page-link" href="#"><i
+                                    class="bi bi-chevron-left"></i></a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="none">
+        let allGroups = [];
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            await loadGroups();
+
+            // Lắng nghe sự kiện gõ tìm kiếm
+            let timeout = null;
+            document.getElementById('groupSearchInput').addEventListener('input', function () {
+                clearTimeout(timeout);
+                timeout = setTimeout(applyFilters, 300);
+            });
+
+            // Lắng nghe sự kiện chọn bộ lọc
+            document.getElementById('typeFilter').addEventListener('change', applyFilters);
+
+            // Xử lý Checkbox Chọn tất cả
+            document.getElementById('checkAll').addEventListener('change', function () {
+                const isChecked = this.checked;
+                document.querySelectorAll('.group-checkbox').forEach(cb => cb.checked = isChecked);
+                toggleBulkActionBar();
+            });
+        });
+
+        async function loadGroups() {
+            const tbody = document.getElementById('groupTableBody');
+            try {
+                const res = await fetch('/api/v1/customer-groups');
+                if (!res.ok) throw new Error("Lỗi mạng");
+                allGroups = await res.json();
+                applyFilters(); // Render bảng kết hợp các filter mặc định
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Lỗi tải dữ liệu máy chủ!</td></tr>';
+            }
+        }
+
+        // Hàm xử lý chung kết hợp cả Keyword và Dropdown Type
+        function applyFilters() {
+            const keyword = document.getElementById('groupSearchInput').value.toLowerCase().trim();
+            const typeFilter = document.getElementById('typeFilter').value; // "" hoặc "true" hoặc "false"
+
+            const filtered = allGroups.filter(g => {
+                // Điều kiện 1: Khớp keyword tìm kiếm
+                const matchKeyword = (g.code && g.code.toLowerCase().includes(keyword)) ||
+                    (g.name && g.name.toLowerCase().includes(keyword));
+
+                // Điều kiện 2: Khớp phân loại
+                let matchType = true;
+                if (typeFilter !== "") {
+                    // Cần parse về boolean để so sánh
+                    const isAutoType = (typeFilter === "true");
+                    matchType = (g.autoUpdate === isAutoType);
+                }
+
+                return matchKeyword && matchType;
+            });
+
+            renderTable(filtered);
+        }
+
+        function renderTable(dataList) {
+            const tbody = document.getElementById('groupTableBody');
+            const info = document.getElementById('recordInfo');
+
+            if (dataList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-folder-x fs-2 d-block mb-2"></i>Không tìm thấy kết quả phù hợp.</td></tr>';
+                info.innerText = 'Hiển thị 0 nhóm';
+                clearSelection();
+                return;
+            }
+
+            let html = '';
+            dataList.forEach(g => {
+                const date = g.createdAt ? new Date(g.createdAt).toLocaleDateString('vi-VN') : '---';
+
+                // Hiển thị nhãn Auto / Manual
+                const typeBadge = g.autoUpdate
+                    ? '<span class="badge bg-info text-white ms-2" style="font-size: 10px; font-weight: 500;">Tự động</span>'
+                    : '<span class="badge bg-secondary text-white ms-2" style="font-size: 10px; font-weight: 500;">Thủ công</span>';
+
+                html += `
+                    <tr>
+                        <td class="ps-4">
+                            <input type="checkbox" class="form-check-input group-checkbox" value="${g.code}" onchange="toggleBulkActionBar()">
+                        </td>
+                        <td class="fw-medium text-muted">${g.code || '---'}</td>
+                        <td>
+                            <a href="/ui/customer-groups/${g.code}" class="fw-bold text-primary text-decoration-none">${g.name || '---'}</a>
+                            ${typeBadge}
+                        </td>
+                        <td class="text-center fw-medium">${g.customerCount || 0}</td>
+                        <td class="text-muted">${date}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+            info.innerText = `Hiển thị 1 - ${dataList.length} trên tổng số ${dataList.length} nhóm`;
+            clearSelection();
+        }
+
+        // Ẩn/hiện thanh Thao tác hàng loạt
+        function toggleBulkActionBar() {
+            const checkedCount = document.querySelectorAll('.group-checkbox:checked').length;
+            const bulkBar = document.getElementById('bulkActionBar');
+
+            if (checkedCount > 0) {
+                document.getElementById('deleteCount').innerText = checkedCount;
+                bulkBar.classList.remove('d-none');
+                bulkBar.classList.add('d-flex');
+            } else {
+                bulkBar.classList.add('d-none');
+                bulkBar.classList.remove('d-flex');
+            }
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.group-checkbox, #checkAll').forEach(cb => cb.checked = false);
+            toggleBulkActionBar();
+        }
+
+        // Xóa hàng loạt
+        async function deleteSelected() {
+            const checkboxes = document.querySelectorAll('.group-checkbox:checked');
+            if (checkboxes.length === 0) return;
+
+            if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} nhóm đã chọn không?`)) {
+                return;
+            }
+
+            const codes = Array.from(checkboxes).map(cb => cb.value);
+
+            try {
+                const res = await fetch('/api/v1/customer-groups/bulk-delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(codes)
+                });
+
+                if (res.ok) {
+                    alert(`Đã xóa thành công ${codes.length} nhóm!`);
+                    document.getElementById('groupSearchInput').value = '';
+                    document.getElementById('typeFilter').value = '';
+                    await loadGroups();
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi: " + (err.message || "Không thể xóa nhóm!"));
+                }
+            } catch (e) {
+                console.error("Lỗi xóa nhóm:", e);
+                alert("Lỗi server, vui lòng thử lại sau!");
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

@@ -231,8 +231,16 @@ public class ProductService {
                 null  // endDate
         );
     }
+
+    //    @Transactional
+//    public void deleteProductsBulk(List<Long> ids) {
+//        productRepository.deleteAllByIdInBatch(ids);
+//    }
     @Transactional
     public void deleteProductsBulk(List<Long> ids) {
+        // Xóa con trước
+        productVariantRepository.deleteByProductIdIn(ids);
+        // Sau đó mới xóa cha
         productRepository.deleteAllByIdInBatch(ids);
     }
 }

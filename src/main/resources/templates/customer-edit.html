@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5" style="background-color: #f3f4f6;">
+    <style>
+        .card-custom {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header-custom {
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            font-size: 15px;
+            color: #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-body-custom {
+            padding: 16px;
+            font-size: 14px;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 12px;
+        }
+
+        .info-label {
+            width: 140px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .info-value {
+            flex: 1;
+            color: #0f172a;
+            font-weight: 500;
+        }
+
+        .avatar-lg {
+            width: 48px;
+            height: 48px;
+            background: #e0f2fe;
+            color: #0369a1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-right: 16px;
+        }
+
+        .stat-box {
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+        }
+
+        .stat-box:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .text-blue {
+            color: #0ea5e9;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+        <div class="d-flex align-items-center gap-3">
+            <a th:href="@{/ui/customers}" class="btn btn-white border bg-white shadow-sm px-2"><i
+                    class="bi bi-arrow-left"></i></a>
+            <h4 class="fw-bold text-dark mb-0" th:text="${customer.fullName}">Tên Khách Hàng</h4>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary px-3 fw-medium shadow-sm" data-bs-toggle="modal"
+                    data-bs-target="#updateModal">
+                <i class="bi bi-pencil me-2"></i>Sửa
+            </button>
+            <button class="btn btn-white border bg-white px-3 fw-medium text-danger shadow-sm"
+                    onclick="deleteCustomer()">
+                <i class="bi bi-trash me-2"></i>Xóa
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-8">
+
+            <div class="card-custom">
+                <div class="card-header-custom">Thông tin khách hàng</div>
+                <div class="card-body-custom d-flex">
+                    <div class="avatar-lg"
+                         th:text="${#strings.isEmpty(customer.firstName) ? 'K' : #strings.substring(customer.firstName, 0, 1)}">
+                        K
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold fs-5 mb-3" th:text="${customer.fullName}">Nguyễn Văn A</div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-row">
+                                    <div class="info-label">Mã khách hàng</div>
+                                    <div class="info-value text-blue" th:text="${customer.code}">---</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Nhóm khách hàng</div>
+                                    <div class="info-value text-blue" th:text="${customer.customerGroup}">---</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-row">
+                                    <div class="info-label">Điện thoại</div>
+                                    <div class="info-value text-blue" th:text="${customer.phone}">---</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Email</div>
+                                    <div class="info-value text-blue"
+                                         th:text="${customer.email != null && customer.email != '' ? customer.email : '---'}">
+                                        ---
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-custom">
+                <div class="card-header-custom">Ghi chú</div>
+                <div class="card-body-custom">
+                    <textarea class="form-control" id="outerNote" rows="3"
+                              placeholder="Nhập ghi chú cho khách hàng này..." th:text="${customer.note}"></textarea>
+                    <div class="text-end mt-2">
+                        <button class="btn btn-sm btn-light border" onclick="quickSaveNote()">Lưu ghi chú</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-custom">
+                <div class="card-header-custom">Đơn hàng gần đây</div>
+                <div class="card-body-custom text-center py-5 text-muted">
+                    <i class="bi bi-box-seam fs-2 d-block mb-2"></i>
+                    Khách hàng chưa có đơn hàng nào
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+
+            <div class="card-custom">
+                <div class="card-body-custom">
+                    <div class="stat-box">
+                        <div class="stat-label">Nợ hiện tại</div>
+                        <div class="stat-value text-danger">0₫</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Tổng chi tiêu</div>
+                        <div class="stat-value text-blue">0₫</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Tổng SL đơn hàng</div>
+                        <div class="stat-value">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-custom">
+                <div class="card-header-custom">Thông tin bổ sung</div>
+                <div class="card-body-custom">
+                    <div class="info-row">
+                        <div class="info-label" style="width: 100px;">Giới tính</div>
+                        <div class="info-value"
+                             th:text="${customer.gender == 'NAM' ? 'Nam' : (customer.gender == 'NU' ? 'Nữ' : '---')}">
+                            ---
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label" style="width: 100px;">Ngày sinh</div>
+                        <div class="info-value" th:text="${customer.dob != null ? customer.dob : '---'}">---</div>
+                    </div>
+                    <div class="info-row mt-2">
+                        <div class="info-label" style="width: 100px;">Tags</div>
+                        <div class="info-value"><span class="badge bg-light text-dark border"
+                                                      th:text="${customer.tags != null && customer.tags != '' ? customer.tags : '---'}">---</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-custom">
+                <div class="card-header-custom">Địa chỉ nhận hàng</div>
+                <div class="card-body-custom">
+                    <div class="fw-bold mb-1" th:text="${customer.fullName}">---</div>
+                    <div class="text-muted small mb-1" th:text="${customer.phone}">---</div>
+                    <div class="text-muted small"
+                         th:text="${customer.shipAddressDetail != null && customer.shipAddressDetail != '' ? customer.shipAddressDetail : 'Khách hàng chưa có địa chỉ chi tiết'}">
+                        ---
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-custom" th:if="${customer.hasInvoice != null && customer.hasInvoice}">
+                <div class="card-header-custom">Thông tin xuất hóa đơn</div>
+                <div class="card-body-custom">
+                    <div class="fw-bold mb-1" th:text="${customer.companyName}">---</div>
+                    <div class="text-muted small mb-1">Mã số thuế: <span class="fw-medium text-dark"
+                                                                         th:text="${customer.taxCode}">---</span></div>
+                    <div class="text-muted small" th:text="${customer.companyAddress}">---</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="modal fade" id="updateModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-dark">Cập nhật thông tin khách hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light" style="font-size: 13px;">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary mb-1">Họ</label>
+                            <input type="text" id="lastName" class="form-control form-control-sm"
+                                   th:value="${customer.lastName}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary mb-1">Tên <span class="text-danger">*</span></label>
+                            <input type="text" id="firstName" class="form-control form-control-sm"
+                                   th:value="${customer.firstName}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary mb-1">Số điện thoại <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" id="phoneNumber" class="form-control form-control-sm"
+                                   th:value="${customer.phone}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary mb-1">Email</label>
+                            <input type="email" id="email" class="form-control form-control-sm"
+                                   th:value="${customer.email}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary mb-1">Ngày sinh</label>
+                            <input type="date" id="dob" class="form-control form-control-sm" th:value="${customer.dob}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary mb-1">Giới tính</label>
+                            <div class="d-flex gap-3 mt-1">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="gender" id="gNam" value="NAM"
+                                           th:checked="${customer.gender == 'NAM'}">
+                                    <label for="gNam">Nam</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="gender" id="gNu" value="NU"
+                                           th:checked="${customer.gender == 'NU'}">
+                                    <label for="gNu">Nữ</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary mb-1">Nhóm khách hàng</label>
+                            <select id="customerGroup" class="form-select form-select-sm">
+                                <option value="Khách lẻ" th:selected="${customer.customerGroup == 'Khách lẻ'}">Khách
+                                    lẻ
+                                </option>
+                                <option value="VIP" th:selected="${customer.customerGroup == 'VIP'}">VIP</option>
+                                <option value="Đại lý" th:selected="${customer.customerGroup == 'Đại lý'}">Đại lý
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-secondary mb-1">Tags</label>
+                            <input type="text" id="tags" class="form-control form-control-sm"
+                                   placeholder="VD: khach-quen, can-cham-soc" th:value="${customer.tags}">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold text-secondary mb-1">Địa chỉ chi tiết (Nhận hàng)</label>
+                            <textarea id="shipAddressDetail" class="form-control form-control-sm" rows="2"
+                                      th:text="${customer.shipAddressDetail}"></textarea>
+                        </div>
+
+                        <div class="col-md-12 mt-3 border-top pt-3">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="hasInvoice"
+                                       th:checked="${customer.hasInvoice != null && customer.hasInvoice}"
+                                       onchange="document.getElementById('invBlock').classList.toggle('d-none')">
+                                <label class="fw-bold text-dark" for="hasInvoice">Khách có thông tin xuất hóa
+                                    đơn</label>
+                            </div>
+                            <div id="invBlock"
+                                 th:classappend="${customer.hasInvoice != null && customer.hasInvoice} ? '' : 'd-none'">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label text-secondary mb-1 small">Mã số thuế</label>
+                                        <input type="text" id="taxCode" class="form-control form-control-sm"
+                                               th:value="${customer.taxCode}">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label text-secondary mb-1 small">Tên công ty</label>
+                                        <input type="text" id="companyName" class="form-control form-control-sm"
+                                               th:value="${customer.companyName}">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label text-secondary mb-1 small">Địa chỉ công ty</label>
+                                        <input type="text" id="companyAddress" class="form-control form-control-sm"
+                                               th:value="${customer.companyAddress}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary fw-bold px-4" onclick="submitUpdate()">Lưu thông tin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const customerCode = /*[[${customer.code}]]*/ 'UNKNOWN';
+
+        async function deleteCustomer() {
+            if (!confirm("Bạn có chắc chắn muốn xóa khách hàng này không? Hành động này không thể hoàn tác.")) {
+                return;
+            }
+            try {
+                const res = await fetch(`/api/v1/customers/${customerCode}`, {method: 'DELETE'});
+                if (res.ok) {
+                    alert("Đã xóa khách hàng thành công!");
+                    window.location.href = "/ui/customers";
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi: " + (err.message || "Không thể xóa khách hàng!"));
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Lỗi server, vui lòng thử lại sau!");
+            }
+        }
+
+        // Đã cập nhật lại Payload bao gồm cả Hóa đơn
+        function getCustomerPayload(includeNote = true) {
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const fullName = lastName ? (lastName + ' ' + firstName) : firstName;
+
+            return {
+                firstName: firstName,
+                lastName: lastName,
+                fullName: fullName,
+                email: document.getElementById('email').value.trim(),
+                phoneNumber: document.getElementById('phoneNumber').value.trim(),
+                dob: document.getElementById('dob').value,
+                gender: document.querySelector('input[name="gender"]:checked')?.value,
+                customerGroup: document.getElementById('customerGroup').value,
+                tags: document.getElementById('tags').value.trim(),
+                shipAddressDetail: document.getElementById('shipAddressDetail').value.trim(),
+
+                // MỚI: Thêm trường hóa đơn vào payload
+                hasInvoice: document.getElementById('hasInvoice').checked,
+                taxCode: document.getElementById('taxCode').value.trim(),
+                companyName: document.getElementById('companyName').value.trim(),
+                companyAddress: document.getElementById('companyAddress').value.trim(),
+
+                note: includeNote ? document.getElementById('outerNote').value.trim() : null
+            };
+        }
+
+        async function submitUpdate() {
+            const payload = getCustomerPayload(true);
+            if (!payload.firstName || !payload.phoneNumber) {
+                return alert("Vui lòng nhập đầy đủ Tên và Số điện thoại!");
+            }
+            callUpdateApi(payload, "Cập nhật thông tin thành công!");
+        }
+
+        async function quickSaveNote() {
+            const payload = getCustomerPayload(true);
+            callUpdateApi(payload, "Đã lưu ghi chú!");
+        }
+
+        async function callUpdateApi(payload, successMsg) {
+            try {
+                const res = await fetch(`/api/v1/customers/${customerCode}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert(successMsg);
+                    location.reload();
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi: " + (err.message || "Không thể cập nhật!"));
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Lỗi server, vui lòng thử lại sau!");
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

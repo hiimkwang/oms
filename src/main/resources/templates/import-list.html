@@ -4,154 +4,280 @@
 <body>
 <div class="oms-container pb-5">
     <style>
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
+        /* Thống nhất style chuẩn hệ thống */
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #4b566b;
+            font-size: 13px;
             font-weight: 500;
-            border: 1px solid;
+            height: 36px;
+            display: flex;
+            align-items: center;
         }
 
-        /* Đã đảo lại: Đang giao dịch thành màu Xám/Xanh nhạt */
+        .filter-btn:hover {
+            background-color: #f8f9fb;
+            border-color: #cbd5e1;
+        }
+
+        .table-custom thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+            padding: 12px 10px;
+        }
+
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #666;
+            font-weight: 500;
+            padding: 10px 20px;
+            font-size: 14px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+            font-weight: 600;
+        }
+
+        .nav-tabs-custom .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .search-box {
+            max-width: 500px;
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            background: white;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .search-box:focus-within {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            padding-right: 8px;
+        }
+
+        .search-box .form-control {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding-left: 0;
+            font-size: 13px;
+            height: 36px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid;
+            display: inline-block;
+        }
+
         .status-trading {
             background-color: #f1f5f9;
             color: #475569;
             border-color: #cbd5e1;
         }
 
-        /* Đã đảo lại: Hoàn thành thành màu Xanh lá */
+        /* Đang giao dịch */
         .status-completed {
             background-color: #e6f6ee;
             color: #008a47;
             border-color: #c2ebd5;
         }
 
+        /* Hoàn thành / Đã nhập */
         .status-unreceived {
             background-color: #fff4e5;
             color: #ff9800;
             border-color: #ffe5cc;
         }
 
+        /* Chưa nhập */
         .status-cancelled {
             background-color: #fef2f2;
             color: #dc2626;
             border-color: #fecaca;
         }
 
-        .table-custom thead th {
-            background-color: #f4f6f8;
-            font-size: 13px;
-            color: #333;
-            font-weight: 600;
-            padding: 12px 8px;
-        }
-
-        .nav-underline .nav-link {
-            cursor: pointer;
-        }
+        /* Đã hủy */
     </style>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-dark mb-0">Danh sách đơn nhập hàng</h3>
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <h4 class="fw-bold mb-0 text-dark">Danh sách đơn nhập hàng</h4>
         <div class="d-flex gap-2">
-            <button class="btn btn-white border fw-medium shadow-sm text-dark"><i class="bi bi-box-arrow-up me-1"></i>
-                Xuất file
-            </button>
-            <a th:href="@{/ui/imports/create}" class="btn btn-primary fw-bold shadow-sm px-3"><i
-                    class="bi bi-plus-lg me-1"></i> Tạo đơn nhập hàng</a>
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
+            <a th:href="@{/ui/imports/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-2"></i>Tạo đơn nhập hàng
+            </a>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="border-bottom px-4 pt-3">
-            <ul class="nav nav-underline border-0" id="statusTabs">
-                <li class="nav-item"><a
-                        class="nav-link active fw-bold text-primary border-primary border-bottom border-2 pb-2"
-                        data-status="all">Tất cả</a></li>
-                <li class="nav-item"><a class="nav-link text-muted pb-2" data-status="Đang giao dịch">Đang giao dịch</a>
-                </li>
-                <li class="nav-item"><a class="nav-link text-muted pb-2" data-status="Hoàn thành">Hoàn thành</a></li>
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+
+        <div class="card-header bg-white border-0 p-0">
+            <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3" id="statusTabs">
+                <li class="nav-item"><a class="nav-link active" data-status="all">Tất cả</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Đang giao dịch">Đang giao dịch</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Hoàn thành">Hoàn thành</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Đã hủy">Đã hủy</a></li>
             </ul>
         </div>
 
-        <div class="p-3 bg-white border-bottom d-flex gap-2 align-items-center flex-nowrap">
-            <div class="input-group flex-grow-1">
-                <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
-                <input type="text" id="searchInput" class="form-control border-start-0 ps-0 shadow-none"
-                       placeholder="Tìm theo mã đơn nhập, tên NCC...">
+        <div class="card-body p-0">
+            <div id="defaultToolbar"
+                 class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
+                <div class="input-group search-box flex-grow-1">
+                    <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
+                    <input type="text" id="searchInput" class="form-control"
+                           placeholder="Tìm theo mã đơn nhập, tên nhà cung cấp...">
+                </div>
+
+                <div class="d-flex gap-2">
+                    <select id="filterImportStatus" class="form-select filter-btn w-auto">
+                        <option value="all">Tất cả trạng thái nhập</option>
+                        <option value="Chưa nhập">Chưa nhập</option>
+                        <option value="Đã nhập hàng">Đã nhập hàng</option>
+                    </select>
+                    <button class="btn filter-btn px-3" onclick="window.location.reload()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Làm mới
+                    </button>
+                </div>
             </div>
-            <select id="filterImportStatus" class="form-select border shadow-none" style="width: 220px;">
-                <option value="all">Tất cả trạng thái nhập</option>
-                <option value="Chưa nhập">Chưa nhập</option>
-                <option value="Đã nhập hàng">Đã nhập hàng</option>
-            </select>
-            <button class="btn btn-white border px-3 text-nowrap" onclick="window.location.reload()"><i
-                    class="bi bi-arrow-clockwise"></i></button>
-        </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 text-center text-nowrap" id="importTable">
-                <thead>
-                <tr>
-                    <th class="ps-4" style="width: 40px;"></th>
-                    <th class="text-start">Mã đơn nhập</th>
-                    <th>Ngày tạo</th>
-                    <th>Chi nhánh nhập</th>
-                    <th>Trạng thái</th>
-                    <th>Trạng thái nhập</th>
-                    <th>Nhà cung cấp</th>
-                    <th>Nhân viên tạo</th>
-                    <th>Số lượng</th>
-                    <th class="pe-4 text-end">Giá trị đơn</th>
-                </tr>
-                </thead>
-                <tbody id="importTableBody">
-                <tr th:each="order : ${importOrders}"
-                    class="import-row"
-                    th:data-search="|${order.code} ${order.supplier != null ? order.supplier.name : ''}|"
-                    th:data-trading-status="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}"
-                    th:data-import-status="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập'}">
+            <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
+                 style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4;">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-medium" style="color: #0369a1; font-size: 13px;">
+                        Đã chọn <span id="selectedCount" class="fw-bold fs-6">0</span> đơn nhập
+                    </span>
+                    <span class="text-muted small">|</span>
+                    <a href="javascript:void(0)" class="text-decoration-none fw-medium"
+                       style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
+                            style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;" onclick="deleteSelected()">
+                        Xóa đơn hàng
+                    </button>
+                </div>
+            </div>
 
-                    <td class="ps-4"></td>
-                    <td class="text-start col-code">
-                        <a th:href="@{/ui/imports/{code}(code=${order.code})}"
-                           class="text-primary text-decoration-none fw-medium" th:text="${order.code}"></a>
-                    </td>
-                    <td class="text-muted small"
-                        th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
-                    <td th:text="${order.branchName}"></td>
+            <div class="table-responsive" style="min-height: 350px;">
+                <table class="table table-custom table-hover align-middle mb-0 text-nowrap" id="importTable">
+                    <thead>
+                    <tr>
+                        <th class="ps-4" style="width: 40px;">
+                            <input class="form-check-input" type="checkbox" id="checkAll" onchange="toggleAll(this)">
+                        </th>
+                        <th class="text-start">Mã đơn nhập</th>
+                        <th>Ngày tạo</th>
+                        <th>Trạng thái</th>
+                        <th>Trạng thái nhập</th>
+                        <th>Nhà cung cấp</th>
+                        <th class="text-center">Số lượng</th>
+                        <th class="pe-4 text-end">Giá trị đơn</th>
+                    </tr>
+                    </thead>
+                    <tbody id="importTableBody">
+                    <tr th:each="order : ${importOrders}"
+                        class="import-row"
+                        th:data-search="|${order.code} ${order.supplier != null ? order.supplier.name : ''}|"
+                        th:data-trading-status="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}"
+                        th:data-import-status="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập'}">
 
-                    <td class="col-trading-status">
-                        <span class="status-badge"
-                              th:classappend="${order.status == 'CANCELLED' ? 'status-cancelled' : (order.status == 'COMPLETED' ? 'status-completed' : 'status-trading')}"
-                              th:text="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}"></span>
-                    </td>
+                        <td class="ps-4">
+                            <input class="form-check-input item-check" type="checkbox" th:value="${order.id}"
+                                   onchange="updateBulkAction()">
+                        </td>
+                        <td class="text-start">
+                            <a th:href="@{/ui/imports/{code}(code=${order.code})}"
+                               class="fw-bold text-primary text-decoration-none" th:text="${order.code}"></a>
+                        </td>
+                        <td class="text-muted small"
+                            th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
 
-                    <td class="col-import-status">
-                        <span class="status-badge"
-                              th:classappend="${order.importStatus == 'COMPLETED' ? 'status-completed' : 'status-unreceived'}"
-                              th:text="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập'}"></span>
-                    </td>
+                        <td>
+                            <span class="status-badge"
+                                  th:classappend="${order.status == 'CANCELLED' ? 'status-cancelled' : (order.status == 'COMPLETED' ? 'status-completed' : 'status-trading')}"
+                                  th:text="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}"></span>
+                        </td>
 
-                    <td class="col-supplier-name"
-                        th:text="${order.supplier != null ? order.supplier.name : 'N/A'}"></td>
-                    <td class="text-muted" th:text="${order.creatorName}"></td>
-                    <td class="fw-medium" th:text="${order.totalQuantity}"></td>
-                    <td class="pe-4 text-end fw-bold"
-                        th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT') + ' ₫'}"></td>
-                </tr>
-                <tr id="emptySearchRow" style="display: none;">
-                    <td colspan="10" class="text-center p-5 text-muted">Không tìm thấy kết quả phù hợp</td>
-                </tr>
-                <tr th:if="${#lists.isEmpty(importOrders)}">
-                    <td colspan="10" class="text-center p-5 text-muted">Hệ thống chưa có đơn nhập hàng nào</td>
-                </tr>
-                </tbody>
-            </table>
+                        <td>
+                            <span class="status-badge"
+                                  th:classappend="${order.importStatus == 'COMPLETED' ? 'status-completed' : 'status-unreceived'}"
+                                  th:text="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập'}"></span>
+                        </td>
+
+                        <td class="fw-medium text-dark"
+                            th:text="${order.supplier != null ? order.supplier.name : '---'}"></td>
+                        <td class="text-center fw-medium" th:text="${order.totalQuantity}"></td>
+                        <td class="pe-4 text-end fw-bold text-dark"
+                            th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT') + ' ₫'}"></td>
+                    </tr>
+
+                    <tr id="emptySearchRow" style="display: none;">
+                        <td colspan="8" class="text-center p-5 text-muted">
+                            <i class="bi bi-search fs-2 d-block mb-2"></i>Không tìm thấy kết quả phù hợp
+                        </td>
+                    </tr>
+
+                    <tr th:if="${#lists.isEmpty(importOrders)}">
+                        <td colspan="8" class="text-center p-5 text-muted">
+                            <i class="bi bi-box-seam fs-2 d-block mb-2"></i>Hệ thống chưa có đơn nhập hàng nào
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
+                <div class="text-muted small">
+                    <span th:if="${not #lists.isEmpty(importOrders)}"
+                          th:text="'Hiển thị 1 - ' + ${#lists.size(importOrders)} + ' trên tổng số ' + ${#lists.size(importOrders)} + ' đơn hàng'"></span>
+                    <span th:unless="${not #lists.isEmpty(importOrders)}">Hiển thị 0 đơn hàng</span>
+                </div>
+                <nav th:if="${not #lists.isEmpty(importOrders)}">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
+                    </ul>
+                </nav>
+            </div>
         </div>
     </div>
 
-    <script>
+    <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function () {
             const searchInput = document.getElementById('searchInput');
             const filterImportStatus = document.getElementById('filterImportStatus');
@@ -159,6 +285,7 @@
             const rows = document.querySelectorAll('.import-row');
             const emptyRow = document.getElementById('emptySearchRow');
 
+            // 1. Hàm Lọc dữ liệu (Client-side)
             function applyFilters() {
                 const searchTerm = searchInput.value.trim().toLowerCase();
                 const importStatusTerm = filterImportStatus.value;
@@ -183,24 +310,84 @@
                 });
 
                 if (emptyRow) emptyRow.style.display = (!hasVisible && rows.length > 0) ? "" : "none";
+                updateBulkAction(); // Reset bulk action bar if rows hidden
             }
 
+            // 2. Gán sự kiện cho các ô Lọc
             if (searchInput) searchInput.addEventListener('input', applyFilters);
             if (filterImportStatus) filterImportStatus.addEventListener('change', applyFilters);
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', function (e) {
                     e.preventDefault();
-                    tabs.forEach(t => {
-                        t.classList.remove('active', 'fw-bold', 'text-primary', 'border-primary', 'border-bottom', 'border-2');
-                        t.classList.add('text-muted');
-                    });
-                    this.classList.add('active', 'fw-bold', 'text-primary', 'border-primary', 'border-bottom', 'border-2');
-                    this.classList.remove('text-muted');
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
                     applyFilters();
                 });
             });
         });
+
+        // 3. Xử lý Checkbox & Bulk Actions
+        function toggleAll(source) {
+            const checkboxes = document.querySelectorAll('.item-check');
+            checkboxes.forEach(cb => {
+                if (cb.closest('tr').style.display !== 'none') {
+                    cb.checked = source.checked;
+                }
+            });
+            updateBulkAction();
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.item-check, #checkAll').forEach(cb => cb.checked = false);
+            updateBulkAction();
+        }
+
+        function updateBulkAction() {
+            const count = document.querySelectorAll('.item-check:checked').length;
+            const bulkBar = document.getElementById('bulkActionBar');
+            const toolbar = document.getElementById('defaultToolbar');
+
+            if (count > 0) {
+                document.getElementById('selectedCount').innerText = count;
+                toolbar.classList.add('d-none');
+                bulkBar.classList.remove('d-none');
+                bulkBar.classList.add('d-flex');
+            } else {
+                toolbar.classList.remove('d-none');
+                bulkBar.classList.add('d-none');
+                bulkBar.classList.remove('d-flex');
+            }
+        }
+
+        // 4. Hàm xóa đơn hàng hàng loạt (Giả định Backend đã có API)
+        async function deleteSelected() {
+            const checkedBoxes = document.querySelectorAll('.item-check:checked');
+            if (checkedBoxes.length === 0) return;
+
+            const ids = Array.from(checkedBoxes).map(cb => Number(cb.value));
+
+            if (!confirm(`Bạn có chắc chắn muốn xóa ${ids.length} đơn nhập hàng đã chọn?`)) return;
+
+            try {
+                // Thay đổi URL API cho khớp với Backend của bạn
+                const res = await fetch('/api/v1/imports/bulk-delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(ids)
+                });
+
+                if (res.ok) {
+                    alert(`Đã xóa thành công!`);
+                    window.location.reload();
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi: " + (err.message || "Không thể xóa đơn hàng!"));
+                }
+            } catch (err) {
+                alert("Lỗi kết nối Server!");
+            }
+        }
     </script>
 </div>
 </body>
