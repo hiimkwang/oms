@@ -496,492 +496,560 @@
             </div>
         </div>
     </div>
-</div>
-
-<div class="modal fade" id="lineNoteModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header modal-header-custom py-3">
-                <h5 class="modal-title-custom mb-0">Thêm ghi chú</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <input type="hidden" id="editingLineIndex">
-                <label class="form-label-custom text-muted small">Nội dung ghi chú</label>
-                <textarea id="lineNoteInput" class="form-control form-control-custom" rows="3"
-                          placeholder="Nhập nội dung ghi chú..."></textarea>
-            </div>
-            <div class="modal-footer bg-light py-2">
-                <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary px-4" onclick="saveLineNote()">Lưu</button>
+    <div class="modal fade" id="lineNoteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header modal-header-custom py-3">
+                    <h5 class="modal-title-custom mb-0">Thêm ghi chú</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="editingLineIndex">
+                    <label class="form-label-custom text-muted small">Nội dung ghi chú</label>
+                    <textarea id="lineNoteInput" class="form-control form-control-custom" rows="3"
+                              placeholder="Nhập nội dung ghi chú..."></textarea>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary px-4" onclick="saveLineNote()">Lưu</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="modal fade" id="customProductModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header modal-header-custom py-3">
-                <h5 class="modal-title-custom mb-0">Thêm sản phẩm tùy chỉnh</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="mb-3">
-                    <label class="form-label-custom text-danger small">Tên sản phẩm*</label>
-                    <input type="text" id="customProductName" class="form-control form-control-custom"
-                           placeholder="Nhập tên sản phẩm">
+    <div class="modal fade" id="customProductModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header modal-header-custom py-3">
+                    <h5 class="modal-title-custom mb-0">Thêm sản phẩm tùy chỉnh</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label-custom text-danger small">Giá bán*</label>
-                        <div class="input-group">
-                            <input type="number" id="customProductPrice" class="form-control form-control-custom"
-                                   placeholder="Nhập giá bán">
-                            <span class="input-group-text bg-white">₫</span>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label-custom text-danger small">Tên sản phẩm*</label>
+                        <input type="text" id="customProductName" class="form-control form-control-custom"
+                               placeholder="Nhập tên sản phẩm">
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-danger small">Giá bán*</label>
+                            <div class="input-group">
+                                <input type="number" id="customProductPrice" class="form-control form-control-custom"
+                                       placeholder="Nhập giá bán">
+                                <span class="input-group-text bg-white">₫</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom small">Số lượng</label>
+                            <input type="number" id="customProductQty" class="form-control form-control-custom"
+                                   value="1"
+                                   min="1">
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label-custom small">Số lượng</label>
-                        <input type="number" id="customProductQty" class="form-control form-control-custom" value="1"
-                               min="1">
-                    </div>
                 </div>
-            </div>
-            <div class="modal-footer bg-light py-2">
-                <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary px-4" onclick="addCustomProduct()">Áp dụng</button>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary px-4" onclick="addCustomProduct()">Áp dụng</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="modal fade" id="invoiceModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header modal-header-custom py-3">
-                <h5 class="modal-title-custom mb-0">Thông tin xuất hóa đơn</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="row g-3">
-                    <div class="col-md-5">
-                        <label class="form-label-custom small">Mã số thuế</label>
-                        <input type="text" id="invTaxCode" class="form-control form-control-custom">
-                    </div>
-                    <div class="col-md-7">
-                        <label class="form-label-custom small">Tên công ty</label>
-                        <input type="text" id="invCompanyName" class="form-control form-control-custom">
+    <div class="modal fade" id="invoiceModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header modal-header-custom py-3">
+                    <h5 class="modal-title-custom mb-0">Thông tin xuất hóa đơn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label-custom small">Mã số thuế</label>
+                            <input type="text" id="invTaxCode" class="form-control form-control-custom">
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label-custom small">Tên công ty</label>
+                            <input type="text" id="invCompanyName" class="form-control form-control-custom">
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer bg-light py-2">
-                <button type="button" class="btn btn-white border px-4 text-primary" onclick="clearInvoiceData()"
-                        data-bs-dismiss="modal">Xóa dữ liệu
-                </button>
-                <button type="button" class="btn btn-primary px-4" onclick="saveInvoiceData()" data-bs-dismiss="modal">
-                    Xác nhận
-                </button>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-white border px-4 text-primary" onclick="clearInvoiceData()"
+                            data-bs-dismiss="modal">Xóa dữ liệu
+                    </button>
+                    <button type="button" class="btn btn-primary px-4" onclick="saveInvoiceData()"
+                            data-bs-dismiss="modal">
+                        Xác nhận
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="modal fade" id="addCustomerModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header modal-header-custom py-3">
-                <h5 class="modal-title-custom mb-0">Thêm mới khách hàng</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label-custom small">Họ tên</label>
-                        <input type="text" id="newCusFullName" class="form-control form-control-custom"
-                               placeholder="Nhập tên">
+    <div class="modal fade" id="addCustomerModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header modal-header-custom py-3">
+                    <h5 class="modal-title-custom mb-0">Thêm mới khách hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" style="max-height: 75vh; overflow-y: auto;">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label-custom small">Họ</label>
+                            <input type="text" id="newCusLastName" class="form-control form-control-custom"
+                                   placeholder="Nhập họ">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom small">Tên</label>
+                            <input type="text" id="newCusFirstName" class="form-control form-control-custom"
+                                   placeholder="Nhập tên">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom small">Email</label>
+                            <input type="email" id="newCusEmail" class="form-control form-control-custom"
+                                   placeholder="Nhập email">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom small">Số điện thoại</label>
+                            <input type="text" id="newCusPhone" class="form-control form-control-custom"
+                                   placeholder="Nhập số điện thoại">
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label-custom small">Số điện thoại</label>
-                        <input type="text" id="newCusPhone" class="form-control form-control-custom"
-                               placeholder="Nhập SĐT">
+
+                    <div class="mb-3">
+                        <a href="javascript:void(0)" class="text-link small"><i class="bi bi-chevron-down me-1"></i>Thông
+                            tin thêm</a>
+                    </div>
+
+                    <hr class="my-4 text-muted">
+
+                    <h6 class="fw-bold mb-3 text-dark">Địa chỉ nhận hàng</h6>
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label-custom small">Công ty</label>
+                            <input type="text" id="newCusCompany" class="form-control form-control-custom"
+                                   placeholder="Nhập tên công ty">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom small">Quốc gia</label>
+                            <select id="newCusCountry" class="form-select form-select-custom">
+                                <option value="Vietnam">Vietnam</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom small">Postal/Zipcode</label>
+                            <input type="text" id="newCusZip" class="form-control form-control-custom"
+                                   placeholder="Nhập mã bưu điện">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-custom small">Địa chỉ chi tiết</label>
+                            <textarea id="newCusFullAddress" class="form-control form-control-custom" rows="2"
+                                      placeholder="Số nhà, tên đường, phường/xã..."></textarea>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer bg-light py-2">
-                <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary px-4" onclick="submitNewCustomer()">Lưu</button>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary px-4 fw-bold" onclick="submitNewCustomer()">Lưu khách
+                        hàng
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script th:inline="none">
-    let cart = [];
-    let subTotalAmount = 0;
-    let finalAmountToPay = 0;
-    let invoiceData = null;
-    let shippingType = 'MANUAL';
+    <script th:inline="none">
+        let cart = [];
+        let subTotalAmount = 0;
+        let finalAmountToPay = 0;
+        let invoiceData = null;
+        let shippingType = 'MANUAL';
 
-    function hideModalSafe(modalId) {
-        const modalEl = document.getElementById(modalId);
-        if (modalEl) {
-            const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            modalInstance.hide();
+        function hideModalSafe(modalId) {
+            const modalEl = document.getElementById(modalId);
+            if (modalEl) {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                modalInstance.hide();
+            }
         }
-    }
 
-    function switchShippingTab(type, element) {
-        document.querySelectorAll('.shipping-tab').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        shippingType = type;
+        function switchShippingTab(type, element) {
+            document.querySelectorAll('.shipping-tab').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            shippingType = type;
 
-        document.querySelectorAll('.shipping-block').forEach(el => el.classList.add('d-none'));
-        if (type === 'MANUAL') {
-            document.getElementById('shippingContent-MANUAL').classList.remove('d-none');
-        } else {
-            document.getElementById('shippingContent-OTHER').classList.remove('d-none');
+            document.querySelectorAll('.shipping-block').forEach(el => el.classList.add('d-none'));
+            if (type === 'MANUAL') {
+                document.getElementById('shippingContent-MANUAL').classList.remove('d-none');
+            } else {
+                document.getElementById('shippingContent-OTHER').classList.remove('d-none');
+            }
         }
-    }
 
-    function togglePaymentInput() {
-        const isPaid = document.getElementById('paid').checked;
-        const methodBox = document.getElementById('paymentMethodBox');
-        if (isPaid) {
-            methodBox.classList.remove('d-none');
-            document.getElementById('amountPaidInput').value = finalAmountToPay;
-        } else {
-            methodBox.classList.add('d-none');
+        function togglePaymentInput() {
+            const isPaid = document.getElementById('paid').checked;
+            const methodBox = document.getElementById('paymentMethodBox');
+            if (isPaid) {
+                methodBox.classList.remove('d-none');
+                document.getElementById('amountPaidInput').value = finalAmountToPay;
+            } else {
+                methodBox.classList.add('d-none');
+            }
         }
-    }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('orderDate').value = now.toISOString().slice(0, 16);
+        document.addEventListener('DOMContentLoaded', function () {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('orderDate').value = now.toISOString().slice(0, 16);
 
-        const productInput = document.getElementById('productSearchInput');
-        const customerInput = document.getElementById('customerSearchInput');
-        let productTimeout, customerTimeout;
+            const productInput = document.getElementById('productSearchInput');
+            const customerInput = document.getElementById('customerSearchInput');
+            let productTimeout, customerTimeout;
 
-        // Đã bổ sung sự kiện focus để click vào là list hiện ra ngay
-        productInput.addEventListener('focus', e => searchProducts(e.target.value));
-        productInput.addEventListener('input', e => {
-            clearTimeout(productTimeout);
-            productTimeout = setTimeout(() => searchProducts(e.target.value), 300);
-        });
-
-        customerInput.addEventListener('focus', e => searchCustomers(e.target.value));
-        customerInput.addEventListener('input', e => {
-            clearTimeout(customerTimeout);
-            customerTimeout = setTimeout(() => searchCustomers(e.target.value), 300);
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!document.getElementById('productDropdownList').contains(e.target) && e.target !== productInput) document.getElementById('productDropdownList').classList.remove('show');
-            if (!document.getElementById('customerDropdownList').contains(e.target) && e.target !== customerInput) document.getElementById('customerDropdownList').classList.remove('show');
-        });
-
-        renderCart();
-    });
-
-    async function searchProducts(keyword) {
-        const listEl = document.getElementById('productDropdownList');
-        if (!keyword.trim()) {
-            listEl.classList.remove('show');
-            return;
-        }
-        listEl.classList.add('show');
-        try {
-            const res = await fetch('/api/v1/products/variants/search?keyword=' + encodeURIComponent(keyword));
-            const variants = await res.json();
-            let html = '';
-            variants.forEach(v => {
-                const vStr = encodeURIComponent(JSON.stringify(v));
-                const imgHtml = v.imageUrl ? '<img src="' + v.imageUrl + '">' : '<i class="bi bi-image"></i>';
-                html += '<li class="p-2 border-bottom dropdown-item-hover d-flex align-items-center gap-2" onclick="addToCart(\'' + vStr + '\')">' +
-                    '<div class="img-placeholder" style="width:30px; height:30px;">' + imgHtml + '</div>' +
-                    '<div class="flex-grow-1">' +
-                    '<div class="fw-bold text-primary" style="font-size: 13px;">' + v.productName + '</div>' +
-                    '<div class="text-muted" style="font-size: 11px;">SKU: ' + v.sku + '</div>' +
-                    '</div>' +
-                    '<div class="fw-bold text-dark" style="font-size: 13px;">' + formatMoney(v.price || 0) + '</div>' +
-                    '</li>';
+            // Đã bổ sung sự kiện focus để click vào là list hiện ra ngay
+            productInput.addEventListener('focus', e => searchProducts(e.target.value));
+            productInput.addEventListener('input', e => {
+                clearTimeout(productTimeout);
+                productTimeout = setTimeout(() => searchProducts(e.target.value), 300);
             });
-            listEl.innerHTML = html || '<li class="p-3 text-muted text-center small">Không tìm thấy</li>';
-        } catch (error) {
+
+            customerInput.addEventListener('focus', e => searchCustomers(e.target.value));
+            customerInput.addEventListener('input', e => {
+                clearTimeout(customerTimeout);
+                customerTimeout = setTimeout(() => searchCustomers(e.target.value), 300);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!document.getElementById('productDropdownList').contains(e.target) && e.target !== productInput) document.getElementById('productDropdownList').classList.remove('show');
+                if (!document.getElementById('customerDropdownList').contains(e.target) && e.target !== customerInput) document.getElementById('customerDropdownList').classList.remove('show');
+            });
+
+            renderCart();
+        });
+
+        let productSearchResults = []; // Lưu kết quả tìm kiếm sản phẩm
+
+        async function searchProducts(keyword) {
+            const listEl = document.getElementById('productDropdownList');
+            if (!keyword.trim()) {
+                listEl.classList.remove('show');
+                return;
+            }
+            listEl.classList.add('show');
+            try {
+                const res = await fetch('/api/v1/products/variants/search?keyword=' + encodeURIComponent(keyword));
+                productSearchResults = await res.json(); // Lưu vào biến global
+
+                let html = '';
+                productSearchResults.forEach((v, index) => {
+                    const imgHtml = v.imageUrl ? `<img src="${v.imageUrl}">` : '<i class="bi bi-image"></i>';
+                    // Gọi hàm addToCart theo Index
+                    html += `
+                <li class="p-2 border-bottom dropdown-item-hover d-flex align-items-center gap-2" onclick="addToCartByIndex(${index})">
+                    <div class="img-placeholder" style="width:30px; height:30px;">${imgHtml}</div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold text-primary" style="font-size: 13px;">${v.productName}</div>
+                        <div class="text-muted" style="font-size: 11px;">${v.variantName} - SKU: ${v.sku}</div>
+                    </div>
+                    <div class="fw-bold text-dark" style="font-size: 13px;">${formatMoney(v.price || 0)}</div>
+                </li>`;
+                });
+                listEl.innerHTML = html || '<li class="p-3 text-muted text-center small">Không tìm thấy</li>';
+            } catch (error) {
+                console.error("Lỗi search product:", error);
+            }
         }
-    }
 
-    function addToCart(variantJsonStr) {
-        const v = JSON.parse(decodeURIComponent(variantJsonStr));
-        document.getElementById('productDropdownList').classList.remove('show');
-        document.getElementById('productSearchInput').value = '';
+        function addToCartByIndex(index) {
+            const v = productSearchResults[index];
+            document.getElementById('productDropdownList').classList.remove('show');
+            document.getElementById('productSearchInput').value = '';
 
-        const idx = cart.findIndex(item => item.sku === v.sku && !item.isCustom);
-        if (idx > -1) {
-            cart[idx].quantity += 1;
-        } else {
+            const idx = cart.findIndex(item => item.sku === v.sku && !item.isCustom);
+            if (idx > -1) {
+                cart[idx].quantity += 1;
+            } else {
+                cart.push({
+                    sku: v.sku,
+                    name: v.productName + (v.variantName ? ' - ' + v.variantName : ''),
+                    price: v.price || 0,
+                    quantity: 1,
+                    imageUrl: v.imageUrl || null,
+                    note: "",
+                    isCustom: false
+                });
+            }
+            renderCart();
+        }
+
+        function addCustomProduct() {
+            const name = document.getElementById('customProductName').value;
+            const price = document.getElementById('customProductPrice').value;
+            const qty = document.getElementById('customProductQty').value;
+
+            if (!name || !price) {
+                alert("Vui lòng nhập Tên và Giá bán!");
+                return;
+            }
+
             cart.push({
-                sku: v.sku, name: v.productName || "Sản phẩm", price: v.price || 0,
-                quantity: 1, imageUrl: v.imageUrl || null, note: "", isCustom: false
+                sku: 'CUSTOM_' + Date.now(),
+                name: name, price: parseFloat(price) || 0, quantity: parseInt(qty) || 1,
+                imageUrl: null, note: "", isCustom: true
             });
-        }
-        renderCart();
-    }
 
-    function addCustomProduct() {
-        const name = document.getElementById('customProductName').value;
-        const price = document.getElementById('customProductPrice').value;
-        const qty = document.getElementById('customProductQty').value;
-
-        if (!name || !price) {
-            alert("Vui lòng nhập Tên và Giá bán!");
-            return;
+            hideModalSafe('customProductModal');
+            document.getElementById('customProductName').value = '';
+            document.getElementById('customProductPrice').value = '';
+            renderCart();
         }
 
-        cart.push({
-            sku: 'CUSTOM_' + Date.now(),
-            name: name, price: parseFloat(price) || 0, quantity: parseInt(qty) || 1,
-            imageUrl: null, note: "", isCustom: true
-        });
+        function updateCartItem(index, field, value) {
+            let num = parseFloat(value) || 0;
+            if (num < 0) num = 0;
+            cart[index][field] = num;
+            renderCart();
+        }
 
-        hideModalSafe('customProductModal');
-        document.getElementById('customProductName').value = '';
-        document.getElementById('customProductPrice').value = '';
-        renderCart();
-    }
+        function removeCartItem(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
 
-    function updateCartItem(index, field, value) {
-        let num = parseFloat(value) || 0;
-        if (num < 0) num = 0;
-        cart[index][field] = num;
-        renderCart();
-    }
+        function openLineNoteModal(index) {
+            document.getElementById('editingLineIndex').value = index;
+            document.getElementById('lineNoteInput').value = cart[index].note || "";
+            new bootstrap.Modal(document.getElementById('lineNoteModal')).show();
+        }
 
-    function removeCartItem(index) {
-        cart.splice(index, 1);
-        renderCart();
-    }
+        function saveLineNote() {
+            const idx = document.getElementById('editingLineIndex').value;
+            cart[idx].note = document.getElementById('lineNoteInput').value;
+            hideModalSafe('lineNoteModal');
+            renderCart();
+        }
 
-    function openLineNoteModal(index) {
-        document.getElementById('editingLineIndex').value = index;
-        document.getElementById('lineNoteInput').value = cart[index].note || "";
-        new bootstrap.Modal(document.getElementById('lineNoteModal')).show();
-    }
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+        }
 
-    function saveLineNote() {
-        const idx = document.getElementById('editingLineIndex').value;
-        cart[idx].note = document.getElementById('lineNoteInput').value;
-        hideModalSafe('lineNoteModal');
-        renderCart();
-    }
+        function renderCart() {
+            const tbody = document.querySelector('#filledProductState tbody');
+            if (cart.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-box-seam fs-2 d-block mb-2"></i>Chưa có sản phẩm nào</td></tr>';
+                document.getElementById('totalItemsText').innerText = '(0 sản phẩm)';
+                document.getElementById('subTotalLabel').innerText = '0₫';
+                calculateFinalTotal();
+                return;
+            }
 
-    function formatMoney(amount) {
-        return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
-    }
+            let html = '', totalQty = 0;
+            subTotalAmount = 0;
+            cart.forEach((item, index) => {
+                const lineTotal = item.quantity * item.price;
+                subTotalAmount += lineTotal;
+                totalQty += item.quantity;
 
-    function renderCart() {
-        const tbody = document.querySelector('#filledProductState tbody');
-        if (cart.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-box-seam fs-2 d-block mb-2"></i>Chưa có sản phẩm nào</td></tr>';
-            document.getElementById('totalItemsText').innerText = '(0 sản phẩm)';
-            document.getElementById('subTotalLabel').innerText = '0₫';
+                const imgHtml = item.imageUrl ? '<img src="' + item.imageUrl + '">' : '<i class="bi bi-image"></i>';
+                const noteHtml = item.note ? '<div class="text-warning small mt-1"><i class="bi bi-journal-text me-1"></i>' + item.note + '</div>' : '';
+                const customBadge = item.isCustom ? '<span class="badge bg-secondary ms-1" style="font-size:10px;">Tùy chỉnh</span>' : '';
+
+                html += '<tr>' +
+                    '<td>' +
+                    '<div class="d-flex gap-3">' +
+                    '<div class="img-placeholder">' + imgHtml + '</div>' +
+                    '<div>' +
+                    '<a href="#" class="text-link fw-bold">' + item.name + '</a>' + customBadge +
+                    '<div class="text-muted mt-1" style="font-size:11px;">' + item.sku + '</div>' +
+                    noteHtml +
+                    '<a href="javascript:void(0)" onclick="openLineNoteModal(' + index + ')" class="text-link mt-1 d-inline-block"><i class="bi bi-pencil-square me-1"></i>Thêm ghi chú</a>' +
+                    '</div>' +
+                    '</div>' +
+                    '</td>' +
+                    '<td><input type="number" min="1" class="form-control form-control-custom text-center mx-auto" style="width: 70px;" value="' + item.quantity + '" onchange="updateCartItem(' + index + ', \'quantity\', this.value)"></td>' +
+                    '<td>' +
+                    '<div class="input-group input-group-sm">' +
+                    '<input type="number" class="form-control text-end" value="' + item.price + '" onchange="updateCartItem(' + index + ', \'price\', this.value)">' +
+                    '<span class="input-group-text bg-white">₫</span>' +
+                    '</div>' +
+                    '</td>' +
+                    '<td class="text-end fw-bold text-dark">' + formatMoney(lineTotal) + '</td>' +
+                    '<td class="text-center align-middle"><i class="bi bi-x-lg text-muted cursor-pointer" onclick="removeCartItem(' + index + ')"></i></td>' +
+                    '</tr>';
+            });
+            tbody.innerHTML = html;
+            document.getElementById('totalItemsText').innerText = '(' + totalQty + ' sản phẩm)';
+            document.getElementById('subTotalLabel').innerText = formatMoney(subTotalAmount);
             calculateFinalTotal();
-            return;
         }
 
-        let html = '', totalQty = 0;
-        subTotalAmount = 0;
-        cart.forEach((item, index) => {
-            const lineTotal = item.quantity * item.price;
-            subTotalAmount += lineTotal;
-            totalQty += item.quantity;
+        function calculateFinalTotal() {
+            const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+            const fee = parseFloat(document.getElementById('shippingFeeInput').value) || 0;
+            finalAmountToPay = subTotalAmount - discount + fee;
+            if (finalAmountToPay < 0) finalAmountToPay = 0;
 
-            const imgHtml = item.imageUrl ? '<img src="' + item.imageUrl + '">' : '<i class="bi bi-image"></i>';
-            const noteHtml = item.note ? '<div class="text-warning small mt-1"><i class="bi bi-journal-text me-1"></i>' + item.note + '</div>' : '';
-            const customBadge = item.isCustom ? '<span class="badge bg-secondary ms-1" style="font-size:10px;">Tùy chỉnh</span>' : '';
-
-            html += '<tr>' +
-                '<td>' +
-                '<div class="d-flex gap-3">' +
-                '<div class="img-placeholder">' + imgHtml + '</div>' +
-                '<div>' +
-                '<a href="#" class="text-link fw-bold">' + item.name + '</a>' + customBadge +
-                '<div class="text-muted mt-1" style="font-size:11px;">' + item.sku + '</div>' +
-                noteHtml +
-                '<a href="javascript:void(0)" onclick="openLineNoteModal(' + index + ')" class="text-link mt-1 d-inline-block"><i class="bi bi-pencil-square me-1"></i>Thêm ghi chú</a>' +
-                '</div>' +
-                '</div>' +
-                '</td>' +
-                '<td><input type="number" min="1" class="form-control form-control-custom text-center mx-auto" style="width: 70px;" value="' + item.quantity + '" onchange="updateCartItem(' + index + ', \'quantity\', this.value)"></td>' +
-                '<td>' +
-                '<div class="input-group input-group-sm">' +
-                '<input type="number" class="form-control text-end" value="' + item.price + '" onchange="updateCartItem(' + index + ', \'price\', this.value)">' +
-                '<span class="input-group-text bg-white">₫</span>' +
-                '</div>' +
-                '</td>' +
-                '<td class="text-end fw-bold text-dark">' + formatMoney(lineTotal) + '</td>' +
-                '<td class="text-center align-middle"><i class="bi bi-x-lg text-muted cursor-pointer" onclick="removeCartItem(' + index + ')"></i></td>' +
-                '</tr>';
-        });
-        tbody.innerHTML = html;
-        document.getElementById('totalItemsText').innerText = '(' + totalQty + ' sản phẩm)';
-        document.getElementById('subTotalLabel').innerText = formatMoney(subTotalAmount);
-        calculateFinalTotal();
-    }
-
-    function calculateFinalTotal() {
-        const discount = parseFloat(document.getElementById('discountInput').value) || 0;
-        const fee = parseFloat(document.getElementById('shippingFeeInput').value) || 0;
-        finalAmountToPay = subTotalAmount - discount + fee;
-        if (finalAmountToPay < 0) finalAmountToPay = 0;
-
-        document.getElementById('finalTotalLabel').innerText = formatMoney(finalAmountToPay);
-        document.getElementById('codAmount').value = finalAmountToPay;
-        if (document.getElementById('paid').checked) document.getElementById('amountPaidInput').value = finalAmountToPay;
-    }
-
-    function saveInvoiceData() {
-        invoiceData = {
-            taxCode: document.getElementById('invTaxCode').value,
-            companyName: document.getElementById('invCompanyName').value
-        };
-        document.getElementById('invoiceBadge').classList.remove('d-none');
-    }
-
-    function clearInvoiceData() {
-        invoiceData = null;
-        document.querySelectorAll('#invoiceModal input').forEach(inp => inp.value = '');
-        document.getElementById('invoiceBadge').classList.add('d-none');
-    }
-
-    async function searchCustomers(keyword) {
-        const listEl = document.getElementById('customerDropdownList');
-        if (!keyword) {
-            listEl.classList.remove('show');
-            return;
+            document.getElementById('finalTotalLabel').innerText = formatMoney(finalAmountToPay);
+            document.getElementById('codAmount').value = finalAmountToPay;
+            if (document.getElementById('paid').checked) document.getElementById('amountPaidInput').value = finalAmountToPay;
         }
-        listEl.classList.add('show');
-        try {
-            const res = await fetch('/api/v1/customers?keyword=' + encodeURIComponent(keyword));
-            const customers = await res.json();
-            let html = '<li class="border-bottom p-2 dropdown-item-hover text-primary fw-medium" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-plus-circle me-2"></i>Thêm mới khách hàng</li>';
 
-            customers.forEach(c => {
-                html += '<li class="p-2 dropdown-item-hover border-bottom" onclick="selectCustomer(\'' + c.id + '\', \'' + c.name + '\', \'' + (c.phone || '') + '\', \'' + (c.address || '') + '\')">' +
-                    '<div class="fw-bold text-dark" style="font-size: 13px;">' + c.name + '</div><div class="text-muted" style="font-size: 11px;">' + (c.phone || '---') + '</div>' +
-                    '</li>';
-            });
-            listEl.innerHTML = html;
-        } catch (e) {
+        function saveInvoiceData() {
+            invoiceData = {
+                taxCode: document.getElementById('invTaxCode').value,
+                companyName: document.getElementById('invCompanyName').value
+            };
+            document.getElementById('invoiceBadge').classList.remove('d-none');
         }
-    }
 
-    function selectCustomer(id, name, phone, address) {
-        document.getElementById('customerDropdownList').classList.remove('show');
-        document.getElementById('customerSearchInput').classList.add('d-none');
-        document.getElementById('customerSelectedWrapper').classList.remove('d-none');
+        function clearInvoiceData() {
+            invoiceData = null;
+            document.querySelectorAll('#invoiceModal input').forEach(inp => inp.value = '');
+            document.getElementById('invoiceBadge').classList.add('d-none');
+        }
 
-        document.getElementById('selectedCustomerId').value = id;
-        document.getElementById('selectedCusName').innerText = name;
-        document.getElementById('selectedCusPhone').innerText = phone || '';
-        document.getElementById('selectedCusAddress').innerText = address || 'Chưa có địa chỉ';
-        document.getElementById('displayShippingAddress').innerText = address || 'Chưa có địa chỉ giao hàng';
-    }
-
-    function clearCustomer() {
-        document.getElementById('customerSelectedWrapper').classList.add('d-none');
-        document.getElementById('customerSearchInput').classList.remove('d-none');
-        document.getElementById('customerSearchInput').value = '';
-        document.getElementById('selectedCustomerId').value = '';
-        document.getElementById('displayShippingAddress').innerText = 'Chưa có địa chỉ giao hàng';
-    }
-
-    async function submitNewCustomer() {
-        const payload = {
-            name: document.getElementById('newCusFullName').value,
-            phone: document.getElementById('newCusPhone').value
-        };
-        try {
-            const res = await fetch('/api/v1/customers', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
-                const newCus = await res.json();
-                hideModalSafe('addCustomerModal');
-                selectCustomer(newCus.id, newCus.name, newCus.phone, newCus.address);
-            } else {
-                alert("Lỗi lưu KH!");
+        async function searchCustomers(keyword) {
+            const listEl = document.getElementById('customerDropdownList');
+            if (!keyword) {
+                listEl.classList.remove('show');
+                return;
             }
-        } catch (e) {
-            alert("Chưa có API Backend lưu KH!");
-        }
-    }
+            listEl.classList.add('show');
+            try {
+                const res = await fetch('/api/v1/customers?keyword=' + encodeURIComponent(keyword));
+                const customers = await res.json();
+                let html = '<li class="border-bottom p-2 dropdown-item-hover text-primary fw-medium" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-plus-circle me-2"></i>Thêm mới khách hàng</li>';
 
-    async function submitOrder() {
-        if (cart.length === 0) {
-            alert("Giỏ hàng đang trống!");
-            return;
-        }
-
-        const isPaid = document.getElementById('paid').checked;
-        const amountPaid = isPaid ? (parseFloat(document.getElementById('amountPaidInput').value) || 0) : 0;
-
-        const payload = {
-            customerId: document.getElementById('selectedCustomerId').value || null,
-            source: document.getElementById('orderSource').value,
-            branchName: document.getElementById('branchName').value,
-            assignee: document.getElementById('assignee').value,
-            orderDate: document.getElementById('orderDate').value,
-            note: document.getElementById('orderNote').value,
-
-            itemsAmount: subTotalAmount,
-            discount: parseFloat(document.getElementById('discountInput').value) || 0,
-            shippingFee: parseFloat(document.getElementById('shippingFeeInput').value) || 0,
-            totalAmount: finalAmountToPay,
-            amountPaid: amountPaid,
-
-            paymentStatus: isPaid ? (amountPaid >= finalAmountToPay ? "PAID" : "PARTIAL") : "UNPAID",
-            paymentMethod: isPaid ? document.getElementById('paymentMethod').value : null,
-
-            shippingType: shippingType,
-            shippingCodAmount: parseFloat(document.getElementById('codAmount').value) || 0,
-            shippingWeight: document.getElementById('shipWeight').value,
-            shippingPartner: shippingType === 'MANUAL' ? document.getElementById('shipPartner').value : null,
-            shippingTrackingCode: shippingType === 'MANUAL' ? document.getElementById('trackingCode').value : null,
-
-            invoiceInfo: invoiceData,
-            items: cart.map(i => ({
-                sku: i.sku,
-                name: i.name,
-                quantity: i.quantity,
-                price: i.price,
-                note: i.note,
-                isCustom: i.isCustom
-            }))
-        };
-
-        try {
-            const res = await fetch('/api/v1/orders', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
-                alert("Tạo đơn hàng thành công!");
-                window.location.href = "/ui/orders";
-            } else {
-                const err = await res.json();
-                alert("Lỗi: " + (err.message || "Kiểm tra lại dữ liệu"));
+                customers.forEach(c => {
+                    html += '<li class="p-2 dropdown-item-hover border-bottom" onclick="selectCustomer(\'' + c.id + '\', \'' + c.name + '\', \'' + (c.phone || '') + '\', \'' + (c.address || '') + '\')">' +
+                        '<div class="fw-bold text-dark" style="font-size: 13px;">' + c.name + '</div><div class="text-muted" style="font-size: 11px;">' + (c.phone || '---') + '</div>' +
+                        '</li>';
+                });
+                listEl.innerHTML = html;
+            } catch (e) {
             }
-        } catch (err) {
-            alert("Lỗi kết nối Server!");
         }
-    }
-</script>
+
+        function selectCustomer(id, name, phone, address) {
+            document.getElementById('customerDropdownList').classList.remove('show');
+            document.getElementById('customerSearchInput').classList.add('d-none');
+            document.getElementById('customerSelectedWrapper').classList.remove('d-none');
+
+            document.getElementById('selectedCustomerId').value = id;
+            document.getElementById('selectedCusName').innerText = name;
+            document.getElementById('selectedCusPhone').innerText = phone || '';
+            document.getElementById('selectedCusAddress').innerText = address || 'Chưa có địa chỉ';
+            document.getElementById('displayShippingAddress').innerText = address || 'Chưa có địa chỉ giao hàng';
+        }
+
+        function clearCustomer() {
+            document.getElementById('customerSelectedWrapper').classList.add('d-none');
+            document.getElementById('customerSearchInput').classList.remove('d-none');
+            document.getElementById('customerSearchInput').value = '';
+            document.getElementById('selectedCustomerId').value = '';
+            document.getElementById('displayShippingAddress').innerText = 'Chưa có địa chỉ giao hàng';
+        }
+
+        async function submitNewCustomer() {
+            // 1. Gom dữ liệu
+            const payload = {
+                firstName: document.getElementById('newCusFirstName').value,
+                lastName: document.getElementById('newCusLastName').value,
+                email: document.getElementById('newCusEmail').value,
+                phone: document.getElementById('newCusPhone').value,
+                company: document.getElementById('newCusCompany').value,
+                country: document.getElementById('newCusCountry').value,
+                zipCode: document.getElementById('newCusZip').value,
+                address: document.getElementById('newCusFullAddress').value
+            };
+
+            // 2. Validate nhanh
+            if (!payload.firstName || !payload.phone) {
+                alert("Vui lòng nhập tối thiểu Tên và Số điện thoại!");
+                return;
+            }
+
+            try {
+                // 3. Gọi API
+                const res = await fetch('/api/v1/customers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const newCus = await res.json();
+                    // Tắt modal
+                    hideModalSafe('addCustomerModal');
+                    // Tự động chọn khách hàng vừa tạo cho đơn hàng luôn
+                    const fullName = (payload.lastName ? payload.lastName + ' ' : '') + payload.firstName;
+                    selectCustomer(newCus.id, fullName, payload.phone, payload.address);
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi khi lưu khách hàng: " + (err.message || "Kiểm tra lại dữ liệu"));
+                }
+            } catch (e) {
+                alert("Lỗi kết nối Server! Ông đã viết API POST /api/v1/customers chưa?");
+            }
+        }
+
+        async function submitOrder() {
+            if (cart.length === 0) {
+                alert("Vui lòng chọn ít nhất 1 sản phẩm!");
+                return;
+            }
+
+            if (!document.getElementById('selectedCustomerId').value) {
+                alert("Vui lòng chọn khách hàng!");
+                return;
+            }
+
+            // Tự sinh mã đơn hàng nếu chưa có (Để thỏa mãn @NotBlank ở Backend)
+            const generatedOrderCode = "DH" + Date.now();
+
+            const payload = {
+                orderCode: generatedOrderCode,
+                customerCode: document.getElementById('selectedCustomerId').value, // Backend dùng getCustomerByCode
+                salesChannel: document.getElementById('orderSource').value,        // Đổi từ source -> salesChannel
+                paymentMethod: document.getElementById('paymentMethod').value,
+                status: "Khởi tạo",
+                note: document.getElementById('orderNote').value,
+
+                // Quan trọng: Đổi từ 'items' thành 'details' để khớp với OrderRequest.java
+                details: cart.map(i => ({
+                    sku: i.sku,
+                    quantity: parseInt(i.quantity),
+                    unitPrice: parseFloat(i.price),
+                    discount: 0 // Bạn có thể bổ sung thêm logic chiết khấu dòng ở đây
+                }))
+            };
+
+            console.log("Payload gửi đi:", payload);
+
+            try {
+                const res = await fetch('/api/v1/orders', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert("Tạo đơn hàng thành công!");
+                    window.location.href = "/ui/orders";
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi: " + (err.message || "Kiểm tra lại dữ liệu đầu vào"));
+                }
+            } catch (err) {
+                alert("Lỗi kết nối server!");
+            }
+        }
+    </script>
+</div>
+
+
 </div>
 </body>
 </html>

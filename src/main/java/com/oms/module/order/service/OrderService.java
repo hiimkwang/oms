@@ -13,6 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,14 +29,15 @@ public class OrderService {
 
     @Transactional
     public Order createOrder(OrderRequest request) {
+        // 1. Kiểm tra tồn tại mã đơn
         if (orderRepository.existsByOrderCode(request.getOrderCode())) {
-            throw new RuntimeException("Mã phiếu/Đơn hàng đã tồn tại: " + request.getOrderCode());
+            throw new RuntimeException("Mã đơn hàng đã tồn tại: " + request.getOrderCode());
         }
 
-        // Lấy thông tin khách hàng
+        // 2. Lấy thông tin khách hàng (Lưu ý: Nếu giao diện gửi ID, hãy dùng findById)
         Customer customer = customerService.getCustomerByCode(request.getCustomerCode());
 
-        // Khởi tạo Order
+        // 3. Khởi tạo Order với các trường mới
         Order order = Order.builder()
                 .orderCode(request.getOrderCode())
                 .salesChannel(request.getSalesChannel())
@@ -44,16 +48,26 @@ public class OrderService {
                 .orderDetails(new ArrayList<>())
                 .build();
 
-        double totalOrderAmount = 0.0;
+        // Xử lý ngày đặt hàng nếu có gửi từ UI
+        if (request.getCreatedAt() != null) {
+            order.setCreatedAt(LocalDateTime.parse(request.getCreatedAt().substring(0, 10)));
+        }
 
-        // Xử lý từng chi tiết đơn hàng
+        BigDecimal totalOrderAmount = BigDecimal.ZERO;
+
         for (OrderDetailRequest detailReq : request.getDetails()) {
             Product product = productService.getProductBySku(detailReq.getSku());
 
-            // Nếu trên giao diện có nhập đơn giá khác thì lấy giá đó, nếu không thì lấy Giá bán đề xuất mặc định của sản phẩm
-            double unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : Double.valueOf(String.valueOf(product.getPrice()));
-            double discount = detailReq.getDiscount() != null ? detailReq.getDiscount() : 0.0;
-            double totalPrice = (unitPrice * detailReq.getQuantity()) - discount;
+            // Lấy giá: ưu tiên giá nhập từ UI, không có thì lấy giá mặc định của Product
+            BigDecimal unitPrice = detailReq.getUnitPrice() != null
+                    ? detailReq.getUnitPrice()
+                    : product.getPrice(); // Giả định product.getPrice() trả về BigDecimal
+
+            BigDecimal quantity = BigDecimal.valueOf(detailReq.getQuantity());
+            BigDecimal discount = detailReq.getDiscount() != null ? detailReq.getDiscount() : BigDecimal.ZERO;
+
+            // Thành tiền = (Đơn giá * Số lượng) - Chiết khấu
+            BigDecimal lineTotal = unitPrice.multiply(quantity).subtract(discount);
 
             OrderDetail orderDetail = OrderDetail.builder()
                     .order(order)
@@ -61,16 +75,14 @@ public class OrderService {
                     .quantity(detailReq.getQuantity())
                     .unitPrice(unitPrice)
                     .discount(discount)
-                    .totalPrice(totalPrice)
+                    .totalPrice(lineTotal)
                     .build();
 
             order.getOrderDetails().add(orderDetail);
-            totalOrderAmount += totalPrice;
+            totalOrderAmount = totalOrderAmount.add(lineTotal);
         }
 
         order.setTotalAmount(totalOrderAmount);
-
-        // Lưu Order (CascadeType.ALL sẽ tự động lưu luôn OrderDetail)
         return orderRepository.save(order);
     }
 

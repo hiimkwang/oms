@@ -2,48 +2,31 @@ package com.oms.module.customer.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "customers")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Data
 public class Customer {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "customer_code", unique = true, nullable = false)
-    private String customerCode; // MÃ KH (VD: SP_3dprintingsoul)
+    @Column(unique = true, nullable = false)
+    private String code;
 
-    @Column(name = "full_name", nullable = false)
-    private String fullName; // KHÁCH HÀNG
+    private String fullName;
+    private String phone;
+    private String email;
+    private String company;
+    private String address;
+    private String taxCode;
+    private String customerGroup;
+    private String note;
 
-    @Column(name = "company")
-    private String company; // CÔNG TY / Kênh bán
-
-    @Column(name = "address")
-    private String address; // ĐỊA CHỈ
-
-    @Column(name = "phone_number")
-    private String phoneNumber; // SĐT
-
-    @Column(name = "email")
-    private String email; // EMAIL
-
-    @Column(name = "tax_code")
-    private String taxCode; // MST
-
-    @Column(name = "created_at")
-    private LocalDate createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDate.now();
-    }
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 }

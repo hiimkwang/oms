@@ -4,6 +4,8 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class OrderDetailRequest {
     @NotBlank(message = "Mã sản phẩm (SKU) không được để trống")
@@ -11,6 +13,6 @@ public class OrderDetailRequest {
 
     @Min(value = 1, message = "Số lượng phải lớn hơn 0")
     private Integer quantity;
-    private Double unitPrice;
-    private Double discount = 0.0;
+    private BigDecimal unitPrice;
+    private BigDecimal discount;
 }

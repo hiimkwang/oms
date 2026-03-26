@@ -10,38 +10,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/customers")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class CustomerController {
-
     private final CustomerService customerService;
 
     @GetMapping
-    public ResponseEntity<List<Customer>> getAllCustomers() {
-        return ResponseEntity.ok(customerService.getAllCustomers());
-    }
-
-    @GetMapping("/{customerCode}")
-    public ResponseEntity<Customer> getCustomerByCode(@PathVariable String customerCode) {
-        return ResponseEntity.ok(customerService.getCustomerByCode(customerCode));
+    public ResponseEntity<List<CustomerRequest>> getList(@RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(customerService.getCustomerList(keyword));
     }
 
     @PostMapping
-    public ResponseEntity<Customer> createCustomer(@Valid @RequestBody CustomerRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(customerService.createCustomer(request));
-    }
-
-    @PutMapping("/{customerCode}")
-    public ResponseEntity<Customer> updateCustomer(@PathVariable String customerCode, @Valid @RequestBody CustomerRequest request) {
-        return ResponseEntity.ok(customerService.updateCustomer(customerCode, request));
-    }
-
-    @DeleteMapping("/{customerCode}")
-    public ResponseEntity<Void> deleteCustomer(@PathVariable String customerCode) {
-        customerService.deleteCustomer(customerCode);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> create(@RequestBody @Valid CustomerRequest req) {
+        try {
+            return ResponseEntity.ok(customerService.createCustomer(req));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }

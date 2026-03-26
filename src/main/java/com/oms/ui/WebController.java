@@ -72,11 +72,19 @@ public class WebController {
 
         return "products";
     }
+    @Controller
+    @RequestMapping("/ui/customers")
+    public class CustomerUIController {
+        @GetMapping
+        public String listPage() {
+            return "customers";
+        }
+    }
 
     @GetMapping("/ui/orders/create")
     public String createOrderPage(Model model) {
         model.addAttribute("products", productService.getAllProducts());
-        model.addAttribute("customers", customerService.getAllCustomers());
+       // model.addAttribute("customers", customerService.getAllCustomers());
 
         String randomOrderCode = "DH" + LocalDate.now().toString().replace("-", "").substring(2) + "-" + (int) (Math.random() * 10000);
         model.addAttribute("defaultOrderCode", randomOrderCode);

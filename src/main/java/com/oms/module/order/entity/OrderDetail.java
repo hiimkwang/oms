@@ -4,6 +4,8 @@ import com.oms.module.product.entity.Product;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "order_details")
 @Getter
@@ -29,11 +31,11 @@ public class OrderDetail {
     private Integer quantity; // SL
 
     @Column(name = "unit_price", nullable = false)
-    private Double unitPrice; // Đơn giá (lấy từ Product tại thời điểm bán)
+    private BigDecimal unitPrice; // Đơn giá (lấy từ Product tại thời điểm bán)
 
     @Column(name = "discount")
-    private Double discount; // Chiết khấu
+    private BigDecimal discount; // Chiết khấu
 
     @Column(name = "total_price")
-    private Double totalPrice; // Thành tiền = (unitPrice * quantity) - discount
+    private BigDecimal totalPrice; // Thành tiền = (unitPrice * quantity) - discount
 }

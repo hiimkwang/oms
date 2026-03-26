@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        /* Thống nhất style chuẩn Sapo */
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #4b566b;
+            font-size: 13px;
+            font-weight: 500;
+            height: 36px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-btn:hover {
+            background-color: #f8f9fb;
+            border-color: #cbd5e1;
+        }
+
+        .table-customer thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+            padding: 12px 10px;
+        }
+
+        .table-customer td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        /* Avatar chữ cái đầu */
+        .avatar-circle {
+            width: 32px;
+            height: 32px;
+            background: #e0f2fe;
+            color: #0369a1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #666;
+            font-weight: 500;
+            padding: 10px 20px;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+        }
+
+        .nav-tabs-custom .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .search-box {
+            max-width: 500px;
+        }
+
+        .search-box .form-control {
+            font-size: 13px;
+            height: 36px;
+            border-color: #dce0e4;
+        }
+
+        .search-box .input-group-text {
+            background: white;
+            border-color: #dce0e4;
+        }
+
+        .badge-group {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">Khách hàng</h4>
+        <div class="d-flex gap-2">
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-download me-2"></i>Nhập file</button>
+            <a th:href="@{/ui/orders/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-2"></i>Thêm khách hàng
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+        <div class="card-header bg-white border-0 p-0">
+            <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3">
+                <li class="nav-item"><a class="nav-link active" href="javascript:void(0)">Tất cả</a></li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
+                <div class="input-group search-box flex-grow-1">
+                    <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="cusSearchInput" class="form-control"
+                           placeholder="Tìm kiếm khách hàng theo mã, tên, SĐT...">
+                </div>
+                <div class="d-flex gap-2">
+                    <select class="form-select filter-btn w-auto" id="groupFilter">
+                        <option value="">Nhóm khách hàng</option>
+                        <option value="Khách lẻ">Khách lẻ</option>
+                        <option value="VIP">VIP</option>
+                        <option value="Đại lý">Đại lý</option>
+                    </select>
+                    <select class="form-select filter-btn w-auto">
+                        <option>Trạng thái</option>
+                    </select>
+                    <button class="btn filter-btn px-3"><i class="bi bi-filter me-2"></i>Bộ lọc khác</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-customer table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th class="ps-4" style="width: 40px;"><input type="checkbox" class="form-check-input"
+                                                                     id="checkAll"></th>
+                        <th>Tên khách hàng</th>
+                        <th>Email</th>
+                        <th>Điện thoại</th>
+                        <th class="text-center">Số đơn</th>
+                        <th>Đơn gần nhất</th>
+                        <th class="text-end pe-4">Tổng chi tiêu</th>
+                    </tr>
+                    </thead>
+                    <tbody id="customerTableBody">
+                    <tr>
+                        <td colspan="7" class="text-center py-5">Đang tải dữ liệu...</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 d-flex justify-content-between align-items-center border-top">
+                <div class="text-muted small" id="recordInfo">Đang tải...</div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted">Hiển thị</span>
+                        <select class="form-select form-select-sm w-auto">
+                            <option>20</option>
+                        </select>
+                        <span class="small text-muted">kết quả</span>
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item disabled"><a class="page-link" href="#"><i
+                                    class="bi bi-chevron-left"></i></a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="none">
+    document.addEventListener('DOMContentLoaded', function () {
+        loadCustomers();
+
+        // Xử lý Search với Debounce (chờ gõ xong mới gọi API)
+        let timeout = null;
+        document.getElementById('cusSearchInput').addEventListener('input', function () {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                loadCustomers(this.value);
+            }, 400);
+        });
+
+        // Xử lý Checkbox All
+        document.getElementById('checkAll').addEventListener('change', function () {
+            const isChecked = this.checked;
+            document.querySelectorAll('#customerTableBody .form-check-input').forEach(cb => cb.checked = isChecked);
+        });
+    });
+
+    async function loadCustomers(keyword = '') {
+        const tbody = document.getElementById('customerTableBody');
+        const info = document.getElementById('recordInfo');
+
+        try {
+            // API gọi đến CustomerController trả về List<CustomerRequest>
+            const response = await fetch(`/api/v1/customers?keyword=${encodeURIComponent(keyword)}`);
+            const customers = await response.json();
+
+            if (!customers || customers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block mb-2"></i>Không tìm thấy khách hàng nào</td></tr>';
+                info.innerText = 'Hiển thị 0 khách hàng';
+                return;
+            }
+
+            let html = '';
+            customers.forEach(c => {
+                // 1. Xử lý Avatar: Lấy chữ cái đầu của các từ trong tên
+                const nameParts = c.fullName ? c.fullName.split(' ') : ['K', 'H'];
+                const initials = nameParts.length > 1
+                    ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+                    : nameParts[0][0].toUpperCase();
+
+                // 2. Định dạng ngày tháng
+                const lastDate = c.lastOrder ? new Date(c.lastOrder).toLocaleDateString('vi-VN') : '---';
+
+                // 3. Định dạng tiền tệ
+                const totalSpent = new Intl.NumberFormat('vi-VN').format(c.totalSpent || 0) + '₫';
+
+                // 4. Màu Badge theo nhóm
+                let badgeClass = 'bg-secondary';
+                if (c.customerGroup === 'VIP') badgeClass = 'bg-danger';
+                if (c.customerGroup === 'Đại lý') badgeClass = 'bg-info text-white';
+
+                html += `
+                    <tr>
+                        <td class="ps-4"><input type="checkbox" class="form-check-input"></td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar-circle">${initials}</div>
+                                <div class="lh-sm">
+                                    <a href="/ui/customers/${c.customerCode}" class="text-decoration-none fw-bold text-primary">${c.fullName}</a>
+                                    <div class="mt-1">
+                                        <span class="badge-group ${badgeClass} text-white">${c.customerGroup || 'Khách lẻ'}</span>
+                                        <small class="text-muted ms-2">${c.customerCode}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${c.email || '---'}</td>
+                        <td>${c.phoneNumber || '---'}</td>
+                        <td class="text-center fw-medium">${c.orderCount || 0}</td>
+                        <td class="text-muted">${lastDate}</td>
+                        <td class="text-end pe-4 fw-bold">${totalSpent}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            info.innerText = `Hiển thị 1 - ${customers.length} trên tổng số ${customers.length} khách hàng`;
+
+        } catch (error) {
+            console.error("Lỗi tải khách hàng:", error);
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-danger">Có lỗi xảy ra khi tải dữ liệu!</td></tr>';
+        }
+    }
+</script>
+</body>
+</html>
