@@ -124,10 +124,11 @@
     </style>
 
     <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
-        <h4 class="fw-bold mb-0">Khách hàng</h4>
+        <h4 class="fw-bold mb-0 text-dark">Khách hàng</h4>
         <div class="d-flex gap-2">
-            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
-            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-download me-2"></i>Nhập file</button>
+            <button class="btn btn-white border fw-medium shadow-sm text-primary" onclick="syncGroups()" id="btnSync">
+                <i class="bi bi-magic me-2"></i>Quét & Phân loại
+            </button>
             <a th:href="@{/ui/customers/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
                 <i class="bi bi-plus-circle me-2"></i>Thêm khách hàng
             </a>
@@ -223,7 +224,14 @@
     </div>
 
     <script th:inline="none">
-        document.addEventListener('DOMContentLoaded', function () {
+        // Biến toàn cục để lưu trữ thông tin nhóm (Tên -> Màu)
+        let groupColorMap = {};
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            // 1. Tải danh sách nhóm để lấy mã màu TRƯỚC
+            await loadGroupColors();
+
+            // 2. Sau đó mới tải danh sách khách hàng
             loadCustomers();
 
             // Xử lý Search với Debounce
@@ -248,7 +256,30 @@
             });
         });
 
-        // Hàm ẩn/hiện thanh Thao tác hàng loạt (Bulk Action Bar)
+        // Hàm gọi API lấy danh sách nhóm và lưu màu sắc
+        async function loadGroupColors() {
+            try {
+                const res = await fetch('/api/v1/customer-groups');
+                if (res.ok) {
+                    const groups = await res.json();
+
+                    // Cập nhật bộ lọc Dropdown bằng dữ liệu thực
+                    const filterSelect = document.getElementById('groupFilter');
+                    filterSelect.innerHTML = '<option value="">Tất cả phân loại</option>';
+
+                    groups.forEach(g => {
+                        // Lưu mapping Tên nhóm -> Mã màu
+                        groupColorMap[g.name] = g.colorCode || '#6c757d'; // Mặc định xám nếu ko có màu
+
+                        // Đổ dữ liệu vào Dropdown lọc
+                        filterSelect.innerHTML += `<option value="${g.name}">${g.name}</option>`;
+                    });
+                }
+            } catch (e) {
+                console.error("Lỗi tải màu nhóm:", e);
+            }
+        }
+
         function toggleBulkActionBar() {
             const checkedCount = document.querySelectorAll('.customer-checkbox:checked').length;
             const bulkBar = document.getElementById('bulkActionBar');
@@ -264,13 +295,11 @@
             }
         }
 
-        // Hàm Bỏ chọn tất cả checkbox
         function clearSelection() {
             document.querySelectorAll('.customer-checkbox, #checkAll').forEach(cb => cb.checked = false);
             toggleBulkActionBar();
         }
 
-        // Hàm xóa hàng loạt bằng cách gọi 1 API Bulk Delete
         async function deleteSelected() {
             const checkboxes = document.querySelectorAll('.customer-checkbox:checked');
             if (checkboxes.length === 0) return;
@@ -279,7 +308,6 @@
                 return;
             }
 
-            // Gom mã khách hàng vào 1 mảng
             const codes = Array.from(checkboxes).map(cb => cb.value);
 
             try {
@@ -303,7 +331,6 @@
             }
         }
 
-        // Tải danh sách khách hàng
         async function loadCustomers(keyword = '') {
             const tbody = document.getElementById('customerTableBody');
             const info = document.getElementById('recordInfo');
@@ -318,7 +345,6 @@
 
                 let customers = await response.json();
 
-                // Lọc thêm theo Nhóm khách hàng
                 if (groupFilterValue !== "") {
                     customers = customers.filter(c => c.customerGroup === groupFilterValue);
                 }
@@ -342,9 +368,10 @@
                     const lastDate = c.lastOrder ? new Date(c.lastOrder).toLocaleDateString('vi-VN') : '---';
                     const totalSpent = new Intl.NumberFormat('vi-VN').format(c.totalSpent || 0) + '₫';
 
-                    let badgeClass = 'bg-secondary';
-                    if (c.customerGroup === 'VIP') badgeClass = 'bg-danger';
-                    if (c.customerGroup === 'Đại lý') badgeClass = 'bg-info text-white';
+                    const groupName = c.customerGroup || 'Khách lẻ';
+
+                    // LẤY MÀU TỪ MAP, NẾU KHÔNG CÓ THÌ TRẢ VỀ XÁM MẶC ĐỊNH
+                    const badgeColor = groupColorMap[groupName] || '#6c757d';
 
                     html += `
                         <tr>
@@ -357,7 +384,7 @@
                                     <div class="lh-sm">
                                         <a href="/ui/customers/${customerCode}" class="text-decoration-none fw-bold text-primary">${fullName}</a>
                                         <div class="mt-1">
-                                            <span class="badge-group ${badgeClass} text-white">${c.customerGroup || 'Khách lẻ'}</span>
+                                            <span class="badge-group text-white" style="background-color: ${badgeColor};">${groupName}</span>
                                             <small class="text-muted ms-2">${customerCode}</small>
                                         </div>
                                     </div>
@@ -375,12 +402,41 @@
                 tbody.innerHTML = html;
                 info.innerText = `Hiển thị 1 - ${customers.length} trên tổng số ${customers.length} khách hàng`;
 
-                // Reset giao diện thao tác hàng loạt mỗi lần reload bảng
                 clearSelection();
 
             } catch (error) {
                 console.error("Lỗi tải khách hàng:", error);
                 tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">Có lỗi xảy ra khi tải dữ liệu! <br> <small>${error.message}</small></td></tr>`;
+            }
+        }
+
+        async function syncGroups() {
+            if (!confirm("Hệ thống sẽ quét toàn bộ dữ liệu đơn hàng và tự động xếp lại nhóm cho TẤT CẢ khách hàng. Bạn có chắc chắn muốn tiếp tục?")) {
+                return;
+            }
+
+            const btn = document.getElementById('btnSync');
+            const originalText = btn.innerHTML;
+
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang đồng bộ...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/v1/customers/sync-groups', {method: 'POST'});
+
+                if (res.ok) {
+                    alert("Đồng bộ và phân loại nhóm khách hàng thành công!");
+                    loadCustomers(document.getElementById('cusSearchInput').value);
+                } else {
+                    const err = await res.json();
+                    alert("Lỗi đồng bộ: " + (err.message || "Kiểm tra lại server"));
+                }
+            } catch (e) {
+                console.error("Lỗi:", e);
+                alert("Lỗi kết nối đến máy chủ!");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
     </script>

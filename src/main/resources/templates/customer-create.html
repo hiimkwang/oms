@@ -158,23 +158,26 @@
     </div>
 
     <script th:inline="javascript">
-        // 1. Phân tích URL để biết là Thêm hay Sửa
         const pathSegments = window.location.pathname.split('/');
         const editCustomerCode = pathSegments.length > 3 ? pathSegments[3] : null;
+        const isEditMode = (editCustomerCode && editCustomerCode !== 'create');
 
         let allGroups = [];
         let stats = {orderCount: 0, totalSpent: 0};
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Load nhóm trước
+            // 1. Luôn tải danh sách nhóm trước
             await fetchGroups();
 
-            // Nếu là sửa, load data khách hàng
-            if (editCustomerCode && editCustomerCode !== 'create') {
+            if (isEditMode) {
                 document.getElementById('pageTitle').innerText = "Chỉnh sửa khách hàng";
                 await fetchCustomerData(editCustomerCode);
             } else {
-                document.getElementById('customerGroup').value = "Khách lẻ";
+                // Nếu thêm mới: Mặc định chọn Khách lẻ và không cần chạy auto-check
+                const select = document.getElementById('customerGroup');
+                if (select.querySelector('option[value="Khách lẻ"]')) {
+                    select.value = "Khách lẻ";
+                }
             }
         });
 
@@ -183,24 +186,27 @@
                 const res = await fetch('/api/v1/customer-groups');
                 allGroups = await res.json();
                 const select = document.getElementById('customerGroup');
-                select.innerHTML = '<option value="Khách lẻ">Khách lẻ</option>';
 
+                // Render lại danh sách nhóm
+                let html = '<option value="Khách lẻ">Khách lẻ</option>';
                 allGroups.forEach(g => {
                     if (g.name !== "Khách lẻ") {
-                        select.innerHTML += `<option value="${g.name}">${g.name}</option>`;
+                        html += `<option value="${g.name}">${g.name}</option>`;
                     }
                 });
+                select.innerHTML = html;
             } catch (e) {
-                console.error("Lỗi tải nhóm:", e);
+                console.error("Không thể tải danh sách nhóm:", e);
             }
         }
 
         async function fetchCustomerData(code) {
             try {
                 const res = await fetch(`/api/v1/customers/${code}`);
+                if (!res.ok) return;
                 const c = await res.json();
 
-                // Fill thông tin cơ bản
+                // Fill form (Dùng Optional chaining ?. để tránh lỗi nếu thiếu trường)
                 document.getElementById('firstName').value = c.firstName || '';
                 document.getElementById('lastName').value = c.lastName || '';
                 document.getElementById('email').value = c.email || '';
@@ -208,9 +214,13 @@
                 document.getElementById('dob').value = c.dob || '';
                 document.getElementById('note').value = c.note || '';
                 document.getElementById('shipAddressDetail').value = c.shipAddressDetail || '';
-                if (c.gender) document.querySelector(`input[name="gender"][value="${c.gender}"]`).checked = true;
 
-                // Fill thông tin hóa đơn
+                if (c.gender) {
+                    const genderRadio = document.querySelector(`input[name="gender"][value="${c.gender}"]`);
+                    if (genderRadio) genderRadio.checked = true;
+                }
+
+                // Fill hóa đơn
                 if (c.hasInvoice) {
                     document.getElementById('hasInvoice').checked = true;
                     document.getElementById('invBlock').classList.remove('d-none');
@@ -219,21 +229,26 @@
                     document.getElementById('companyAddress').value = c.companyAddress || '';
                 }
 
-                // Lưu stats để auto check
+                // Lưu stats và CHỈ chạy gợi ý khi SỬA
                 stats.orderCount = c.orderCount || 0;
                 stats.totalSpent = c.totalSpent || 0;
 
-                // Tự động kiểm tra nhóm
                 autoCheckGroup(c.customerGroup);
 
             } catch (e) {
-                console.error("Lỗi tải dữ liệu khách hàng:", e);
+                console.error("Lỗi lấy data khách hàng:", e);
             }
         }
 
         function autoCheckGroup(manualGroup) {
+            // Nếu không có stats thì không cần check
+            if (stats.orderCount === 0 && stats.totalSpent === 0) {
+                document.getElementById('customerGroup').value = manualGroup || "Khách lẻ";
+                return;
+            }
+
             let suggested = manualGroup || "Khách lẻ";
-            let isAuto = false;
+            let isAutoFound = false;
 
             allGroups.forEach(g => {
                 if (g.autoUpdate && g.conditions) {
@@ -251,7 +266,7 @@
                         const isMatch = (cond.matchType === 'ALL') ? results.every(res => res) : results.some(res => res);
                         if (isMatch) {
                             suggested = g.name;
-                            isAuto = true;
+                            isAutoFound = true;
                         }
                     } catch (e) {
                     }
@@ -260,7 +275,9 @@
 
             const select = document.getElementById('customerGroup');
             select.value = suggested;
-            if (isAuto && suggested !== manualGroup) {
+
+            // Chỉ highlight nếu hệ thống gợi ý nhóm KHÁC với nhóm hiện tại
+            if (isAutoFound && suggested !== manualGroup) {
                 select.classList.add('auto-selected');
                 document.getElementById('autoCheckNote').classList.remove('d-none');
             }
@@ -275,7 +292,7 @@
             const payload = {
                 firstName: firstName,
                 lastName: document.getElementById('lastName').value.trim(),
-                fullName: document.getElementById('lastName').value.trim() + ' ' + firstName,
+                fullName: (document.getElementById('lastName').value.trim() + ' ' + firstName).trim(),
                 email: document.getElementById('email').value.trim(),
                 phoneNumber: phone,
                 dob: document.getElementById('dob').value,
@@ -283,17 +300,14 @@
                 customerGroup: document.getElementById('customerGroup').value,
                 note: document.getElementById('note').value.trim(),
                 shipAddressDetail: document.getElementById('shipAddressDetail').value.trim(),
-
-                // Invoice Data
                 hasInvoice: document.getElementById('hasInvoice').checked,
                 taxCode: document.getElementById('taxCode').value.trim(),
                 companyName: document.getElementById('companyName').value.trim(),
                 companyAddress: document.getElementById('companyAddress').value.trim()
             };
 
-            const isEdit = editCustomerCode && editCustomerCode !== 'create';
-            const url = isEdit ? `/api/v1/customers/${editCustomerCode}` : '/api/v1/customers';
-            const method = isEdit ? 'PUT' : 'POST';
+            const url = isEditMode ? `/api/v1/customers/${editCustomerCode}` : '/api/v1/customers';
+            const method = isEditMode ? 'PUT' : 'POST';
 
             try {
                 const res = await fetch(url, {
@@ -303,7 +317,7 @@
                 });
 
                 if (res.ok) {
-                    alert(isEdit ? "Cập nhật thành công!" : "Thêm mới thành công!");
+                    alert(isEditMode ? "Cập nhật thành công!" : "Thêm mới thành công!");
                     window.location.href = "/ui/customers";
                 } else {
                     const err = await res.json();

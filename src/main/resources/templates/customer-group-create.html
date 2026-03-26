@@ -129,6 +129,12 @@
                     <input type="text" id="code" class="form-control form-control-custom"
                            placeholder="Để trống hệ thống sẽ tự sinh">
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label-custom">Màu sắc nhãn</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="color" id="colorCode" class="form-control form-control-color border-0 p-0 shadow-sm" value="#0ea5e9" style="height: 36px; width: 45px; cursor: pointer; border-radius: 6px;">
+                    </div>
+                </div>
                 <div class="col-md-12">
                     <label class="form-label-custom">Ghi chú</label>
                     <textarea id="note" class="form-control" rows="3"
@@ -250,6 +256,7 @@
             const payload = {
                 name: name,
                 code: document.getElementById('code').value.trim(),
+                colorCode: document.getElementById('colorCode').value,
                 note: document.getElementById('note').value.trim(),
                 autoUpdate: isAuto,
                 conditions: buildConditionJson()

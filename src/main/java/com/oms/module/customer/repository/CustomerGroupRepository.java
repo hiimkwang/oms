@@ -19,4 +19,6 @@ public interface CustomerGroupRepository extends JpaRepository<CustomerGroup, Lo
     @Transactional
     @Query("DELETE FROM CustomerGroup g WHERE g.code IN :codes")
     void deleteAllByCodeIn(@Param("codes") List<String> codes);
+    List<CustomerGroup> findByAutoUpdateTrue();
+
 }

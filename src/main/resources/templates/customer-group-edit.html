@@ -4,6 +4,7 @@
 <body>
 <div class="oms-container pb-5" style="background-color: #f8f9fa; min-height: 100vh;">
     <style>
+        /* ... (Giữ nguyên phần style của bạn) ... */
         .card-custom {
             background: #fff;
             border: 1px solid #e2e8f0;
@@ -120,15 +121,25 @@
         <div class="card-custom p-4 mb-4">
             <h6 class="fw-bold text-dark mb-4 fs-6">Thông tin chung</h6>
             <div class="row g-4">
-                <div class="col-md-6">
+                <div class="col-md-5">
                     <label class="form-label-custom">Tên nhóm <span class="text-danger">*</span></label>
                     <input type="text" id="name" class="form-control form-control-custom"
                            placeholder="Ví dụ: Khách VIP, Đại lý cấp 1...">
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label class="form-label-custom">Mã nhóm</label>
-                    <input type="text" id="code" class="form-control form-control-custom" placeholder="Mã nhóm">
+                    <input type="text" id="code" class="form-control form-control-custom" placeholder="Mã nhóm"
+                           disabled>
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label-custom">Màu sắc nhãn</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="color" id="colorCode"
+                               class="form-control form-control-color border-0 p-0 shadow-sm" value="#0ea5e9"
+                               style="height: 36px; width: 45px; cursor: pointer; border-radius: 6px;">
+                    </div>
+                </div>
+
                 <div class="col-md-12">
                     <label class="form-label-custom">Ghi chú</label>
                     <textarea id="note" class="form-control" rows="3"
@@ -168,8 +179,7 @@
                     </select>
                 </div>
 
-                <div id="conditionList">
-                </div>
+                <div id="conditionList"></div>
 
                 <div class="mt-3">
                     <button type="button" class="btn btn-add-condition" onclick="addConditionRow()">
@@ -190,7 +200,6 @@
             document.getElementById('conditionBlock').classList.toggle('d-none', !isAuto);
         }
 
-        // Đã cập nhật HTML của dòng điều kiện theo giao diện mới
         function addConditionRow(fieldVal = 'TOTAL_SPENT', opVal = '>', valueVal = '') {
             const id = Date.now().toString() + Math.random().toString(36).substring(2, 7);
             const html = `
@@ -242,7 +251,7 @@
             });
         }
 
-        // Chạy ngay khi tải trang để lấy dữ liệu cũ đắp vào form
+        // TẢI DỮ LIỆU CŨ LÊN FORM
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const res = await fetch(`/api/v1/customer-groups/${groupCode}`);
@@ -252,14 +261,17 @@
                 // Đổ dữ liệu vào form
                 document.getElementById('name').value = data.name;
                 document.getElementById('code').value = data.code;
-                document.getElementById('code').disabled = true; // Không cho sửa mã
                 document.getElementById('note').value = data.note || '';
+
+                // Set Màu sắc (Nếu có màu trong DB thì hiển thị, không thì mặc định)
+                if (data.colorCode) {
+                    document.getElementById('colorCode').value = data.colorCode;
+                }
 
                 if (data.autoUpdate) {
                     document.getElementById('autoAdd').checked = true;
                     toggleConditions();
 
-                    // Khôi phục các dòng điều kiện từ JSON
                     if (data.conditions) {
                         const condObj = JSON.parse(data.conditions);
                         document.getElementById('matchType').value = condObj.matchType;
@@ -278,16 +290,15 @@
             }
         });
 
-        // Hàm gửi dữ liệu lên server
+        // HÀM LƯU GỬI DỮ LIỆU LÊN
         async function updateGroup() {
             const name = document.getElementById('name').value.trim();
-            if (!name) {
-                return alert("Vui lòng nhập Tên nhóm!");
-            }
+            if (!name) return alert("Vui lòng nhập Tên nhóm!");
 
             const payload = {
                 name: name,
                 note: document.getElementById('note').value.trim(),
+                colorCode: document.getElementById('colorCode').value, // LẤY MÀU GỬI ĐI
                 autoUpdate: document.getElementById('autoAdd').checked,
                 conditions: buildConditionJson()
             };

@@ -146,8 +146,9 @@
                     <tr>
                         <th class="ps-4" style="width: 40px;"><input type="checkbox" class="form-check-input"
                                                                      id="checkAll"></th>
-                        <th>Mã nhóm</th>
                         <th>Tên nhóm</th>
+                        <th>Mã nhóm</th>
+                        <th>Loại nhóm</th>
                         <th class="text-center">Số lượng khách</th>
                         <th>Ngày tạo</th>
                     </tr>
@@ -249,7 +250,8 @@
             const info = document.getElementById('recordInfo');
 
             if (dataList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted"><i class="bi bi-folder-x fs-2 d-block mb-2"></i>Không tìm thấy kết quả phù hợp.</td></tr>';
+                // Đã tăng colspan lên 6 vì thêm 1 cột
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-folder-x fs-2 d-block mb-2"></i>Không tìm thấy kết quả phù hợp.</td></tr>';
                 info.innerText = 'Hiển thị 0 nhóm';
                 clearSelection();
                 return;
@@ -259,21 +261,28 @@
             dataList.forEach(g => {
                 const date = g.createdAt ? new Date(g.createdAt).toLocaleDateString('vi-VN') : '---';
 
-                // Hiển thị nhãn Auto / Manual
-                const typeBadge = g.autoUpdate
-                    ? '<span class="badge bg-info text-white ms-2" style="font-size: 10px; font-weight: 500;">Tự động</span>'
-                    : '<span class="badge bg-secondary text-white ms-2" style="font-size: 10px; font-weight: 500;">Thủ công</span>';
+                // Tách loại nhóm thành text thường, không dùng badge màu nữa
+                const typeText = g.autoUpdate ? 'Tự động' : 'Thủ công';
+
+                // Lấy mã màu của nhóm (Nhớ check Backend trả về colorCode nhé)
+                const groupColor = g.colorCode || '#6c757d';
 
                 html += `
                     <tr>
                         <td class="ps-4">
                             <input type="checkbox" class="form-check-input group-checkbox" value="${g.code}" onchange="toggleBulkActionBar()">
                         </td>
-                        <td class="fw-medium text-muted">${g.code || '---'}</td>
                         <td>
-                            <a href="/ui/customer-groups/${g.code}" class="fw-bold text-primary text-decoration-none">${g.name || '---'}</a>
-                            ${typeBadge}
+                            <a href="/ui/customer-groups/${g.code}"
+                               class="text-decoration-none shadow-sm"
+                               style="background-color: ${groupColor}; color: #ffffff; padding: 4px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; display: inline-block; transition: opacity 0.2s;"
+                               onmouseover="this.style.opacity='0.85'"
+                               onmouseout="this.style.opacity='1'">
+                                ${g.name || '---'}
+                            </a>
                         </td>
+                        <td class="fw-medium text-muted">${g.code || '---'}</td>
+                        <td>${typeText}</td>
                         <td class="text-center fw-medium">${g.customerCount || 0}</td>
                         <td class="text-muted">${date}</td>
                     </tr>

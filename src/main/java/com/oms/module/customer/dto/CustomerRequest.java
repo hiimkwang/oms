@@ -25,7 +25,7 @@ public class CustomerRequest {
     private LocalDate dob;
     private String gender;
     private Boolean receiveAds;
-
+    private String colorCode;
     // Phân loại & Ghi chú
     private String customerGroup;
     private String note;

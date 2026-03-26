@@ -63,12 +63,23 @@ public class CustomerController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
+
     // Bổ sung API xóa hàng loạt
     @PostMapping("/bulk-delete")
     public ResponseEntity<?> bulkDelete(@RequestBody List<String> codes) {
         try {
             customerService.bulkDeleteCustomers(codes);
             return ResponseEntity.ok(Map.of("message", "Đã xóa thành công " + codes.size() + " khách hàng!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/sync-groups")
+    public ResponseEntity<?> syncAllCustomerGroups() {
+        try {
+            customerService.syncCustomerGroups();
+            return ResponseEntity.ok(Map.of("message", "Đồng bộ thành công"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }

@@ -34,7 +34,7 @@ public class CustomerGroupController {
 
             // BỔ SUNG DÒNG NÀY: Trả về trạng thái tự động hay thủ công
             map.put("autoUpdate", g.getAutoUpdate() != null ? g.getAutoUpdate() : false);
-
+            map.put("colorCode", g.getColorCode() != null ? g.getColorCode() : "#6c757d");
             return map;
         }).collect(Collectors.toList());
 
@@ -69,6 +69,7 @@ public class CustomerGroupController {
             existing.setNote(req.getNote());
             existing.setAutoUpdate(req.getAutoUpdate());
             existing.setConditions(req.getConditions());
+            existing.setColorCode(req.getColorCode());
             return ResponseEntity.ok(groupRepository.save(existing));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

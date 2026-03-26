@@ -24,7 +24,8 @@ public class CustomerGroup {
     @CreationTimestamp
     private LocalDateTime createdAt;
     private Boolean autoUpdate;
-
+    @Column(name = "color_code", length = 10)
+    private String colorCode;
     @Column(columnDefinition = "TEXT")
     private String conditions; // Lưu chuỗi JSON chứa các điều kiện
 }
