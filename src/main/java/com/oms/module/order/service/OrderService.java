@@ -51,7 +51,7 @@ public class OrderService {
                 .customer(customer)
                 .shippingFee(BigDecimal.valueOf(request.getShippingFee() != null ? request.getShippingFee() : 0))
                 .discount(BigDecimal.valueOf(request.getDiscount() != null ? request.getDiscount() : 0))
-                .orderDetails(new ArrayList<>()) // BỔ SUNG DÒNG NÀY ĐỂ FIX LỖI NPE
+                .details(new ArrayList<>()) // BỔ SUNG DÒNG NÀY ĐỂ FIX LỖI NPE
                 .build();
 
         // Xử lý an toàn ngày đặt hàng từ giao diện (Thường có dạng 2026-03-27T09:18)
@@ -89,7 +89,7 @@ public class OrderService {
         order.setDiscount(BigDecimal.valueOf(request.getDiscount() != null ? request.getDiscount() : 0));
 
         // Xóa các line cũ và đắp line mới vào
-        order.getOrderDetails().clear();
+        order.getDetails().clear();
         buildOrderDetailsAndCalculateTotal(order, request.getDetails());
 
         return orderRepository.save(order);
@@ -146,7 +146,7 @@ public class OrderService {
                     .totalPrice(lineTotal)
                     .build();
 
-            order.getOrderDetails().add(orderDetail);
+            order.getDetails().add(orderDetail);
             totalItemsAmount = totalItemsAmount.add(lineTotal);
         }
 

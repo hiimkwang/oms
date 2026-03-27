@@ -40,7 +40,7 @@ public class Order {
 
     @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderDetail> orderDetails = new ArrayList<>();
+    private List<OrderDetail> details = new ArrayList<>();
 
     @Column(name = "total_amount")
     private BigDecimal totalAmount;

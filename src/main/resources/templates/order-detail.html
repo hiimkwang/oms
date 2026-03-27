@@ -783,6 +783,9 @@
             let num = parseFloat(val) || 0;
             if (num < 0) num = 0;
             editCart[idx][field] = num;
+
+            editCart[idx].totalPrice = editCart[idx].unitPrice * editCart[idx].quantity;
+
             renderProductTable(editCart, true);
             calcEditTotals();
         }
@@ -815,7 +818,7 @@
 
             const payload = {
                 orderCode: currentOrder.orderCode,
-                customerCode: currentOrder.customer.code || currentOrder.customer.id,
+                customerCode: currentOrder.customer?.code || currentOrder.customer?.id,
                 salesChannel: currentOrder.salesChannel,
                 status: currentOrder.status,
                 paymentMethod: currentOrder.paymentMethod,
