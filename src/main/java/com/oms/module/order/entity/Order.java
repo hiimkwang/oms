@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,30 +23,38 @@ public class Order {
     private Long id;
 
     @Column(name = "order_code", unique = true, nullable = false)
-    private String orderCode; // Số phiếu (VD: 26031574S25MU0)
+    private String orderCode;
 
     @Column(name = "sales_channel")
-    private String salesChannel; // Kênh bán hàng (Shopee, Web...)
+    private String salesChannel;
 
     @Column(name = "status")
-    private String status; // Trạng thái đơn (Đã hoàn thành, Đang giao...)
+    private String status;
 
     @Column(name = "payment_method")
-    private String paymentMethod; // Phương thức TT (Ví điện tử, COD...)
+    private String paymentMethod;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) // Eager để khi get list trả luôn thông tin KH
     @JoinColumn(name = "customer_id", nullable = false)
-    private Customer customer; // Mã KH
+    private Customer customer;
 
+    @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderDetail> orderDetails = new ArrayList<>();
 
     @Column(name = "total_amount")
-    private BigDecimal totalAmount; // Tổng tiền thanh toán thực
+    private BigDecimal totalAmount;
+
+    @Column(name = "shipping_fee")
+    private BigDecimal shippingFee; // Phí ship
+
+    @Column(name = "discount")
+    private BigDecimal discount; // Giảm giá
 
     @Column(name = "note")
-    private String note; // Ghi chú
-    @Column(name = "created_at") // Map với cột dưới DB
+    private String note;
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @PrePersist

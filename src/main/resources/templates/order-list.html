@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        /* GIỮ NGUYÊN STYLE ĐỒNG BỘ VỚI CÁC TRANG TRƯỚC */
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #4b566b;
+            font-size: 13px;
+            font-weight: 500;
+            height: 36px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-btn:hover {
+            background-color: #f8f9fb;
+            border-color: #cbd5e1;
+        }
+
+        .table-custom thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+            padding: 12px 10px;
+            white-space: nowrap;
+        }
+
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #64748b;
+            font-weight: 500;
+            padding: 10px 20px;
+            font-size: 14px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+            font-weight: 600;
+        }
+
+        .nav-tabs-custom .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .nav-tabs-custom .nav-link:hover:not(.active) {
+            color: #0f172a;
+        }
+
+        .search-box {
+            max-width: 450px;
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            background: white;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .search-box:focus-within {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            padding-right: 8px;
+        }
+
+        .search-box .form-control {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding-left: 0;
+            font-size: 13px;
+            height: 36px;
+        }
+
+        /* Style cho các Badge Trạng thái */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            text-align: center;
+        }
+
+        /* Trạng thái Thanh toán */
+        .badge-unpaid {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .badge-paid {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* Trạng thái Đơn hàng */
+        .badge-init {
+            background-color: #e2e8f0;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .badge-processing {
+            background-color: #cce5ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+
+        .badge-success {
+            background-color: #d1e7dd;
+            color: #0f5132;
+            border: 1px solid #badbcc;
+        }
+
+        .badge-cancel {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .hover-primary:hover {
+            color: #0d6efd !important;
+            text-decoration: underline !important;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <h4 class="fw-bold mb-0 text-dark">Danh sách đơn hàng</h4>
+        <div class="d-flex gap-2">
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
+            <a th:href="@{/ui/orders/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-2"></i>Tạo đơn hàng
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+        <div class="card-header bg-white border-0 p-0">
+            <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3" id="orderTabs">
+                <li class="nav-item"><a class="nav-link active" data-status="ALL">Tất cả</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Khởi tạo">Đặt hàng</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Đang giao dịch">Đang giao dịch</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Hoàn thành">Đã hoàn thành</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Đã hủy">Đã hủy</a></li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
+                <div class="input-group search-box flex-grow-1">
+                    <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
+                    <input type="text" id="orderSearchInput" class="form-control"
+                           placeholder="Tìm kiếm theo mã đơn hàng, tên, SĐT khách hàng...">
+                </div>
+                <div class="d-flex gap-2">
+                    <select class="form-select filter-btn w-auto" id="channelFilter">
+                        <option value="">Kênh bán hàng</option>
+                        <option value="WEBSITE">Website</option>
+                        <option value="FACEBOOK">Facebook</option>
+                        <option value="POS">Tại cửa hàng</option>
+                    </select>
+                    <input type="date" class="form-control filter-btn w-auto text-muted" id="dateFilter"
+                           title="Ngày đặt hàng">
+                    <button class="btn filter-btn"><i class="bi bi-funnel me-2"></i>Bộ lọc khác</button>
+                </div>
+            </div>
+
+            <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
+                 style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4;">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-medium" style="color: #0369a1; font-size: 13px;">Đã chọn <span id="selectedCount"
+                                                                                                   class="fw-bold fs-6">0</span> đơn hàng</span>
+                    <span class="text-muted small">|</span>
+                    <a href="javascript:void(0)" class="text-decoration-none fw-medium"
+                       style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
+                </div>
+                <div>
+                    <button class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
+                            style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;"
+                            onclick="deleteSelectedOrders()">
+                        Xóa đơn hàng
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive" style="min-height: 400px;">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th class="ps-4" style="width: 40px;"><input type="checkbox" class="form-check-input"
+                                                                     id="checkAll"></th>
+                        <th>Mã đơn hàng</th>
+                        <th>Ngày đặt hàng</th>
+                        <th>Khách hàng</th>
+                        <th>Kênh bán</th>
+                        <th class="text-end">Thành tiền</th>
+                        <th class="text-center">TT thanh toán</th>
+                        <th class="text-center">Trạng thái xử lý</th>
+                    </tr>
+                    </thead>
+                    <tbody id="orderTableBody">
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
+                            Đang tải dữ liệu...
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
+                <div class="text-muted small" id="recordInfo">Đang tải...</div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted">Hiển thị</span>
+                        <select class="form-select form-select-sm w-auto">
+                            <option>20</option>
+                            <option>50</option>
+                        </select>
+                        <span class="small text-muted">kết quả</span>
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item disabled"><a class="page-link" href="#"><i
+                                    class="bi bi-chevron-left"></i></a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="none">
+        let allOrders = []; // Lưu toàn bộ data để filter Client-side
+        let currentTabStatus = 'ALL';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadOrders();
+
+            // Lắng nghe sự kiện chuyển Tab
+            document.querySelectorAll('#orderTabs .nav-link').forEach(tab => {
+                tab.addEventListener('click', function (e) {
+                    document.querySelectorAll('#orderTabs .nav-link').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentTabStatus = this.getAttribute('data-status');
+                    applyFilters();
+                });
+            });
+
+            // Lắng nghe sự kiện Search & Dropdown
+            let searchTimeout;
+            document.getElementById('orderSearchInput').addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(applyFilters, 300);
+            });
+            document.getElementById('channelFilter').addEventListener('change', applyFilters);
+            document.getElementById('dateFilter').addEventListener('change', applyFilters);
+
+            // Checkbox Chọn tất cả
+            document.getElementById('checkAll').addEventListener('change', function () {
+                document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = this.checked);
+                toggleBulkActionBar();
+            });
+        });
+
+        // 1. TẢI DỮ LIỆU TỪ BACKEND
+        async function loadOrders() {
+            try {
+                const res = await fetch('/api/v1/orders');
+                if (!res.ok) throw new Error("Lỗi mạng");
+                allOrders = await res.json();
+                applyFilters(); // Mặc định render ra theo filter ban đầu
+            } catch (e) {
+                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-5 text-danger">Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
+            }
+        }
+
+        // 2. LOGIC LỌC DỮ LIỆU (TÌM KIẾM, TAB, DROP DOWN)
+        function applyFilters() {
+            const keyword = document.getElementById('orderSearchInput').value.toLowerCase().trim();
+            const channel = document.getElementById('channelFilter').value;
+            const date = document.getElementById('dateFilter').value; // Format: YYYY-MM-DD
+
+            const filteredOrders = allOrders.filter(o => {
+                // Lọc theo Tab Trạng thái
+                const matchTab = (currentTabStatus === 'ALL') || (o.status === currentTabStatus);
+
+                // Lọc theo Kênh bán
+                const matchChannel = channel === "" || o.salesChannel === channel;
+
+                // Lọc theo Ngày đặt
+                const matchDate = date === "" || (o.createdAt && o.createdAt.startsWith(date));
+
+                // Lọc theo Từ khóa (Mã đơn, Tên KH, SĐT KH)
+                const cusName = o.customer ? (o.customer.fullName || o.customer.name || '').toLowerCase() : '';
+                const cusPhone = o.customer ? (o.customer.phone || o.customer.phoneNumber || '') : '';
+                const matchKeyword = keyword === "" ||
+                    (o.orderCode && o.orderCode.toLowerCase().includes(keyword)) ||
+                    cusName.includes(keyword) ||
+                    cusPhone.includes(keyword);
+
+                return matchTab && matchChannel && matchDate && matchKeyword;
+            });
+
+            renderTable(filteredOrders);
+        }
+
+        // 3. RENDER BẢNG DỮ LIỆU
+        function renderTable(dataList) {
+            const tbody = document.getElementById('orderTableBody');
+            const info = document.getElementById('recordInfo');
+
+            if (dataList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block mb-2"></i>Không tìm thấy đơn hàng nào.</td></tr>';
+                info.innerText = 'Hiển thị 0 đơn hàng';
+                clearSelection();
+                return;
+            }
+
+            let html = '';
+            dataList.forEach(o => {
+                // Format Ngày tháng
+                let formattedDate = '---';
+                if (o.createdAt) {
+                    const d = new Date(o.createdAt);
+                    formattedDate = d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+
+                // Format Tiền
+                const totalAmount = new Intl.NumberFormat('vi-VN').format(o.totalAmount || 0) + '₫';
+
+                // Lấy thông tin KH an toàn
+                const cusName = o.customer ? (o.customer.fullName || o.customer.name || 'Khách lẻ') : 'Khách lẻ';
+                const cusCode = o.customer ? (o.customer.code || o.customer.id || '') : '';
+                const cusLink = cusCode ? `/ui/customers/${cusCode}` : '#';
+
+                // Format Badge Kênh bán
+                const channelMapping = {"WEBSITE": "Website", "FACEBOOK": "Facebook", "POS": "Tại cửa hàng"};
+                const channelName = channelMapping[o.salesChannel] || o.salesChannel || 'Khác';
+
+                // Format Badge Thanh toán
+                let paymentBadge = '';
+                if (o.paymentStatus === 'PAID') paymentBadge = '<span class="status-badge badge-paid"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>';
+                else paymentBadge = '<span class="status-badge badge-unpaid"><i class="bi bi-clock me-1"></i>Chưa thanh toán</span>';
+
+                // Format Badge Trạng thái
+                let statusBadge = '';
+                const st = o.status || 'Khởi tạo';
+                if (st === 'Khởi tạo') statusBadge = `<span class="status-badge badge-init">${st}</span>`;
+                else if (st === 'Hoàn thành') statusBadge = `<span class="status-badge badge-success">${st}</span>`;
+                else if (st === 'Đã hủy') statusBadge = `<span class="status-badge badge-cancel">${st}</span>`;
+                else statusBadge = `<span class="status-badge badge-processing">${st}</span>`; // Đang giao dịch, Đang đóng gói...
+
+                html += `
+                    <tr>
+                        <td class="ps-4">
+                            <input type="checkbox" class="form-check-input order-checkbox" value="${o.orderCode}" onchange="toggleBulkActionBar()">
+                        </td>
+                        <td>
+                            <a href="/ui/orders/${o.orderCode}" class="text-decoration-none fw-bold text-primary hover-primary">${o.orderCode}</a>
+                        </td>
+                        <td class="text-muted">${formattedDate}</td>
+                        <td>
+                            <a href="${cusLink}" class="text-decoration-none text-primary hover-primary">${cusName}</a>
+                        </td>
+                        <td class="text-muted">${channelName}</td>
+                        <td class="text-end fw-bold text-dark">${totalAmount}</td>
+                        <td class="text-center">${paymentBadge}</td>
+                        <td class="text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+            info.innerText = `Từ 1 đến ${dataList.length} trên tổng số ${dataList.length}`;
+            clearSelection();
+        }
+
+        // 4. XỬ LÝ THAO TÁC HÀNG LOẠT (BULK ACTIONS)
+        function toggleBulkActionBar() {
+            const checkedCount = document.querySelectorAll('.order-checkbox:checked').length;
+            const bulkBar = document.getElementById('bulkActionBar');
+
+            if (checkedCount > 0) {
+                document.getElementById('selectedCount').innerText = checkedCount;
+                bulkBar.classList.remove('d-none');
+                bulkBar.classList.add('d-flex');
+            } else {
+                bulkBar.classList.add('d-none');
+                bulkBar.classList.remove('d-flex');
+            }
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.order-checkbox, #checkAll').forEach(cb => cb.checked = false);
+            toggleBulkActionBar();
+        }
+
+        async function deleteSelectedOrders() {
+            const checkboxes = document.querySelectorAll('.order-checkbox:checked');
+            if (checkboxes.length === 0) return;
+
+            if (!confirm(`CẢNH BÁO: Xóa đơn hàng sẽ ảnh hưởng đến báo cáo doanh thu. Bạn có chắc chắn muốn xóa ${checkboxes.length} đơn hàng đã chọn không?`)) {
+                return;
+            }
+
+            // Gọi API Delete từng đơn (hoặc bạn có thể viết thêm API Bulk Delete ở Backend)
+            let successCount = 0;
+            for (let cb of checkboxes) {
+                try {
+                    const res = await fetch(`/api/v1/orders/${cb.value}`, {method: 'DELETE'});
+                    if (res.ok) successCount++;
+                } catch (e) {
+                    console.error("Lỗi xóa đơn:", cb.value);
+                }
+            }
+
+            alert(`Đã xóa thành công ${successCount} đơn hàng!`);
+            await loadOrders(); // Tải lại bảng
+        }
+    </script>
+</div>
+</body>
+</html>

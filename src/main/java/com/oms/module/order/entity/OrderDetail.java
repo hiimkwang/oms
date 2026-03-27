@@ -1,5 +1,6 @@
 package com.oms.module.order.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.oms.module.product.entity.Product;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,21 +22,29 @@ public class OrderDetail {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
+    @JsonIgnore // Tránh lỗi lặp vô hạn (Infinite Recursion) khi trả JSON
     private Order order;
 
+    // Cho phép null để lưu sản phẩm tùy chỉnh (Custom Product)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product; // Mã SP
+    @JoinColumn(name = "product_id", nullable = true)
+    private Product product;
+
+    @Column(name = "sku")
+    private String sku; // Lưu cứng SKU để đề phòng Product bị xóa mất
+
+    @Column(name = "product_name")
+    private String productName; // Lưu tên sản phẩm
 
     @Column(name = "quantity", nullable = false)
-    private Integer quantity; // SL
+    private Integer quantity;
 
     @Column(name = "unit_price", nullable = false)
-    private BigDecimal unitPrice; // Đơn giá (lấy từ Product tại thời điểm bán)
+    private BigDecimal unitPrice;
 
     @Column(name = "discount")
-    private BigDecimal discount; // Chiết khấu
+    private BigDecimal discount;
 
     @Column(name = "total_price")
-    private BigDecimal totalPrice; // Thành tiền = (unitPrice * quantity) - discount
+    private BigDecimal totalPrice;
 }

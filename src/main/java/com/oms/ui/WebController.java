@@ -108,16 +108,31 @@ public class WebController {
         return "customer-group-edit";
     }
 
+    // 1. DANH SÁCH ĐƠN HÀNG
+    @GetMapping("/ui/orders")
+    public String orderListPage() {
+        return "order-list";
+    }
+
+    // 2. TẠO ĐƠN HÀNG (Phải đặt ưu tiên lên trước PathVariable)
     @GetMapping("/ui/orders/create")
     public String createOrderPage(Model model) {
-        model.addAttribute("products", productService.getAllProducts());
-        // model.addAttribute("customers", customerService.getAllCustomers());
+        // Đã xóa dòng load getAllProducts() vì Frontend đã xử lý search động qua API
 
+        // Sinh mã đơn hàng ngẫu nhiên gửi xuống UI
         String randomOrderCode = "DH" + LocalDate.now().toString().replace("-", "").substring(2) + "-" + (int) (Math.random() * 10000);
         model.addAttribute("defaultOrderCode", randomOrderCode);
 
         return "order-create";
     }
+
+    // 3. CHI TIẾT ĐƠN HÀNG (Đặt xuống dưới cùng)
+    @GetMapping("/ui/orders/{orderCode}")
+    public String orderDetailPage(@PathVariable String orderCode, Model model) {
+        model.addAttribute("orderCode", orderCode);
+        return "order-detail";
+    }
+
 
     // Mở trang Thêm mới sản phẩm
     @GetMapping("/ui/products/create")

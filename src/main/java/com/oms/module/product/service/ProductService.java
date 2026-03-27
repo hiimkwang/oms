@@ -13,10 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -95,12 +92,21 @@ public class ProductService {
     }
 
     // ================= 3. LẤY CHI TIẾT THEO SKU =================
-    @Transactional(readOnly = true)
-    public Product getProductBySku(String sku) {
-        return productRepository.findBySku(sku)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm với SKU: " + sku));
-    }
+    // Nhớ đảm bảo bạn đã inject ProductVariantRepository vào class này nhé:
+    // private final ProductVariantRepository productVariantRepository;
 
+    public Product getProductBySku(String sku) {
+        // 1. Thử tìm xem có phải SKU của sản phẩm gốc (Sản phẩm độc lập không có biến thể) không
+        Optional<Product> productOpt = productRepository.findBySku(sku);
+        if (productOpt.isPresent()) {
+            return productOpt.get();
+        }
+
+        ProductVariant variant = productVariantRepository.findBySku(sku)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm hoặc biến thể với SKU: " + sku));
+
+        return variant.getProduct();
+    }
     // ================= 4. CẬP NHẬT SẢN PHẨM THEO SKU =================
     @Transactional
     public Product updateProduct(String sku, ProductRequest request) {
