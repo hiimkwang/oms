@@ -200,8 +200,8 @@
                                 <input class="form-check-input" type="checkbox" id="splitLine">
                                 <label class="form-check-label small text-muted mt-1" for="splitLine">Tách dòng</label>
                             </div>
-                            <a href="#" class="text-link">Kiểm tra tồn kho</a>
-                        </div>
+                            <a href="javascript:void(0)" class="text-link" onclick="showInventoryCheck()"><i
+                                    class="bi bi-box-seam me-1"></i>Kiểm tra tồn kho</a></div>
                     </div>
 
                     <div class="position-relative mb-3">
@@ -574,6 +574,11 @@
                             <label class="form-label-custom small">Tên công ty</label>
                             <input type="text" id="invCompanyName" class="form-control form-control-custom">
                         </div>
+                        <div class="col-12 mt-2">
+                            <label class="form-label-custom small">Địa chỉ công ty</label>
+                            <input type="text" id="invCompanyAddress" class="form-control form-control-custom"
+                                   placeholder="Số nhà, tên đường, phường/xã, quận/huyện...">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2">
@@ -581,8 +586,7 @@
                             data-bs-dismiss="modal">Xóa dữ liệu
                     </button>
                     <button type="button" class="btn btn-primary px-4" onclick="saveInvoiceData()"
-                            data-bs-dismiss="modal">
-                        Xác nhận
+                            data-bs-dismiss="modal">Xác nhận
                     </button>
                 </div>
             </div>
@@ -661,7 +665,46 @@
             </div>
         </div>
     </div>
-
+    <div class="modal fade" id="inventoryCheckModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header modal-header-custom py-3 bg-light border-bottom">
+                    <h5 class="modal-title-custom mb-0"><i class="bi bi-box-seam text-primary me-2"></i>Kiểm tra tồn kho
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead class="table-light text-muted small">
+                            <tr>
+                                <th class="ps-4" style="width: 40%">Sản phẩm</th>
+                                <th class="text-center" style="width: 15%">Cần xuất</th>
+                                <th class="text-center" style="width: 15%">Tồn tại kho</th>
+                                <th style="width: 30%">
+                                    <select id="branchStockSelect"
+                                            class="form-select form-select-sm border-0 bg-light fw-bold text-dark w-100"
+                                            onchange="renderInventoryCheckBody()">
+                                        <option value="MAIN">Cửa hàng chính</option>
+                                        <option value="BRANCH_1">Chi nhánh 1</option>
+                                        <option value="BRANCH_2">Chi nhánh 2</option>
+                                    </select>
+                                </th>
+                            </tr>
+                            </thead>
+                            </thead>
+                            <tbody id="inventoryCheckBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" data-bs-dismiss="modal">Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script th:inline="none">
         let cart = [];
         let subTotalAmount = 0;
@@ -771,6 +814,7 @@
             }
         }
 
+        // --- SỬA HÀM NÀY: Lưu lại số lượng tồn kho (stock) do backend trả về lúc tìm kiếm ---
         function addToCartByIndex(index) {
             const v = productSearchResults[index];
             document.getElementById('productDropdownList').classList.remove('show');
@@ -785,12 +829,77 @@
                     name: v.productName + (v.variantName ? ' - ' + v.variantName : ''),
                     price: v.price || 0,
                     quantity: 1,
+                    stock: v.stockQuantity || v.stock || 0, // Lưu số lượng tồn kho từ API
                     imageUrl: v.imageUrl || null,
                     note: "",
                     isCustom: false
                 });
             }
             renderCart();
+        }
+
+        function showInventoryCheck() {
+            if (cart.length === 0) {
+                alert("Giỏ hàng đang trống, vui lòng thêm sản phẩm!");
+                return;
+            }
+            renderInventoryCheckBody();
+            new bootstrap.Modal(document.getElementById('inventoryCheckModal')).show();
+        }
+
+        function renderInventoryCheckBody() {
+            const tbody = document.getElementById('inventoryCheckBody');
+            const branchSelect = document.getElementById('branchStockSelect');
+            const branchName = branchSelect.options[branchSelect.selectedIndex].text;
+
+            let html = '';
+            cart.forEach(item => {
+                if (item.isCustom) {
+                    html += `
+            <tr>
+                <td class="ps-4 py-3">
+                    <div class="fw-bold text-dark" style="font-size:13px;">${item.name}</div>
+                    <span class="badge bg-secondary mt-1" style="font-size:10px;">Tùy chỉnh</span>
+                </td>
+                <td class="text-center fw-bold text-primary">${item.quantity}</td>
+                <td class="text-center text-muted">---</td>
+                <td class="text-muted small">Không quản lý tồn kho</td>
+            </tr>`;
+                } else {
+                    // LƯU Ý LỖI 2: Nếu backend chưa trả về tồn kho chi tiết theo chi nhánh (item.branchStocks),
+                    // ta giả lập UI thay đổi số liệu để bạn hình dung. Về sau hãy map bằng item.branchStocks[branchSelect.value]
+                    let branchStock = item.stock || 0;
+                    if (branchSelect.value !== 'MAIN') branchStock = Math.floor(branchStock / 2); // Fake data cho các chi nhánh phụ
+
+                    const isEnough = branchStock >= item.quantity;
+                    const stockColor = isEnough ? 'text-success' : 'text-danger';
+                    const reqColor = isEnough ? 'text-dark' : 'text-danger';
+
+                    html += `
+            <tr>
+                <td class="ps-4 py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="img-placeholder" style="width:40px; height:40px;">
+                            ${item.imageUrl ? `<img src="${item.imageUrl}">` : '<i class="bi bi-image"></i>'}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark" style="font-size:13px;">${item.name}</div>
+                            <div class="text-muted mt-1" style="font-size:11px;">SKU: ${item.sku}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="text-center fw-bold fs-6 ${reqColor}">${item.quantity}</td>
+                <td class="text-center fw-bold fs-6 ${stockColor}">${branchStock}</td>
+                <td class="small">
+                    <div class="d-flex justify-content-between mb-1 pb-1 border-bottom border-light">
+                        <span class="text-muted text-truncate" style="max-width:100px;">${branchName}:</span>
+                        <span class="fw-bold text-dark">${branchStock}</span>
+                    </div>
+                </td>
+            </tr>`;
+                }
+            });
+            tbody.innerHTML = html;
         }
 
         function addCustomProduct() {
@@ -911,7 +1020,8 @@
         function saveInvoiceData() {
             invoiceData = {
                 taxCode: document.getElementById('invTaxCode').value,
-                companyName: document.getElementById('invCompanyName').value
+                companyName: document.getElementById('invCompanyName').value,
+                companyAddress: document.getElementById('invCompanyAddress').value // THÊM DÒNG NÀY
             };
             document.getElementById('invoiceBadge').classList.remove('d-none');
         }
@@ -939,16 +1049,31 @@
                 let html = '<li class="border-bottom p-2 dropdown-item-hover text-primary fw-medium" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-plus-circle me-2"></i>Thêm mới khách hàng</li>';
 
                 customers.forEach(c => {
-                    const code = c.code || c.customerCode; // Support cả 2 kiểu backend trả về
+                    const code = c.code || c.customerCode;
                     const name = c.fullName || c.name || 'Chưa có tên';
                     const phone = c.phone || c.phoneNumber || '';
-                    const address = c.address || c.shipAddressDetail || '';
+
+                    // SỬA LỖI 1: Quét vét các field address có thể có từ DB
+                    const address = c.fullAddress || c.address || c.shipAddressDetail || '';
+
+                    const taxCode = c.taxCode || '';
+                    const company = c.company || c.companyName || '';
+                    // SỬA LỖI 3: Lấy địa chỉ cty
+                    const companyAddress = c.companyAddress || c.taxAddress || address || '';
+
+                    const safeCode = (code || '').replace(/'/g, "\\'");
+                    const safeName = (name || '').replace(/'/g, "\\'");
+                    const safePhone = (phone || '').replace(/'/g, "\\'");
+                    const safeAddress = (address || '').replace(/'/g, "\\'");
+                    const safeTaxCode = (taxCode || '').replace(/'/g, "\\'");
+                    const safeCompany = (company || '').replace(/'/g, "\\'");
+                    const safeCompanyAddress = (companyAddress || '').replace(/'/g, "\\'");
 
                     html += `
-                        <li class="p-2 dropdown-item-hover border-bottom" onclick="selectCustomer('${code}', '${name}', '${phone}', '${address}')">
-                            <div class="fw-bold text-dark" style="font-size: 13px;">${name}</div>
-                            <div class="text-muted" style="font-size: 11px;">${phone || '---'}</div>
-                        </li>`;
+        <li class="p-2 dropdown-item-hover border-bottom" onclick="selectCustomer('${safeCode}', '${safeName}', '${safePhone}', '${safeAddress}', '${safeTaxCode}', '${safeCompany}', '${safeCompanyAddress}')">
+            <div class="fw-bold text-dark" style="font-size: 13px;">${name}</div>
+            <div class="text-muted" style="font-size: 11px;">${phone || '---'}</div>
+        </li>`;
                 });
                 listEl.innerHTML = html;
             } catch (e) {
@@ -956,7 +1081,9 @@
             }
         }
 
-        function selectCustomer(code, name, phone, address) {
+        // Cập nhật hàm nhận thêm taxCode và company
+        // Cập nhật hàm nhận thêm companyAddress
+        function selectCustomer(code, name, phone, address, taxCode, company, companyAddress) {
             document.getElementById('customerDropdownList').classList.remove('show');
             document.getElementById('customerSearchInput').classList.add('d-none');
             document.getElementById('customerSelectedWrapper').classList.remove('d-none');
@@ -964,8 +1091,20 @@
             document.getElementById('selectedCustomerId').value = code;
             document.getElementById('selectedCusName').innerText = name;
             document.getElementById('selectedCusPhone').innerText = phone || '';
+
+            // Đã sửa Lỗi 1: Gán đúng address
             document.getElementById('selectedCusAddress').innerText = address || 'Chưa có địa chỉ';
             document.getElementById('displayShippingAddress').innerText = address || 'Chưa có địa chỉ giao hàng';
+
+            // Đã sửa Lỗi 3: Auto fill toàn bộ hóa đơn
+            if (taxCode && taxCode.trim() !== '') {
+                document.getElementById('invTaxCode').value = taxCode;
+                document.getElementById('invCompanyName').value = company || name;
+                document.getElementById('invCompanyAddress').value = companyAddress || address;
+                saveInvoiceData();
+            } else {
+                clearInvoiceData();
+            }
         }
 
         function clearCustomer() {
@@ -977,9 +1116,13 @@
         }
 
         async function submitNewCustomer() {
+            const firstName = document.getElementById('newCusFirstName').value;
+            const lastName = document.getElementById('newCusLastName').value;
+
             const payload = {
-                firstName: document.getElementById('newCusFirstName').value,
-                lastName: document.getElementById('newCusLastName').value,
+                firstName: firstName,
+                lastName: lastName,
+                fullName: (lastName + " " + firstName).trim(),
                 email: document.getElementById('newCusEmail').value,
                 phone: document.getElementById('newCusPhone').value,
                 company: document.getElementById('newCusCompany').value,
@@ -1004,7 +1147,8 @@
                     const newCus = await res.json();
                     hideModalSafe('addCustomerModal');
                     const fullName = (payload.lastName ? payload.lastName + ' ' : '') + payload.firstName;
-                    selectCustomer(newCus.code || newCus.id, fullName, payload.phone, payload.address);
+                    // Gọi selectCustomer và truyền các field rỗng cho tax/company
+                    selectCustomer(newCus.code || newCus.id, fullName, payload.phone, payload.address, '', '', '');
                 } else {
                     const err = await res.json();
                     alert("Lỗi khi lưu khách hàng: " + (err.message || "Kiểm tra lại dữ liệu"));
@@ -1017,7 +1161,7 @@
         // ============================
         // GỬI ĐƠN HÀNG LÊN BACKEND
         // ============================
-        async function submitOrder() {
+        async function submitOrder(orderStatus = 'Khởi tạo') {
             if (cart.length === 0) {
                 alert("Vui lòng chọn ít nhất 1 sản phẩm!");
                 return;
@@ -1029,7 +1173,6 @@
                 return;
             }
 
-            // Vô hiệu hóa nút để tránh spam click
             const btn = document.getElementById('btnSubmitOrder');
             const originalBtnText = btn.innerHTML;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
@@ -1041,9 +1184,10 @@
                 orderCode: "DH" + Date.now(),
                 customerCode: customerCode,
                 salesChannel: document.getElementById('orderSource').value,
+                status: orderStatus, // ĐÃ SỬA: Lấy trạng thái theo nút bấm (Khởi tạo / Nháp)
 
                 // Thanh toán
-                paymentStatus: document.querySelector('input[name="paymentStatus"]:checked').value, // PAID hoặc UNPAID
+                paymentStatus: document.querySelector('input[name="paymentStatus"]:checked').value,
                 paymentMethod: isPaid ? document.getElementById('paymentMethod').value : null,
                 amountPaid: isPaid ? (parseFloat(document.getElementById('amountPaidInput').value) || 0) : 0,
 
@@ -1060,9 +1204,10 @@
                 totalAmount: finalAmountToPay,
                 note: document.getElementById('orderNote').value,
 
-                // Hóa đơn
+                // Hóa đơn (ĐÃ SỬA: Truyền thêm địa chỉ công ty)
                 invoiceTaxCode: invoiceData ? invoiceData.taxCode : null,
                 invoiceCompanyName: invoiceData ? invoiceData.companyName : null,
+                invoiceCompanyAddress: invoiceData ? invoiceData.companyAddress : null,
 
                 // Thông tin thêm
                 branchName: document.getElementById('branchName').value,
