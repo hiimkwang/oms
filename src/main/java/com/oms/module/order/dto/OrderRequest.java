@@ -1,30 +1,56 @@
 package com.oms.module.order.dto;
 
-import jakarta.validation.Valid;
+import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import lombok.Data;
-
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
 public class OrderRequest {
-    @NotBlank(message = "Mã đơn hàng không được để trống")
-    private String orderCode;
 
-    private String customerCode; // Nếu dùng ID thì đổi tên thành customerId
-    private String salesChannel;
-    private String paymentMethod;
-    private String paymentStatus;
-    private BigDecimal amountPaid;
-    private String status = "Khởi tạo";
+    @NotBlank(message = "Thiếu thông tin khách hàng")
+    private String customerCode;
+
+    private String salesChannelCode;
+    private Long branchId;
+
+    @NotBlank(message = "Thiếu trạng thái đơn hàng")
+    private String status;
+
     private String note;
-    private Double discount;      // Giảm giá tổng đơn
-    private Double shippingFee;   // Phí vận chuyển
-    private String createdAt;     // Ngày đặt đơn từ giao diện
 
-    @NotEmpty(message = "Đơn hàng phải có ít nhất 1 sản phẩm")
-    @Valid
-    private List<OrderDetailRequest> details; // Đổi từ 'items' thành 'details' để khớp logic hiện tại
+    // --- Vận chuyển ---
+    private String shippingType;
+    private Long shipFromBranchId;
+    private String shippingPartner;
+    private String trackingCode;
+    private String shippingAddress;
+    private LocalDate expectedDeliveryDate; // Chú ý kiểu dữ liệu ngày tháng
+    private BigDecimal shippingFee;
+    private BigDecimal codAmount;
+    private Double shipWeight;
+
+    // --- Thanh toán ---
+    @NotBlank(message = "Thiếu trạng thái thanh toán")
+    private String paymentStatus;
+    private String paymentMethod;
+    private BigDecimal amountPaid;
+
+    // --- Hóa đơn (Có thể null nếu khách không lấy VAT) ---
+    private String invoiceTaxCode;
+    private String invoiceCompanyName;
+    private String invoiceCompanyAddress;
+
+    // --- Tổng tiền ---
+    private BigDecimal discountAmount;
+
+    @NotNull(message = "Tổng tiền không được để trống")
+    private BigDecimal totalAmount;
+
+    // --- Chi tiết sản phẩm ---
+    @NotEmpty(message = "Giỏ hàng không được để trống")
+    private List<OrderDetailRequest> details;
 }

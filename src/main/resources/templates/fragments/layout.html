@@ -224,9 +224,18 @@
                              class="rounded-circle shadow-sm" width="38">
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                        <li><a class="dropdown-item py-2" th:href="@{/profile}"><i class="bi bi-person me-2"></i>Tài khoản</a></li>
-                        <li><a class="dropdown-item py-2" th:href="@{/settings/general}"><i class="bi bi-gear me-2"></i>Cài đặt</a></li>
-                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item py-2" th:href="@{/profile}"><i class="bi bi-person me-2"></i>Tài
+                            khoản</a></li>
+
+                        <li th:if="${currentUser != null && #strings.equals(currentUser.role, 'ADMIN')}">
+                            <a class="dropdown-item py-2" th:href="@{/ui/settings/general}">
+                                <i class="bi bi-gear me-2"></i>Cài đặt
+                            </a>
+                        </li>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
                         <li>
                             <form th:action="@{/logout}" method="post" class="m-0">
                                 <button type="submit" class="dropdown-item py-2 text-danger" style="cursor: pointer;">

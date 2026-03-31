@@ -4,7 +4,6 @@
 <body>
 <div class="oms-container pb-5">
     <style>
-        /* GIỮ NGUYÊN STYLE ĐỒNG BỘ VỚI CÁC TRANG TRƯỚC */
         .filter-btn {
             background: white;
             border: 1px solid #dce0e4;
@@ -165,9 +164,9 @@
         <div class="card-header bg-white border-0 p-0">
             <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3" id="orderTabs">
                 <li class="nav-item"><a class="nav-link active" data-status="ALL">Tất cả</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Khởi tạo">Đặt hàng</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Đang giao dịch">Đang giao dịch</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Hoàn thành">Đã hoàn thành</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Khởi tạo">Mới đặt</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Nháp">Nháp</a></li>
+                <li class="nav-item"><a class="nav-link" data-status="Hoàn thành">Hoàn thành</a></li>
                 <li class="nav-item"><a class="nav-link" data-status="Đã hủy">Đã hủy</a></li>
             </ul>
         </div>
@@ -177,18 +176,18 @@
                 <div class="input-group search-box flex-grow-1">
                     <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
                     <input type="text" id="orderSearchInput" class="form-control"
-                           placeholder="Tìm kiếm theo mã đơn hàng, tên, SĐT khách hàng...">
+                           placeholder="Tìm kiếm theo mã đơn hàng, tên KH, SĐT...">
                 </div>
                 <div class="d-flex gap-2">
                     <select class="form-select filter-btn w-auto" id="channelFilter">
-                        <option value="">Kênh bán hàng</option>
-                        <option value="WEBSITE">Website</option>
-                        <option value="FACEBOOK">Facebook</option>
-                        <option value="POS">Tại cửa hàng</option>
+                        <option value="ALL">Tất cả Kênh bán</option>
+                        <option th:each="c : ${channels}" th:value="${c.code}" th:text="${c.name}"></option>
                     </select>
                     <input type="date" class="form-control filter-btn w-auto text-muted" id="dateFilter"
                            title="Ngày đặt hàng">
-                    <button class="btn filter-btn"><i class="bi bi-funnel me-2"></i>Bộ lọc khác</button>
+                    <button class="btn filter-btn" onclick="clearAllFilters()"><i
+                            class="bi bi-arrow-counterclockwise me-2"></i>Xóa bộ lọc
+                    </button>
                 </div>
             </div>
 
@@ -205,7 +204,7 @@
                     <button class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
                             style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;"
                             onclick="deleteSelectedOrders()">
-                        Xóa đơn hàng
+                        <i class="bi bi-trash3 me-1"></i>Xóa đơn hàng
                     </button>
                 </div>
             </div>
@@ -217,12 +216,12 @@
                         <th class="ps-4" style="width: 40px;"><input type="checkbox" class="form-check-input"
                                                                      id="checkAll"></th>
                         <th>Mã đơn hàng</th>
-                        <th>Ngày đặt hàng</th>
+                        <th>Ngày tạo</th>
                         <th>Khách hàng</th>
                         <th>Kênh bán</th>
-                        <th class="text-end">Thành tiền</th>
-                        <th class="text-center">TT thanh toán</th>
-                        <th class="text-center">Trạng thái xử lý</th>
+                        <th class="text-end">Khách phải trả</th>
+                        <th class="text-center">Thanh toán</th>
+                        <th class="text-center">Trạng thái</th>
                     </tr>
                     </thead>
                     <tbody id="orderTableBody">
@@ -239,21 +238,13 @@
             <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
                 <div class="text-muted small" id="recordInfo">Đang tải...</div>
                 <div class="d-flex align-items-center gap-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small text-muted">Hiển thị</span>
-                        <select class="form-select form-select-sm w-auto">
-                            <option>20</option>
-                            <option>50</option>
-                        </select>
-                        <span class="small text-muted">kết quả</span>
-                    </div>
                     <nav>
                         <ul class="pagination pagination-sm mb-0">
                             <li class="page-item disabled"><a class="page-link" href="#"><i
                                     class="bi bi-chevron-left"></i></a></li>
                             <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a>
-                            </li>
+                            <li class="page-item disabled"><a class="page-link" href="#"><i
+                                    class="bi bi-chevron-right"></i></a></li>
                         </ul>
                     </nav>
                 </div>
@@ -262,7 +253,7 @@
     </div>
 
     <script th:inline="none">
-        let allOrders = []; // Lưu toàn bộ data để filter Client-side
+        let allOrders = [];
         let currentTabStatus = 'ALL';
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -278,7 +269,7 @@
                 });
             });
 
-            // Lắng nghe sự kiện Search & Dropdown
+            // Lắng nghe sự kiện Search & Dropdown (Debounce 300ms)
             let searchTimeout;
             document.getElementById('orderSearchInput').addEventListener('input', () => {
                 clearTimeout(searchTimeout);
@@ -287,46 +278,55 @@
             document.getElementById('channelFilter').addEventListener('change', applyFilters);
             document.getElementById('dateFilter').addEventListener('change', applyFilters);
 
-            // Checkbox Chọn tất cả
+            // Lắng nghe Checkbox Chọn tất cả
             document.getElementById('checkAll').addEventListener('change', function () {
-                document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = this.checked);
+                document.querySelectorAll('.order-checkbox').forEach(cb => {
+                    cb.checked = this.checked;
+                });
                 toggleBulkActionBar();
             });
         });
 
-        // 1. TẢI DỮ LIỆU TỪ BACKEND
+        // 1. GỌI API LẤY DANH SÁCH ĐƠN HÀNG
         async function loadOrders() {
             try {
                 const res = await fetch('/api/v1/orders');
                 if (!res.ok) throw new Error("Lỗi mạng");
                 allOrders = await res.json();
-                applyFilters(); // Mặc định render ra theo filter ban đầu
+                applyFilters(); // Render mặc định
             } catch (e) {
-                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-5 text-danger">Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
+                console.error(e);
+                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
             }
         }
 
-        // 2. LOGIC LỌC DỮ LIỆU (TÌM KIẾM, TAB, DROP DOWN)
+        // 2. LOGIC LỌC (FILTER) CLIENT-SIDE
         function applyFilters() {
             const keyword = document.getElementById('orderSearchInput').value.toLowerCase().trim();
             const channel = document.getElementById('channelFilter').value;
-            const date = document.getElementById('dateFilter').value; // Format: YYYY-MM-DD
+            const date = document.getElementById('dateFilter').value; // YYYY-MM-DD
 
             const filteredOrders = allOrders.filter(o => {
                 // Lọc theo Tab Trạng thái
                 const matchTab = (currentTabStatus === 'ALL') || (o.status === currentTabStatus);
 
                 // Lọc theo Kênh bán
-                const matchChannel = channel === "" || o.salesChannel === channel;
+                const matchChannel = (channel === 'ALL') || (o.salesChannelCode === channel) || (!o.salesChannelCode && channel === 'ALL');
 
-                // Lọc theo Ngày đặt
-                const matchDate = date === "" || (o.createdAt && o.createdAt.startsWith(date));
+                // Lọc theo Ngày (Cắt lấy phần ngày YYYY-MM-DD từ chuỗi ISO LocalDateTime)
+                let matchDate = true;
+                if (date) {
+                    const orderDate = o.createdAt ? o.createdAt.split('T')[0] : '';
+                    matchDate = (orderDate === date);
+                }
 
                 // Lọc theo Từ khóa (Mã đơn, Tên KH, SĐT KH)
                 const cusName = o.customer ? (o.customer.fullName || o.customer.name || '').toLowerCase() : '';
                 const cusPhone = o.customer ? (o.customer.phone || o.customer.phoneNumber || '') : '';
-                const matchKeyword = keyword === "" ||
-                    (o.orderCode && o.orderCode.toLowerCase().includes(keyword)) ||
+                const orderCode = o.orderCode ? o.orderCode.toLowerCase() : '';
+
+                const matchKeyword = !keyword ||
+                    orderCode.includes(keyword) ||
                     cusName.includes(keyword) ||
                     cusPhone.includes(keyword);
 
@@ -336,14 +336,21 @@
             renderTable(filteredOrders);
         }
 
-        // 3. RENDER BẢNG DỮ LIỆU
+        function clearAllFilters() {
+            document.getElementById('orderSearchInput').value = '';
+            document.getElementById('channelFilter').value = 'ALL';
+            document.getElementById('dateFilter').value = '';
+            applyFilters();
+        }
+
+        // 3. RENDER DỮ LIỆU RA BẢNG
         function renderTable(dataList) {
             const tbody = document.getElementById('orderTableBody');
             const info = document.getElementById('recordInfo');
 
             if (dataList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-2 d-block mb-2"></i>Không tìm thấy đơn hàng nào.</td></tr>';
-                info.innerText = 'Hiển thị 0 đơn hàng';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy đơn hàng nào phù hợp.</td></tr>';
+                info.innerText = 'Hiển thị 0 kết quả';
                 clearSelection();
                 return;
             }
@@ -363,27 +370,26 @@
                 // Format Tiền
                 const totalAmount = new Intl.NumberFormat('vi-VN').format(o.totalAmount || 0) + '₫';
 
-                // Lấy thông tin KH an toàn
-                const cusName = o.customer ? (o.customer.fullName || o.customer.name || 'Khách lẻ') : 'Khách lẻ';
+                // Lấy thông tin KH
+                const cusName = o.customer ? (o.customer.fullName || o.customer.lastName + ' ' + o.customer.firstName || 'Khách lẻ') : 'Khách lẻ';
                 const cusCode = o.customer ? (o.customer.code || o.customer.id || '') : '';
-                const cusLink = cusCode ? `/ui/customers/${cusCode}` : '#';
+                const cusLink = cusCode ? `/ui/customers/${cusCode}` : 'javascript:void(0)';
 
-                // Format Badge Kênh bán
-                const channelMapping = {"WEBSITE": "Website", "FACEBOOK": "Facebook", "POS": "Tại cửa hàng"};
-                const channelName = channelMapping[o.salesChannel] || o.salesChannel || 'Khác';
+                // Kênh bán (Nếu code là rỗng thì hiện chữ ---)
+                const channelText = o.salesChannelCode || '---';
 
                 // Format Badge Thanh toán
                 let paymentBadge = '';
                 if (o.paymentStatus === 'PAID') paymentBadge = '<span class="status-badge badge-paid"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>';
                 else paymentBadge = '<span class="status-badge badge-unpaid"><i class="bi bi-clock me-1"></i>Chưa thanh toán</span>';
 
-                // Format Badge Trạng thái
+                // Format Badge Trạng thái Đơn hàng
                 let statusBadge = '';
                 const st = o.status || 'Khởi tạo';
-                if (st === 'Khởi tạo') statusBadge = `<span class="status-badge badge-init">${st}</span>`;
-                else if (st === 'Hoàn thành') statusBadge = `<span class="status-badge badge-success">${st}</span>`;
-                else if (st === 'Đã hủy') statusBadge = `<span class="status-badge badge-cancel">${st}</span>`;
-                else statusBadge = `<span class="status-badge badge-processing">${st}</span>`; // Đang giao dịch, Đang đóng gói...
+                if (st === 'Khởi tạo' || st === 'Nháp') statusBadge = `<span class="status-badge badge-init">${st}</span>`;
+                else if (st === 'Hoàn thành' || st === 'Đã giao') statusBadge = `<span class="status-badge badge-success">${st}</span>`;
+                else if (st === 'Đã hủy' || st === 'Hủy') statusBadge = `<span class="status-badge badge-cancel">${st}</span>`;
+                else statusBadge = `<span class="status-badge badge-processing">${st}</span>`; // Đang giao dịch, Đang giao hàng...
 
                 html += `
                     <tr>
@@ -391,31 +397,36 @@
                             <input type="checkbox" class="form-check-input order-checkbox" value="${o.orderCode}" onchange="toggleBulkActionBar()">
                         </td>
                         <td>
-                            <a href="/ui/orders/${o.orderCode}" class="text-decoration-none fw-bold text-primary hover-primary">${o.orderCode}</a>
+                            <a href="/ui/orders/detail/${o.orderCode}" class="text-decoration-none fw-bold text-primary hover-primary">${o.orderCode}</a>
                         </td>
                         <td class="text-muted">${formattedDate}</td>
                         <td>
-                            <a href="${cusLink}" class="text-decoration-none text-primary hover-primary">${cusName}</a>
+                            <a href="${cusLink}" class="text-decoration-none fw-medium text-dark hover-primary">${cusName}</a>
                         </td>
-                        <td class="text-muted">${channelName}</td>
+                        <td class="text-muted fw-medium">${channelText}</td>
                         <td class="text-end fw-bold text-dark">${totalAmount}</td>
                         <td class="text-center">${paymentBadge}</td>
                         <td class="text-center">${statusBadge}</td>
                     </tr>
                 `;
             });
+
             tbody.innerHTML = html;
-            info.innerText = `Từ 1 đến ${dataList.length} trên tổng số ${dataList.length}`;
-            clearSelection();
+            info.innerText = `Hiển thị ${dataList.length} đơn hàng`;
+            clearSelection(); // Reset thanh công cụ khi render lại bảng
         }
 
-        // 4. XỬ LÝ THAO TÁC HÀNG LOẠT (BULK ACTIONS)
+        // 4. XỬ LÝ THAO TÁC XÓA NHIỀU ĐƠN (BULK ACTION)
         function toggleBulkActionBar() {
-            const checkedCount = document.querySelectorAll('.order-checkbox:checked').length;
+            const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
             const bulkBar = document.getElementById('bulkActionBar');
 
-            if (checkedCount > 0) {
-                document.getElementById('selectedCount').innerText = checkedCount;
+            // Xử lý logic checkAll
+            const allCheckboxes = document.querySelectorAll('.order-checkbox');
+            document.getElementById('checkAll').checked = (checkedBoxes.length > 0 && checkedBoxes.length === allCheckboxes.length);
+
+            if (checkedBoxes.length > 0) {
+                document.getElementById('selectedCount').innerText = checkedBoxes.length;
                 bulkBar.classList.remove('d-none');
                 bulkBar.classList.add('d-flex');
             } else {
@@ -433,12 +444,17 @@
             const checkboxes = document.querySelectorAll('.order-checkbox:checked');
             if (checkboxes.length === 0) return;
 
-            if (!confirm(`CẢNH BÁO: Xóa đơn hàng sẽ ảnh hưởng đến báo cáo doanh thu. Bạn có chắc chắn muốn xóa ${checkboxes.length} đơn hàng đã chọn không?`)) {
+            if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} đơn hàng đã chọn không? Thao tác này không thể hoàn tác!`)) {
                 return;
             }
 
-            // Gọi API Delete từng đơn (hoặc bạn có thể viết thêm API Bulk Delete ở Backend)
             let successCount = 0;
+            const btn = document.querySelector('#bulkActionBar button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xóa...';
+            btn.disabled = true;
+
+            // Lặp qua từng đơn để gọi API Xóa
             for (let cb of checkboxes) {
                 try {
                     const res = await fetch(`/api/v1/orders/${cb.value}`, {method: 'DELETE'});
@@ -448,8 +464,12 @@
                 }
             }
 
-            alert(`Đã xóa thành công ${successCount} đơn hàng!`);
-            await loadOrders(); // Tải lại bảng
+            alert(`Đã xóa thành công ${successCount}/${checkboxes.length} đơn hàng!`);
+
+            // Tải lại danh sách sau khi xóa
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            await loadOrders();
         }
     </script>
 </div>

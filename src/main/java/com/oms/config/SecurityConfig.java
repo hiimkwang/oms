@@ -17,6 +17,10 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/vendors/**").permitAll()
+                        .requestMatchers("/ui/settings/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/settings/**").hasRole("ADMIN")
+
+                        // Các trang còn lại (Bán hàng, Đơn hàng, Dashboard...) thì cả STAFF và ADMIN đều được vào
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

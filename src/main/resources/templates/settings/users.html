@@ -1,101 +1,210 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{settings/settings-layout :: layout(~{::div.user-content})}">
+      th:replace="~{fragments/layout :: layout(~{::div.setting-wrapper})}">
 <body>
-<div class="user-content">
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold">Danh sách nhân viên</h5>
-            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                <i class="bi bi-plus-lg"></i> Thêm nhân viên
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                <tr>
-                    <th>Họ tên</th>
-                    <th>Tài khoản</th>
-                    <th>Quyền</th>
-                    <th>Trạng thái</th>
-                    <th>Hành động</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="u : ${users}">
-                    <td th:text="${u.fullName}"></td>
-                    <td th:text="${u.username}"></td>
-                    <td>
-                            <span th:class="${u.role == 'ADMIN' ? 'badge bg-danger' : 'badge bg-info'}"
-                                  th:text="${u.role}"></span>
-                    </td>
-                    <td>
-                            <span th:text="${u.active ? 'Đang hoạt động' : 'Đã khóa'}"
-                                  th:class="${u.active ? 'text-success' : 'text-danger'}"></span>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-light"><i class="bi bi-pencil"></i></button>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+<div class="setting-wrapper">
+    <style>
+        .card-title-custom {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .form-label-custom {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .form-control-custom, .form-select-custom {
+            font-size: 13px;
+            border-color: #cbd5e1;
+            box-shadow: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .form-control-custom:focus, .form-select-custom:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .1);
+        }
+
+        .table-custom th {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            background-color: #f8fafc;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table-custom td {
+            font-size: 13px;
+            color: #1e293b;
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+        }
+    </style>
+
+    <div class="row g-4">
+        <div th:replace="~{settings/settings-sidebar :: sidebar}"></div>
+
+        <div class="col-md-9">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="card-title-custom mb-0"><i class="bi bi-people text-primary me-2"></i>Quản lý nhân viên
+                    </h5>
+                    <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" data-bs-toggle="modal"
+                            data-bs-target="#userModal">
+                        <i class="bi bi-person-plus me-1"></i> Thêm nhân viên
+                    </button>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-custom mb-0">
+                            <thead>
+                            <tr>
+                                <th>Họ và tên</th>
+                                <th>Tài khoản</th>
+                                <th>Chi nhánh</th>
+                                <th>Quyền hạn</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(users)}">
+                                <td colspan="5" class="text-center text-muted py-4">Chưa có tài khoản nào.</td>
+                            </tr>
+                            <tr th:each="u : ${users}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img th:src="'https://ui-avatars.com/api/?name=' + ${u.fullName} + '&background=f1f5f9&color=475569'"
+                                             class="rounded-circle me-2" width="30" height="30">
+                                        <span class="fw-bold text-dark" th:text="${u.fullName}"></span>
+                                    </div>
+                                </td>
+                                <td class="text-muted" th:text="${u.username}"></td>
+                                <td th:text="${u.branch != null ? u.branch.name : 'Toàn hệ thống'}"></td>
+                                <td>
+                                    <span th:if="${#strings.equals(u.role, 'ADMIN')}"
+                                          class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">Quản trị viên</span>
+                                    <span th:if="${#strings.equals(u.role, 'STAFF')}"
+                                          class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">Nhân viên</span>
+                                </td>
+                                <td>
+                                    <span th:if="${u.active}" class="text-success small fw-bold"><i
+                                            class="bi bi-circle-fill me-1" style="font-size: 8px;"></i>Hoạt động</span>
+                                    <span th:unless="${u.active}" class="text-danger small fw-bold"><i
+                                            class="bi bi-circle-fill me-1" style="font-size: 8px;"></i>Đã khóa</span>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="modal fade" id="addUserModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content border-0">
-                <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold">Tạo tài khoản nhân viên</h5>
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light border-bottom-0 py-3">
+                    <h6 class="modal-title fw-bold">Tạo tài khoản nhân viên mới</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <form id="addUserForm">
+                    <form id="userForm">
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Họ và tên</label>
-                            <input type="text" name="fullName" class="form-control" required>
+                            <label class="form-label-custom">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" name="fullName" class="form-control form-control-custom"
+                                   placeholder="VD: Nguyễn Văn A" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Tên đăng nhập</label>
-                            <input type="text" name="username" class="form-control" required>
+
+                        <div class="row mb-3 g-3">
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Tên đăng nhập <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" name="username" class="form-control form-control-custom"
+                                       placeholder="Tài khoản login" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Mật khẩu <span class="text-danger">*</span></label>
+                                <input type="text" name="password" class="form-control form-control-custom"
+                                       value="123456" required>
+                            </div>
                         </div>
+
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Mật khẩu mặc định</label>
-                            <input type="password" name="password" class="form-control" value="123456" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Quyền hạn</label>
-                            <select name="role" class="form-select">
-                                <option value="STAFF">Nhân viên (Staff)</option>
-                                <option value="ADMIN">Quản trị viên (Admin)</option>
+                            <label class="form-label-custom">Nơi làm việc (Chi nhánh)</label>
+                            <select name="branchId" class="form-select form-select-custom">
+                                <option value="">-- Toàn hệ thống --</option>
+                                <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
                             </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Cấp quyền hạn</label>
+                            <select name="role" class="form-select form-select-custom">
+                                <option value="STAFF">Nhân viên (Xem, Bán hàng, Kho)</option>
+                                <option value="ADMIN">Quản trị viên (Toàn quyền hệ thống)</option>
+                            </select>
+                        </div>
+                        <div class="alert alert-info py-2 mb-0" style="font-size: 12px;">
+                            <i class="bi bi-info-circle me-1"></i> Nhân viên có thể tự đổi mật khẩu sau khi đăng nhập
+                            lần đầu.
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary" onclick="submitAddUser()">Tạo tài khoản</button>
+                <div class="modal-footer border-top-0 pt-0 pb-3 px-4">
+                    <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary fw-bold px-4" onclick="saveUser(this)">Tạo tài khoản
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        async function submitAddUser() {
-            const form = document.getElementById('addUserForm');
+        async function saveUser(btnElement) {
+            const form = document.getElementById('userForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
             const formData = new FormData(form);
             const payload = Object.fromEntries(formData.entries());
 
-            const res = await fetch('/api/v1/users', { // Anh cần tạo API này ở backend
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
+            const originalBtnHtml = btnElement.innerHTML;
+            btnElement.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tạo...';
+            btnElement.disabled = true;
 
-            if (res.ok) {
-                alert("Tạo nhân viên thành công!");
-                location.reload();
-            } else {
-                alert("Có lỗi xảy ra, có thể tên đăng nhập đã tồn tại.");
+            try {
+                const res = await fetch('/api/v1/settings/users', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('userModal'));
+                    modal.hide();
+                    window.location.reload();
+                } else {
+                    const errorText = await res.text();
+                    alert(errorText || "Có lỗi xảy ra, vui lòng thử lại!");
+                    btnElement.innerHTML = originalBtnHtml;
+                    btnElement.disabled = false;
+                }
+            } catch (error) {
+                console.error("Lỗi:", error);
+                alert("Lỗi kết nối đến máy chủ!");
+                btnElement.innerHTML = originalBtnHtml;
+                btnElement.disabled = false;
             }
         }
     </script>

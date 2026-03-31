@@ -29,4 +29,11 @@ public class MasterDataController {
         MasterData newData = masterDataService.createIfNotExist(type, value.trim());
         return ResponseEntity.ok(newData);
     }
+
+    // API lưu Cấu hình hệ thống chung
+    @PostMapping("/settings")
+    public ResponseEntity<?> saveSettings(@RequestBody Map<String, String> payload) {
+        masterDataService.saveSystemConfigs(payload);
+        return ResponseEntity.ok(Map.of("message", "Lưu cấu hình thành công!"));
+    }
 }

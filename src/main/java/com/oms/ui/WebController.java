@@ -10,6 +10,8 @@ import com.oms.module.receipt.entity.Receipt;
 import com.oms.module.receipt.service.ReceiptService;
 import com.oms.module.report.dto.ProfitReportResponse;
 import com.oms.module.report.service.ReportService;
+import com.oms.module.setting.repository.BranchRepository;
+import com.oms.module.setting.repository.SalesChannelRepository;
 import com.oms.module.setting.service.MasterDataService;
 import com.oms.module.supplier.service.SupplierService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,8 @@ public class WebController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BranchRepository branchRepository;
+    private final SalesChannelRepository channelRepository;
     // Trang chủ - Bảng điều khiển (Dashboard)
     @GetMapping("/")
     public String dashboard(Model model) {
@@ -168,8 +172,8 @@ public class WebController {
 
     // 1. DANH SÁCH ĐƠN HÀNG
     @GetMapping("/ui/orders")
-    public String orderListPage() {
-
+    public String showOrderListPage(Model model) {
+        model.addAttribute("channels", channelRepository.findAll());
         return "order-list";
     }
 
@@ -182,11 +186,13 @@ public class WebController {
         String randomOrderCode = "DH" + LocalDate.now().toString().replace("-", "").substring(2) + "-" + (int) (Math.random() * 10000);
         model.addAttribute("defaultOrderCode", randomOrderCode);
         model.addAttribute("users", userRepository.findAll());
+        model.addAttribute("branches", branchRepository.findAll()); // Lấy chi nhánh
+        model.addAttribute("channels", channelRepository.findAll()); // Lấy kênh bán hàng
         return "order-create";
     }
 
     // 3. CHI TIẾT ĐƠN HÀNG (Đặt xuống dưới cùng)
-    @GetMapping("/ui/orders/{orderCode}")
+    @GetMapping("/ui/orders/detail/{orderCode}")
     public String orderDetailPage(@PathVariable String orderCode, Model model) {
         model.addAttribute("orderCode", orderCode);
         return "order-detail";

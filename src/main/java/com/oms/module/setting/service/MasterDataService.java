@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -105,5 +106,47 @@ public class MasterDataService {
         // chỉ cho phép "Ẩn" đi để tránh lỗi mất dữ liệu báo cáo cũ.
 
         masterDataRepository.delete(existingData);
+    }
+
+    // ==========================================
+    // CÁC HÀM PHỤC VỤ CẤU HÌNH HỆ THỐNG
+    // ==========================================
+
+    /**
+     * Lưu nhiều cấu hình cùng lúc từ một Map (Key - Value)
+     */
+    @Transactional
+    public void saveSystemConfigs(Map<String, String> configs) {
+        configs.forEach((key, value) -> {
+            String upperKey = key.toUpperCase(); // Chuyển key thành in hoa, VD: STORE_NAME
+            List<MasterData> existingList = masterDataRepository.findByDataTypeOrderBySortOrderAsc(upperKey);
+
+            if (!existingList.isEmpty()) {
+                // Nếu đã có cấu hình này -> Cập nhật giá trị mới
+                MasterData existing = existingList.get(0);
+                existing.setDataValue(value);
+                masterDataRepository.save(existing);
+            } else {
+                // Nếu chưa có -> Tạo mới
+                MasterData newData = MasterData.builder()
+                        .dataType(upperKey)
+                        .dataValue(value)
+                        .sortOrder(1)
+                        .build();
+                masterDataRepository.save(newData);
+            }
+        });
+    }
+
+    /**
+     * Lấy toàn bộ cấu hình hệ thống trả về dạng Map để Thymeleaf dễ đọc
+     */
+    public Map<String, String> getSystemConfigMap(List<String> keys) {
+        Map<String, String> configMap = new java.util.HashMap<>();
+        for (String key : keys) {
+            List<MasterData> data = masterDataRepository.findByDataTypeOrderBySortOrderAsc(key.toUpperCase());
+            configMap.put(key, data.isEmpty() ? "" : data.get(0).getDataValue());
+        }
+        return configMap;
     }
 }

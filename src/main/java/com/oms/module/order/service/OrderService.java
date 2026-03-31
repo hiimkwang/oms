@@ -16,9 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -33,36 +33,50 @@ public class OrderService {
         return orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 
-    // TẠO ĐƠN HÀNG (Bao gồm cả Đơn Nháp nếu status = "Nháp")
+    // TẠO ĐƠN HÀNG MỚI (Bao gồm cả Đơn Nháp)
     @Transactional
     public Order createOrder(OrderRequest request) {
-        if (orderRepository.existsByOrderCode(request.getOrderCode())) {
-            throw new RuntimeException("Mã đơn hàng đã tồn tại: " + request.getOrderCode());
-        }
+        // Tự động sinh mã đơn hàng: DH + Timestamp + 4 ký tự ngẫu nhiên
+        String generatedCode = "DH" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
 
         Customer customer = customerService.getCustomerByCode(request.getCustomerCode());
 
         Order order = Order.builder()
-                .orderCode(request.getOrderCode())
-                .salesChannel(request.getSalesChannel())
-                .paymentMethod(request.getPaymentMethod())
+                .orderCode(generatedCode)
+                .customer(customer)
+                .salesChannelCode(request.getSalesChannelCode())
+                .branchId(request.getBranchId())
                 .status(request.getStatus() != null ? request.getStatus() : "Khởi tạo")
                 .note(request.getNote())
-                .customer(customer)
-                .shippingFee(BigDecimal.valueOf(request.getShippingFee() != null ? request.getShippingFee() : 0))
-                .discount(BigDecimal.valueOf(request.getDiscount() != null ? request.getDiscount() : 0))
-                .details(new ArrayList<>()) // BỔ SUNG DÒNG NÀY ĐỂ FIX LỖI NPE
+
+                // --- Vận chuyển ---
+                .shippingType(request.getShippingType())
+                .shipFromBranchId(request.getShipFromBranchId())
+                .shippingPartner(request.getShippingPartner())
+                .trackingCode(request.getTrackingCode())
+                .shippingAddress(request.getShippingAddress())
+                .expectedDeliveryDate(request.getExpectedDeliveryDate())
+                .shippingFee(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO)
+                .codAmount(request.getCodAmount() != null ? request.getCodAmount() : BigDecimal.ZERO)
+                .shipWeight(request.getShipWeight())
+
+                // --- Thanh toán ---
+                .paymentStatus(request.getPaymentStatus())
+                .paymentMethod(request.getPaymentMethod())
+                .amountPaid(request.getAmountPaid() != null ? request.getAmountPaid() : BigDecimal.ZERO)
+
+                // --- Hóa đơn VAT ---
+                .invoiceTaxCode(request.getInvoiceTaxCode())
+                .invoiceCompanyName(request.getInvoiceCompanyName())
+                .invoiceCompanyAddress(request.getInvoiceCompanyAddress())
+
+                // --- Tiền nong ---
+                .discountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO)
+                .details(new ArrayList<>())
+                .createdAt(LocalDateTime.now())
                 .build();
 
-        // Xử lý an toàn ngày đặt hàng từ giao diện (Thường có dạng 2026-03-27T09:18)
-        if (request.getCreatedAt() != null && !request.getCreatedAt().isBlank()) {
-            try {
-                order.setCreatedAt(LocalDateTime.parse(request.getCreatedAt()));
-            } catch (Exception e) {
-                order.setCreatedAt(LocalDateTime.now());
-            }
-        }
-
+        // Xử lý chi tiết sản phẩm và tính lại tổng tiền
         buildOrderDetailsAndCalculateTotal(order, request.getDetails());
 
         return orderRepository.save(order);
@@ -74,21 +88,43 @@ public class OrderService {
         Order order = getOrderByCode(orderCode);
 
         // Không cho sửa đơn đã hoàn thành/hủy
-        if (order.getStatus().equals("Hoàn thành") || order.getStatus().equals("Đã hủy")) {
+        if ("Hoàn thành".equals(order.getStatus()) || "Đã hủy".equals(order.getStatus())) {
             throw new RuntimeException("Không thể sửa đơn hàng đã chốt trạng thái cuối!");
         }
 
         Customer customer = customerService.getCustomerByCode(request.getCustomerCode());
 
         order.setCustomer(customer);
-        order.setSalesChannel(request.getSalesChannel());
-        order.setPaymentMethod(request.getPaymentMethod());
+        order.setSalesChannelCode(request.getSalesChannelCode());
+        order.setBranchId(request.getBranchId());
         order.setStatus(request.getStatus());
         order.setNote(request.getNote());
-        order.setShippingFee(BigDecimal.valueOf(request.getShippingFee() != null ? request.getShippingFee() : 0));
-        order.setDiscount(BigDecimal.valueOf(request.getDiscount() != null ? request.getDiscount() : 0));
 
-        // Xóa các line cũ và đắp line mới vào
+        // --- Cập nhật Vận chuyển ---
+        order.setShippingType(request.getShippingType());
+        order.setShipFromBranchId(request.getShipFromBranchId());
+        order.setShippingPartner(request.getShippingPartner());
+        order.setTrackingCode(request.getTrackingCode());
+        order.setShippingAddress(request.getShippingAddress());
+        order.setExpectedDeliveryDate(request.getExpectedDeliveryDate());
+        order.setShippingFee(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO);
+        order.setCodAmount(request.getCodAmount() != null ? request.getCodAmount() : BigDecimal.ZERO);
+        order.setShipWeight(request.getShipWeight());
+
+        // --- Cập nhật Thanh toán ---
+        order.setPaymentStatus(request.getPaymentStatus());
+        order.setPaymentMethod(request.getPaymentMethod());
+        order.setAmountPaid(request.getAmountPaid() != null ? request.getAmountPaid() : BigDecimal.ZERO);
+
+        // --- Cập nhật Hóa đơn VAT ---
+        order.setInvoiceTaxCode(request.getInvoiceTaxCode());
+        order.setInvoiceCompanyName(request.getInvoiceCompanyName());
+        order.setInvoiceCompanyAddress(request.getInvoiceCompanyAddress());
+
+        // --- Cập nhật Tiền nong ---
+        order.setDiscountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO);
+
+        // Xóa các line sản phẩm cũ và đắp line mới vào
         order.getDetails().clear();
         buildOrderDetailsAndCalculateTotal(order, request.getDetails());
 
@@ -107,51 +143,48 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode));
     }
 
-    // Hàm phụ trợ: Build chi tiết đơn hàng và tính tổng tiền
+    // HÀM PHỤ TRỢ: Build chi tiết đơn hàng và tính tổng tiền
     private void buildOrderDetailsAndCalculateTotal(Order order, List<OrderDetailRequest> detailRequests) {
         BigDecimal totalItemsAmount = BigDecimal.ZERO;
 
         for (OrderDetailRequest detailReq : detailRequests) {
             Product product = null;
-            String productName = "Sản phẩm tùy chỉnh";
+            String productName = detailReq.getName(); // Lấy tên sản phẩm gửi từ frontend
 
-            // NẾU KHÔNG PHẢI HÀNG CUSTOM THÌ MỚI ĐI TÌM TRONG DB
-            if (detailReq.getSku() != null && !detailReq.getSku().startsWith("CUSTOM_")) {
+            // Nếu KHÔNG phải hàng Custom (Tùy chỉnh) thì mới đi check DB
+            if (detailReq.getIsCustom() == null || !detailReq.getIsCustom()) {
                 try {
-                    // Chú ý: Cần chắc chắn hàm này tìm đúng Variant nhé
                     product = productService.getProductBySku(detailReq.getSku());
-                    productName = product.getName();
+                    productName = product.getName(); // Lấy tên chuẩn từ DB
                 } catch (Exception e) {
-                    throw new RuntimeException("Không tìm thấy sản phẩm hoặc biến thể với SKU: " + detailReq.getSku());
+                    System.out.println("Cảnh báo: Không tìm thấy sản phẩm có SKU " + detailReq.getSku());
                 }
             }
 
-            BigDecimal unitPrice = detailReq.getUnitPrice() != null
-                    ? detailReq.getUnitPrice()
-                    : (product != null ? product.getPrice() : BigDecimal.ZERO);
-
+            BigDecimal unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : BigDecimal.ZERO;
             BigDecimal quantity = BigDecimal.valueOf(detailReq.getQuantity());
-            BigDecimal itemDiscount = detailReq.getDiscount() != null ? detailReq.getDiscount() : BigDecimal.ZERO;
-
-            BigDecimal lineTotal = unitPrice.multiply(quantity).subtract(itemDiscount);
+            BigDecimal lineTotal = unitPrice.multiply(quantity);
 
             OrderDetail orderDetail = OrderDetail.builder()
                     .order(order)
-                    .product(product) // Có thể null nếu là hàng custom
+                    .product(product)
                     .sku(detailReq.getSku())
                     .productName(productName)
                     .quantity(detailReq.getQuantity())
                     .unitPrice(unitPrice)
-                    .discount(itemDiscount)
                     .totalPrice(lineTotal)
+                    .note(detailReq.getNote()) // Lưu ghi chú line (đổi size, bọc quà...)
+                    .isCustom(detailReq.getIsCustom() != null ? detailReq.getIsCustom() : false)
                     .build();
 
             order.getDetails().add(orderDetail);
             totalItemsAmount = totalItemsAmount.add(lineTotal);
         }
 
-        // Tính Thành Tiền = (Tiền Hàng + Phí Ship) - Giảm Giá
-        BigDecimal finalTotal = totalItemsAmount.add(order.getShippingFee()).subtract(order.getDiscount());
+        // Tính Thành Tiền = (Tổng tiền hàng + Phí Ship) - Giảm Giá
+        BigDecimal finalTotal = totalItemsAmount.add(order.getShippingFee()).subtract(order.getDiscountAmount());
+
+        // Đảm bảo tổng tiền không bao giờ bị âm
         order.setTotalAmount(finalTotal.compareTo(BigDecimal.ZERO) > 0 ? finalTotal : BigDecimal.ZERO);
     }
 }

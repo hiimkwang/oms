@@ -55,7 +55,6 @@
             justify-content: space-between;
         }
 
-        /* Badges */
         .status-badge {
             padding: 4px 10px;
             border-radius: 20px;
@@ -94,7 +93,13 @@
             border-color: #ceead6;
         }
 
-        /* Timeline (Ảnh 1) */
+        .badge-cancel {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        /* Timeline */
         .order-timeline {
             display: flex;
             align-items: flex-start;
@@ -218,7 +223,6 @@
             display: flex !important;
         }
 
-        /* Ô tìm kiếm sản phẩm lúc Edit */
         .search-wrapper {
             border: 1px solid #cbd5e1;
             border-radius: 6px;
@@ -260,25 +264,22 @@
 
         <div class="d-flex gap-2 view-element">
             <button class="btn btn-white border fw-medium bg-white text-dark px-3 shadow-sm"
-                    onclick="toggleEditMode(true)"><i class="bi bi-pencil me-2"></i>Sửa đơn
-            </button>
-            <button class="btn btn-white border fw-medium bg-white text-dark px-3 shadow-sm"><i
-                    class="bi bi-printer me-2"></i>In đơn hàng
+                    onclick="toggleEditMode(true)">
+                <i class="bi bi-pencil me-2"></i>Sửa thông tin đơn
             </button>
             <div class="dropdown">
                 <button class="btn btn-white border fw-medium bg-white text-dark dropdown-toggle px-3 shadow-sm"
                         data-bs-toggle="dropdown">Thao tác khác
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteOrder()"><i
-                            class="bi bi-trash3 me-2"></i>Xóa đơn hàng</a></li>
+                    <li><a class="dropdown-item fw-medium" href="javascript:void(0)" onclick="printOrder()"><i
+                            class="bi bi-printer me-2 text-muted"></i>In đơn hàng</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item text-danger fw-medium" href="javascript:void(0)"
+                           onclick="deleteOrder()"><i class="bi bi-trash3 me-2"></i>Xóa đơn hàng</a></li>
                 </ul>
-            </div>
-            <div class="d-flex gap-1 ms-2">
-                <button class="btn btn-white border bg-white text-muted px-2 shadow-sm"><i
-                        class="bi bi-chevron-left"></i></button>
-                <button class="btn btn-white border bg-white text-muted px-2 shadow-sm"><i
-                        class="bi bi-chevron-right"></i></button>
             </div>
         </div>
     </div>
@@ -291,25 +292,20 @@
                 <div class="order-timeline">
                     <div class="timeline-step completed">
                         <div class="step-icon"></div>
-                        <div class="step-title">Đặt hàng</div>
+                        <div class="step-title">Khởi tạo</div>
                         <div class="step-time" id="tlPlaced">...</div>
                     </div>
-                    <div class="timeline-step active">
+                    <div class="timeline-step active" id="tsConfirmed">
                         <div class="step-icon"></div>
                         <div class="step-title">Xác nhận</div>
-                        <div class="step-time" id="tlConfirmed">...</div>
-                    </div>
-                    <div class="timeline-step">
-                        <div class="step-icon"></div>
-                        <div class="step-title">ĐTVC lấy hàng</div>
                         <div class="step-time"></div>
                     </div>
-                    <div class="timeline-step">
+                    <div class="timeline-step" id="tsShipping">
                         <div class="step-icon"></div>
                         <div class="step-title">Giao hàng</div>
                         <div class="step-time"></div>
                     </div>
-                    <div class="timeline-step">
+                    <div class="timeline-step" id="tsCompleted">
                         <div class="step-icon"></div>
                         <div class="step-title">Hoàn thành</div>
                         <div class="step-time"></div>
@@ -323,16 +319,12 @@
                         <i class="bi bi-box-seam text-warning fs-5"></i>
                         <span class="fw-bold text-dark fs-6" id="panelOrderStatus">...</span>
                     </div>
-                    <div class="view-element text-muted small">Chi nhánh: <span class="fw-bold text-dark"
-                                                                                id="panelBranch">Cửa hàng chính</span>
+                    <div class="view-element text-muted small">Chi nhánh bán: <span class="fw-bold text-dark"
+                                                                                    id="panelBranch">Hệ thống</span>
                     </div>
 
                     <div class="card-title-custom mb-0 edit-element w-100">
-                        <span>Sản phẩm</span>
-                        <div class="form-check m-0 fw-normal small">
-                            <input class="form-check-input" type="checkbox" id="splitLine">
-                            <label class="form-check-label text-muted">Tách dòng</label>
-                        </div>
+                        <span>Chi tiết sản phẩm</span>
                     </div>
                 </div>
 
@@ -342,8 +334,7 @@
                             <span class="ps-3 text-muted"><i class="bi bi-search"></i></span>
                             <input type="text" id="productSearchInput"
                                    class="form-control form-control-custom w-100 border-0"
-                                   placeholder="Tìm theo tên, mã SKU... (F3)" autocomplete="off">
-                            <button class="btn btn-light border-start rounded-0 rounded-end px-3">Chọn nhiều</button>
+                                   placeholder="Thêm sản phẩm vào đơn (F3)..." autocomplete="off">
                         </div>
                         <ul class="dropdown-menu dropdown-menu-custom shadow position-absolute"
                             id="productDropdownList"></ul>
@@ -360,89 +351,75 @@
                                 <th style="width: 5%;" class="edit-element"></th>
                             </tr>
                             </thead>
-                            <tbody id="productTableBody">
-                            </tbody>
+                            <tbody id="productTableBody"></tbody>
                         </table>
-                    </div>
-
-                    <div class="mt-3 edit-element">
-                        <a href="javascript:void(0)" class="text-link"><i class="bi bi-plus-circle me-1"></i>Thêm sản
-                            phẩm hoặc dịch vụ tùy chỉnh</a>
                     </div>
                 </div>
 
                 <div class="p-3 bg-light border-top d-flex justify-content-end gap-2 view-element">
-                    <button class="btn btn-white border fw-medium bg-white text-primary px-3 shadow-sm">Xác nhận giao
-                        hàng
+                    <button class="btn btn-white border fw-bold bg-white text-danger px-4 shadow-sm"
+                            onclick="quickUpdateStatus('Đã hủy')">Hủy đơn
                     </button>
-                    <button class="btn btn-primary fw-bold px-3 shadow-sm">Đẩy vận chuyển</button>
+                    <button class="btn btn-primary fw-bold px-4 shadow-sm" onclick="quickUpdateStatus('Hoàn thành')">
+                        Hoàn thành đơn
+                    </button>
                 </div>
             </div>
 
             <div class="card-custom p-0">
-                <div class="p-3 border-bottom view-element d-flex align-items-center gap-2">
-                    <i class="bi bi-cash-coin text-warning fs-5"></i>
-                    <span class="fw-bold text-dark fs-6" id="panelPaymentStatus">...</span>
+                <div class="p-3 border-bottom view-element d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-cash-coin text-warning fs-5"></i>
+                        <span class="fw-bold text-dark fs-6" id="panelPaymentStatus">...</span>
+                    </div>
+                    <span class="badge bg-light text-dark border" id="viewPaymentMethod">Chưa thanh toán</span>
                 </div>
+
                 <div class="p-3 border-bottom edit-element">
-                    <div class="card-title-custom mb-0">Thanh toán</div>
+                    <div class="card-title-custom mb-0">Thanh toán & Giao hàng</div>
                 </div>
 
                 <div class="p-4">
                     <div class="row">
                         <div class="col-md-6 view-element">
-                            <div class="text-muted small mb-3">Đơn hàng chưa được thanh toán</div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-white border bg-white text-primary fw-medium shadow-sm"><i
-                                        class="bi bi-qr-code me-1"></i>Lấy mã QR
-                                </button>
-                                <button class="btn btn-primary fw-bold px-4 shadow-sm">Nhận tiền</button>
-                            </div>
+                            <div class="text-muted small mb-2 fw-bold text-dark">Giao hàng:</div>
+                            <div class="small mb-1"><span class="text-muted">Đối tác:</span> <span
+                                    class="fw-medium text-dark" id="viewShipPartner">---</span></div>
+                            <div class="small mb-1"><span class="text-muted">Mã vận đơn:</span> <span
+                                    class="fw-medium text-primary font-monospace" id="viewTrackingCode">---</span></div>
+                            <div class="small mb-1"><span class="text-muted">COD thu hộ:</span> <span
+                                    class="fw-medium text-danger" id="viewCodAmount">0₫</span></div>
                         </div>
 
-                        <div class="col-md-6 view-element ms-auto" id="paymentCalcView">
+                        <div class="col-md-6 ms-auto">
                             <div class="d-flex justify-content-between mb-2 small text-muted">
-                                <span>Tổng tiền hàng <span id="viewTotalQty">(0 sản phẩm)</span></span>
+                                <span>Tổng tiền hàng <span id="viewTotalQty" class="view-element">(0)</span></span>
                                 <span class="fw-bold text-dark" id="viewSubTotal">0₫</span>
                             </div>
-                            <div class="d-flex justify-content-between mb-2 small text-muted">
+
+                            <div class="d-flex justify-content-between mb-2 small text-muted view-element">
                                 <span>Giảm giá</span>
-                                <span class="fw-bold text-dark" id="viewDiscount">0₫</span>
+                                <span class="fw-bold text-danger" id="viewDiscount">0₫</span>
                             </div>
-                            <div class="d-flex justify-content-between mb-3 small text-muted">
+                            <div class="d-flex justify-content-between mb-3 small text-muted view-element pb-3 border-bottom">
                                 <span>Phí giao hàng</span>
                                 <span class="fw-bold text-dark" id="viewShippingFee">0₫</span>
                             </div>
-                            <div class="d-flex justify-content-between fs-6 fw-bold text-dark pt-2 border-top">
-                                <span>Thành tiền</span>
-                                <span class="fw-bold text-dark" id="viewFinalTotal">0₫</span>
-                            </div>
-                        </div>
 
-                        <div class="col-md-12 edit-element">
-                            <div class="row justify-content-end">
-                                <div class="col-md-7">
-                                    <div class="d-flex justify-content-between mb-3 small text-muted align-items-center">
-                                        <span>Tổng tiền <span id="editTotalQty" class="ms-1">(0 sản phẩm)</span></span>
-                                        <span class="fw-bold text-dark" id="editSubTotal">0₫</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between mb-2 small align-items-center">
-                                        <a href="#" class="text-link">Thêm giảm giá (F6)</a>
-                                        <input type="number" id="editDiscountInput"
-                                               class="form-control form-control-sm text-end w-25"
-                                               onchange="calcEditTotals()">
-                                    </div>
-                                    <div class="d-flex justify-content-between mb-3 small align-items-center border-bottom pb-3">
-                                        <a href="#" class="text-link">Thêm phí giao hàng (F7)</a>
-                                        <input type="number" id="editShippingFeeInput"
-                                               class="form-control form-control-sm text-end w-25"
-                                               onchange="calcEditTotals()">
-                                    </div>
-                                    <div class="d-flex justify-content-between fs-6 fw-bold text-dark pt-1">
-                                        <span>Thành tiền</span>
-                                        <span class="fw-bold text-dark" id="editFinalTotal">0₫</span>
-                                    </div>
-                                </div>
+                            <div class="d-flex justify-content-between mb-2 small align-items-center edit-element">
+                                <span class="text-muted fw-medium">Giảm giá</span>
+                                <input type="number" id="editDiscountInput"
+                                       class="form-control form-control-sm text-end w-25" onchange="calcEditTotals()">
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 small align-items-center border-bottom pb-3 edit-element">
+                                <span class="text-muted fw-medium">Phí giao hàng</span>
+                                <input type="number" id="editShippingFeeInput"
+                                       class="form-control form-control-sm text-end w-25" onchange="calcEditTotals()">
+                            </div>
+
+                            <div class="d-flex justify-content-between fs-6 fw-bold text-dark pt-1">
+                                <span>Khách phải trả</span>
+                                <span class="fw-bold text-primary fs-5" id="viewFinalTotal">0₫</span>
                             </div>
                         </div>
                     </div>
@@ -453,41 +430,35 @@
                 <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-receipt text-warning fs-5"></i>
                     <div>
-                        <div class="fw-bold text-dark fs-6">Chưa yêu cầu hóa đơn điện tử</div>
-                        <div class="text-muted small">Đơn hàng chưa có yêu cầu hóa đơn điện tử.</div>
+                        <div class="fw-bold text-dark fs-6" id="vatStatusTitle">Hóa đơn điện tử</div>
+                        <div class="text-muted small" id="vatStatusDesc">Đơn hàng không có thông tin xuất hóa đơn VAT.
+                        </div>
                     </div>
                 </div>
-                <a href="#" class="text-link">Yêu cầu hóa đơn</a>
             </div>
 
-            <div class="card-custom p-4 view-element">
-                <div class="card-title-custom mb-3">Lịch sử đơn hàng</div>
-                <div class="text-dark fw-bold mb-3 small" id="historyDate">...</div>
-                <div class="ms-2 border-start border-2 border-primary ps-3 position-relative">
-                    <div class="position-absolute bg-primary rounded-circle"
-                         style="width:10px; height:10px; left:-6px; top:5px;"></div>
-                    <div class="small fw-bold text-dark"><span id="historyTime">...</span> <span
-                            class="text-muted fw-normal ms-2">QUANG BUI</span></div>
-                    <div class="small text-muted mt-1">Đã tạo mới đơn hàng</div>
-                </div>
-            </div>
         </div>
 
         <div class="col-md-4">
 
-            <div class="card-custom p-3 edit-element sticky-top" style="top: 20px;">
-                <div class="card-title-custom">Tóm tắt</div>
-                <div class="alert alert-light text-muted small border mb-3">Đang thực hiện thay đổi...</div>
-                <button class="btn btn-primary w-100 fw-bold shadow-sm" onclick="saveOrderUpdates()">Cập nhật đơn hàng
+            <div class="card-custom p-3 edit-element sticky-top" style="top: 20px; border-color: #0d6efd;">
+                <div class="card-title-custom text-primary mb-2"><i class="bi bi-info-circle me-2"></i>Đang sửa đơn hàng
+                </div>
+                <div class="text-muted small mb-3">Bạn đang ở chế độ chỉnh sửa. Hãy lưu lại thay đổi khi hoàn tất.</div>
+                <button class="btn btn-primary w-100 fw-bold shadow-sm mb-2" onclick="saveOrderUpdates()"><i
+                        class="bi bi-save me-2"></i>Lưu thay đổi
+                </button>
+                <button class="btn btn-white border text-danger w-100 fw-medium" onclick="toggleEditMode(false)">Hủy
+                    chỉnh sửa
                 </button>
             </div>
 
             <div class="view-element">
                 <div class="card-custom p-3">
                     <div class="card-title-custom">Nguồn đơn</div>
-                    <div class="d-flex align-items-center gap-2 text-dark small fw-medium">
-                        <i class="bi bi-file-earmark-text text-warning fs-5"></i>
-                        <span id="rightSource">Admin</span>
+                    <div class="d-flex align-items-center gap-2 text-dark small fw-bold">
+                        <i class="bi bi-diagram-3 text-warning fs-5"></i>
+                        <span id="rightSource">Hệ thống OMS</span>
                     </div>
                 </div>
 
@@ -495,78 +466,41 @@
                     <div class="card-title-custom">Khách hàng</div>
                     <a href="#" class="text-decoration-none fw-bold text-primary hover-primary"
                        id="rightCusName">...</a>
-                    <div class="d-flex justify-content-between mt-2 small text-muted">
-                        <span>Tổng chi tiêu</span>
-                        <span class="fw-bold text-dark">0₫</span>
-                    </div>
-                    <div class="d-flex justify-content-between mt-1 small text-muted">
-                        <span>Đơn gần nhất</span>
-                        <a href="#" class="text-link" id="rightLastOrder">...</a>
-                    </div>
-
-                    <hr class="my-3 text-muted">
-                    <div class="fw-bold text-dark small mb-1">Nhóm khách hàng</div>
-                    <div class="text-muted small">Không áp dụng nhóm khách hàng</div>
 
                     <hr class="my-3 text-muted">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <div class="fw-bold text-dark small">Thông tin liên hệ</div>
-                        <i class="bi bi-pencil text-muted cursor-pointer"></i>
                     </div>
-                    <div class="text-muted small" id="rightCusPhone">Không có số điện thoại</div>
+                    <div class="text-muted small"><i class="bi bi-telephone me-1"></i><span id="rightCusPhone">Không có SĐT</span>
+                    </div>
 
                     <hr class="my-3 text-muted">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <div class="fw-bold text-dark small">Địa chỉ giao hàng</div>
-                        <i class="bi bi-pencil text-muted cursor-pointer"></i>
                     </div>
-                    <div class="text-dark small" id="rightCusAddressName">...</div>
-                    <div class="text-muted small" id="rightCusAddress">Vietnam</div>
+                    <div class="text-dark small lh-base" id="rightShippingAddress">Khách mua tại quầy</div>
                 </div>
 
                 <div class="card-custom p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="card-title-custom mb-0">Ghi chú</div>
-                        <i class="bi bi-pencil text-muted cursor-pointer"></i>
-                    </div>
-                    <div class="text-muted small" id="rightNote">Chưa có ghi chú</div>
-                </div>
-
-                <div class="card-custom p-3">
-                    <div class="card-title-custom mb-3">Thông tin bổ sung</div>
-
-                    <div class="mb-3">
-                        <div class="fw-bold text-dark small mb-1">Bán tại chi nhánh</div>
-                        <div class="text-primary small cursor-pointer" id="rightBranch">Cửa hàng chính</div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div class="fw-bold text-dark small">Nhân viên phụ trách</div>
-                            <i class="bi bi-pencil text-muted cursor-pointer"></i>
-                        </div>
-                        <div class="text-muted small" id="rightAssignee">QUANG BUI</div>
-                    </div>
-                    <div class="mb-3">
-                        <div class="fw-bold text-dark small mb-1">Ngày đặt hàng</div>
-                        <div class="text-muted small" id="rightOrderDate">...</div>
+                    <div class="card-title-custom mb-2">Ghi chú</div>
+                    <div class="text-muted small p-2 bg-light rounded border" id="rightNote" style="min-height: 40px;">
+                        Không có ghi chú
                     </div>
                 </div>
             </div>
 
         </div>
     </div>
+
     <input type="hidden" id="hiddenOrderCode" th:value="${orderCode}">
+
     <script th:inline="javascript">
         const orderCode = document.getElementById('hiddenOrderCode').value.trim();
-        console.log("Mã đơn hàng đang cần tìm là: '" + orderCode + "'");
         let currentOrder = null;
-        let editCart = []; // Giỏ hàng lưu trữ tạm lúc Sửa
+        let editCart = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
-            if (!orderCode) {
-                console.error("Lỗi Frontend: Không lấy được mã đơn hàng từ thẻ ẩn!");
-                return;
-            }
+            if (!orderCode) return alert("Lỗi hệ thống: Không tìm thấy ID đơn hàng!");
             await loadOrder();
             setupSearchProduct();
         });
@@ -589,74 +523,82 @@
         // ============================
         async function loadOrder() {
             try {
-                // Sửa dòng fetch này: Nối chuỗi bằng dấu +
                 const res = await fetch('/api/v1/orders/' + orderCode);
-
                 if (!res.ok) throw new Error("Không tìm thấy đơn");
                 currentOrder = await res.json();
-
                 renderViewMode();
             } catch (e) {
-                alert("Lỗi tải đơn hàng!");
+                document.getElementById('orderContainer').innerHTML = '<div class="alert alert-danger w-100 text-center py-4 fw-bold">Không tải được thông tin đơn hàng!</div>';
             }
         }
 
         function renderViewMode() {
-            // Header
+            // Header Info
             document.getElementById('headerOrderCode').innerText = `#${currentOrder.orderCode}`;
             document.getElementById('headerEditOrderCode').innerText = `#${currentOrder.orderCode}`;
 
-            // Status Badges
+            // Badges
             document.getElementById('headerPaymentStatus').innerHTML = currentOrder.paymentStatus === 'PAID'
-                ? '<span class="status-badge badge-paid">Đã thanh toán</span>'
-                : '<span class="status-badge badge-unpaid">Chưa thanh toán</span>';
+                ? '<span class="status-badge badge-paid"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>'
+                : '<span class="status-badge badge-unpaid"><i class="bi bi-clock me-1"></i>Chưa thanh toán</span>';
 
-            const st = currentOrder.status;
-            let stBadge = '<span class="status-badge badge-init">Khởi tạo</span>';
-            if (st === 'Hoàn thành') stBadge = '<span class="status-badge badge-success">Đã hoàn thành</span>';
-            else if (st === 'Đang giao dịch') stBadge = '<span class="status-badge badge-processing">Đang giao dịch</span>';
+            const st = currentOrder.status || 'Khởi tạo';
+            let stBadge = `<span class="status-badge badge-init">${st}</span>`;
+            if (st === 'Hoàn thành') stBadge = '<span class="status-badge badge-success">Hoàn thành</span>';
+            else if (st === 'Đã hủy') stBadge = '<span class="status-badge badge-cancel">Đã hủy</span>';
+
             document.getElementById('headerOrderStatus').innerHTML = stBadge;
-            document.getElementById('panelOrderStatus').innerText = st || 'Khởi tạo';
-            document.getElementById('panelPaymentStatus').innerText = currentOrder.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán';
+            document.getElementById('panelOrderStatus').innerText = st;
+
+            document.getElementById('panelPaymentStatus').innerText = currentOrder.paymentStatus === 'PAID' ? 'Khách đã thanh toán' : 'Đơn hàng chưa thanh toán';
+            document.getElementById('viewPaymentMethod').innerText = currentOrder.paymentMethod === 'CASH' ? 'Tiền mặt' : (currentOrder.paymentMethod === 'TRANSFER' ? 'Chuyển khoản' : 'Khác');
 
             // Timeline
             document.getElementById('tlPlaced').innerText = formatDateTime(currentOrder.createdAt);
-            document.getElementById('tlConfirmed').innerText = formatDateTime(currentOrder.createdAt); // Tạm lấy cùng ngày
-
-            // Lịch sử
-            if (currentOrder.createdAt) {
-                const d = new Date(currentOrder.createdAt);
-                document.getElementById('historyDate').innerText = d.toLocaleDateString('vi-VN');
-                document.getElementById('historyTime').innerText = d.toLocaleTimeString('vi-VN', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+            if (st === 'Hoàn thành' || st === 'Đang giao dịch') {
+                document.getElementById('tsConfirmed').classList.add('completed');
+                document.getElementById('tsConfirmed').classList.remove('active');
+                document.getElementById('tsShipping').classList.add('active');
+            }
+            if (st === 'Hoàn thành') {
+                document.getElementById('tsShipping').classList.add('completed');
+                document.getElementById('tsCompleted').classList.add('completed');
             }
 
-            // Tiền
-            const totalItem = currentOrder.details.reduce((sum, i) => sum + i.totalPrice, 0);
-            const qty = currentOrder.details.reduce((sum, i) => sum + i.quantity, 0);
+            // Giao hàng
+            document.getElementById('viewShipPartner').innerText = currentOrder.shippingPartner || '---';
+            document.getElementById('viewTrackingCode').innerText = currentOrder.trackingCode || '---';
+            document.getElementById('viewCodAmount').innerText = formatMoney(currentOrder.codAmount);
 
-            document.getElementById('viewTotalQty').innerText = `(${qty} sản phẩm)`;
-            document.getElementById('viewSubTotal').innerText = formatMoney(totalItem);
-            document.getElementById('viewDiscount').innerText = formatMoney(currentOrder.discount);
+            // Tiền nong
+            const totalItemAmount = (currentOrder.details || []).reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
+            const totalQty = (currentOrder.details || []).reduce((sum, i) => sum + i.quantity, 0);
+
+            document.getElementById('viewTotalQty').innerText = `(${totalQty} sản phẩm)`;
+            document.getElementById('viewSubTotal').innerText = formatMoney(totalItemAmount);
+            document.getElementById('viewDiscount').innerText = formatMoney(currentOrder.discountAmount);
             document.getElementById('viewShippingFee').innerText = formatMoney(currentOrder.shippingFee);
             document.getElementById('viewFinalTotal').innerText = formatMoney(currentOrder.totalAmount);
 
+            // VAT
+            if (currentOrder.invoiceTaxCode) {
+                document.getElementById('vatStatusTitle').innerHTML = 'Thông tin hóa đơn <span class="badge bg-success ms-2 fs-6">Đã cập nhật</span>';
+                document.getElementById('vatStatusDesc').innerHTML = `<b>MST:</b> ${currentOrder.invoiceTaxCode} - <b>Công ty:</b> ${currentOrder.invoiceCompanyName}`;
+            }
+
             // Cột Phải
-            document.getElementById('rightSource').innerText = currentOrder.salesChannel || 'Admin';
+            document.getElementById('rightSource').innerText = currentOrder.salesChannelCode || '---';
+            document.getElementById('rightNote').innerText = currentOrder.note || 'Không có ghi chú';
+
             const cus = currentOrder.customer;
             if (cus) {
-                document.getElementById('rightCusName').innerText = cus.fullName || cus.name;
+                document.getElementById('rightCusName').innerText = cus.fullName || cus.name || 'Khách lẻ';
                 document.getElementById('rightCusName').href = `/ui/customers/${cus.code || cus.id}`;
-                document.getElementById('rightLastOrder').innerText = `#${currentOrder.orderCode}`;
                 document.getElementById('rightCusPhone').innerText = cus.phone || cus.phoneNumber || 'Không có số điện thoại';
-                document.getElementById('rightCusAddressName').innerText = cus.fullName || cus.name;
             }
-            document.getElementById('rightNote').innerText = currentOrder.note || 'Chưa có ghi chú';
-            document.getElementById('rightOrderDate').innerText = formatDateTime(currentOrder.createdAt);
+            document.getElementById('rightShippingAddress').innerText = currentOrder.shippingAddress || 'Khách lấy tại quầy';
 
-            // Bảng sản phẩm View
+            // Render Table
             renderProductTable(currentOrder.details, false);
         }
 
@@ -666,15 +608,22 @@
         function toggleEditMode(isEdit) {
             const container = document.getElementById('orderContainer');
             if (isEdit) {
+                if (currentOrder.status === 'Hoàn thành' || currentOrder.status === 'Đã hủy') {
+                    return alert("Không thể sửa đơn hàng đã Chốt hoặc Hủy!");
+                }
                 container.classList.add('is-editing');
-                // Copy data sang giỏ hàng tạm
-                editCart = JSON.parse(JSON.stringify(currentOrder.details));
-                document.getElementById('editDiscountInput').value = currentOrder.discount || 0;
+
+                // Deep copy mảng an toàn
+                editCart = currentOrder.details.map(item => ({...item}));
+
+                document.getElementById('editDiscountInput').value = currentOrder.discountAmount || 0;
                 document.getElementById('editShippingFeeInput').value = currentOrder.shippingFee || 0;
+
                 renderProductTable(editCart, true);
                 calcEditTotals();
             } else {
                 container.classList.remove('is-editing');
+                loadOrder(); // Reset lại data
             }
         }
 
@@ -682,8 +631,7 @@
             const tbody = document.getElementById('productTableBody');
             let html = '';
 
-            details.forEach((item, index) => {
-                const img = '<i class="bi bi-image"></i>'; // Placeholder
+            (details || []).forEach((item, index) => {
                 const price = isEdit
                     ? `<input type="number" class="form-control text-end form-control-sm" value="${item.unitPrice}" onchange="updateCartItem(${index}, 'unitPrice', this.value)">`
                     : formatMoney(item.unitPrice);
@@ -693,18 +641,14 @@
                     : item.quantity;
 
                 const total = formatMoney(item.unitPrice * item.quantity);
-                const btnDel = isEdit ? `<i class="bi bi-x-lg text-muted cursor-pointer" onclick="removeCartItem(${index})"></i>` : '';
+                const btnDel = isEdit ? `<i class="bi bi-trash text-danger cursor-pointer" onclick="removeCartItem(${index})"></i>` : '';
+                const name = item.productName || item.name || item.sku || 'Sản phẩm';
 
                 html += `
                     <tr>
                         <td>
-                            <div class="d-flex gap-3">
-                                <div class="img-placeholder" style="width:40px; height:40px;">${img}</div>
-                                <div>
-                                    <a href="#" class="text-link fw-bold">${item.productName || item.sku}</a>
-                                    <div class="text-muted mt-1" style="font-size:11px;">${item.sku}</div>
-                                </div>
-                            </div>
+                            <div class="fw-bold text-dark">${name}</div>
+                            <div class="text-muted mt-1" style="font-size:11px;">SKU: ${item.sku}</div>
                         </td>
                         <td class="text-center align-middle">${qty}</td>
                         <td class="text-end align-middle">${price}</td>
@@ -713,12 +657,11 @@
                     </tr>
                 `;
             });
-            tbody.innerHTML = html;
+            tbody.innerHTML = html || '<tr><td colspan="5" class="text-center text-muted py-4">Chưa có sản phẩm</td></tr>';
         }
 
-        // Search Product để add thêm
+        // TÌM KIẾM SẢN PHẨM LÚC EDIT
         let pTimeout;
-        let productSearchResults = [];
 
         function setupSearchProduct() {
             const input = document.getElementById('productSearchInput');
@@ -734,11 +677,11 @@
                     }
                     try {
                         const res = await fetch('/api/v1/products/variants/search?keyword=' + encodeURIComponent(kw));
-                        productSearchResults = await res.json();
+                        const searchResult = await res.json();
                         let html = '';
-                        productSearchResults.forEach((v, idx) => {
+                        searchResult.forEach((v) => {
                             html += `
-                                <li class="p-2 border-bottom dropdown-item-hover d-flex align-items-center gap-2" onclick="addEditCart(${idx})">
+                                <li class="p-2 border-bottom dropdown-item-hover d-flex align-items-center gap-2" onclick="addEditCart('${v.sku}', '${v.productName}', ${v.price})">
                                     <div class="flex-grow-1">
                                         <div class="fw-bold text-primary" style="font-size: 13px;">${v.productName}</div>
                                         <div class="text-muted" style="font-size: 11px;">SKU: ${v.sku}</div>
@@ -754,26 +697,17 @@
             });
 
             document.addEventListener('click', e => {
-                if (!e.target.closest('.search-wrapper') && !e.target.closest('.dropdown-menu-custom')) {
-                    list.classList.remove('show');
-                }
+                if (!e.target.closest('.search-wrapper') && !e.target.closest('.dropdown-menu-custom')) list.classList.remove('show');
             });
         }
 
-        function addEditCart(idx) {
-            const v = productSearchResults[idx];
+        function addEditCart(sku, name, price) {
             document.getElementById('productDropdownList').classList.remove('show');
             document.getElementById('productSearchInput').value = '';
 
-            const exist = editCart.findIndex(i => i.sku === v.sku);
+            const exist = editCart.findIndex(i => i.sku === sku);
             if (exist > -1) editCart[exist].quantity++;
-            else editCart.push({
-                sku: v.sku,
-                productName: v.productName,
-                unitPrice: v.price || 0,
-                quantity: 1,
-                totalPrice: v.price || 0
-            });
+            else editCart.push({sku: sku, name: name, productName: name, unitPrice: price || 0, quantity: 1});
 
             renderProductTable(editCart, true);
             calcEditTotals();
@@ -783,9 +717,6 @@
             let num = parseFloat(val) || 0;
             if (num < 0) num = 0;
             editCart[idx][field] = num;
-
-            editCart[idx].totalPrice = editCart[idx].unitPrice * editCart[idx].quantity;
-
             renderProductTable(editCart, true);
             calcEditTotals();
         }
@@ -805,30 +736,63 @@
             let final = sub - dis + fee;
             if (final < 0) final = 0;
 
-            document.getElementById('editTotalQty').innerText = `(${qty} sản phẩm)`;
             document.getElementById('editSubTotal').innerText = formatMoney(sub);
-            document.getElementById('editFinalTotal').innerText = formatMoney(final);
+            document.getElementById('viewFinalTotal').innerText = formatMoney(final);
         }
 
         // ============================
-        // 3. API LƯU CẬP NHẬT ĐƠN
+        // 3. API LƯU CẬP NHẬT ĐƠN (CHUẨN DTO)
         // ============================
         async function saveOrderUpdates() {
             if (editCart.length === 0) return alert("Giỏ hàng không được để trống!");
 
+            // Tính toán lại tổng tiền từ form Edit
+            const subTotal = editCart.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
+            const discount = parseFloat(document.getElementById('editDiscountInput').value) || 0;
+            const shippingFee = parseFloat(document.getElementById('editShippingFeeInput').value) || 0;
+            const totalAmt = subTotal - discount + shippingFee;
+
+            // Xây dựng payload dựa trên Cấu trúc OrderRequest mới nhất
             const payload = {
                 orderCode: currentOrder.orderCode,
                 customerCode: currentOrder.customer?.code || currentOrder.customer?.id,
-                salesChannel: currentOrder.salesChannel,
+                salesChannelCode: currentOrder.salesChannelCode,
+                branchId: currentOrder.branchId,
                 status: currentOrder.status,
-                paymentMethod: currentOrder.paymentMethod,
-                shippingFee: parseFloat(document.getElementById('editShippingFeeInput').value) || 0,
-                discount: parseFloat(document.getElementById('editDiscountInput').value) || 0,
                 note: currentOrder.note,
+
+                // Giao hàng
+                shippingType: currentOrder.shippingType,
+                shipFromBranchId: currentOrder.shipFromBranchId,
+                shippingPartner: currentOrder.shippingPartner,
+                trackingCode: currentOrder.trackingCode,
+                shippingAddress: currentOrder.shippingAddress,
+                expectedDeliveryDate: currentOrder.expectedDeliveryDate,
+                shippingFee: shippingFee,
+                codAmount: currentOrder.codAmount,
+                shipWeight: currentOrder.shipWeight,
+
+                // Thanh toán
+                paymentStatus: currentOrder.paymentStatus,
+                paymentMethod: currentOrder.paymentMethod,
+                amountPaid: currentOrder.amountPaid,
+
+                // Hóa đơn
+                invoiceTaxCode: currentOrder.invoiceTaxCode,
+                invoiceCompanyName: currentOrder.invoiceCompanyName,
+                invoiceCompanyAddress: currentOrder.invoiceCompanyAddress,
+
+                // Tiền nong
+                discountAmount: discount,
+                totalAmount: totalAmt > 0 ? totalAmt : 0,
+
+                // Chi tiết
                 details: editCart.map(i => ({
                     sku: i.sku,
+                    name: i.productName || i.name,
                     quantity: parseInt(i.quantity),
-                    unitPrice: parseFloat(i.unitPrice)
+                    unitPrice: parseFloat(i.unitPrice),
+                    isCustom: i.isCustom || false
                 }))
             };
 
@@ -840,21 +804,35 @@
                 });
                 if (res.ok) {
                     alert("Cập nhật đơn hàng thành công!");
-                    toggleEditMode(false);
-                    await loadOrder(); // Load lại data mới
+                    toggleEditMode(false); // Sẽ tự động load lại View Mode
                 } else {
-                    alert("Lỗi cập nhật dữ liệu!");
+                    const err = await res.json();
+                    alert("Lỗi máy chủ: " + (err.message || "Kiểm tra lại dữ liệu"));
                 }
             } catch (e) {
-                alert("Lỗi kết nối máy chủ");
+                alert("Lỗi kết nối máy chủ!");
             }
         }
 
         // ============================
-        // 4. API XÓA ĐƠN
+        // 4. API THAO TÁC NHANH (HỦY / CHỐT ĐƠN)
         // ============================
+        async function quickUpdateStatus(newStatus) {
+            if (!confirm(`Xác nhận chuyển trạng thái đơn hàng thành: ${newStatus}?`)) return;
+
+            // Tái sử dụng hàm saveOrderUpdates nhưng đổi mỗi status
+            currentOrder.status = newStatus;
+
+            // Gán lại mảng giỏ hàng để hàm saveOrderUpdates lấy đúng data
+            editCart = currentOrder.details.map(item => ({...item}));
+            document.getElementById('editDiscountInput').value = currentOrder.discountAmount || 0;
+            document.getElementById('editShippingFeeInput').value = currentOrder.shippingFee || 0;
+
+            await saveOrderUpdates();
+        }
+
         async function deleteOrder() {
-            if (!confirm(`Xác nhận xóa vĩnh viễn đơn hàng #${currentOrder.orderCode}? Hành động này sẽ ảnh hưởng tới báo cáo tài chính.`)) return;
+            if (!confirm(`CẢNH BÁO: Xóa vĩnh viễn đơn hàng #${currentOrder.orderCode}? Hành động này sẽ ảnh hưởng tới báo cáo!`)) return;
             try {
                 const res = await fetch('/api/v1/orders/' + orderCode, {method: 'DELETE'});
                 if (res.ok) {
@@ -863,6 +841,10 @@
                 }
             } catch (e) {
             }
+        }
+
+        function printOrder() {
+            window.print();
         }
     </script>
 </div>

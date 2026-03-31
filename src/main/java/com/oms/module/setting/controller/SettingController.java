@@ -3,11 +3,14 @@ package com.oms.module.setting.controller;
 import com.oms.module.account.repository.UserRepository;
 import com.oms.module.setting.repository.BranchRepository;
 import com.oms.module.setting.repository.SalesChannelRepository;
+import com.oms.module.setting.service.MasterDataService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("/ui/settings")
@@ -17,11 +20,17 @@ public class SettingController {
     private final BranchRepository branchRepository;
     private final SalesChannelRepository channelRepository;
     private final UserRepository userRepository;
+    private final MasterDataService masterDataService;
 
     // 1. Cấu hình chung
     @GetMapping("/general")
     public String general(Model model) {
         model.addAttribute("activeMenu", "general");
+
+        // Lấy các cấu hình cũ (nếu có) truyền xuống View
+        List<String> configKeys = java.util.Arrays.asList("STORE_NAME", "STORE_PHONE", "STORE_ADDRESS", "STORE_LOGO", "STORE_EMAIL");
+        model.addAttribute("configs", masterDataService.getSystemConfigMap(configKeys));
+
         return "settings/general";
     }
 

@@ -47,4 +47,10 @@ public class OrderDetail {
 
     @Column(name = "total_price")
     private BigDecimal totalPrice;
+    
+    @Column(name = "note")
+    private String note;
+
+    @Column(name = "is_custom")
+    private Boolean isCustom;
 }

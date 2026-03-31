@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::div.setting-wrapper})}">
+<body>
+<div class="setting-wrapper">
+    <style>
+        .card-title-custom { font-size: 16px; font-weight: 700; color: #1e293b; }
+        .form-label-custom { font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        .form-control-custom { font-size: 13px; border-color: #cbd5e1; box-shadow: none; padding: 8px 12px; border-radius: 6px; }
+        .form-control-custom:focus { border-color: #0d6efd; box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .1); }
+        .table-custom th { font-size: 13px; font-weight: 600; color: #475569; background-color: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+        .table-custom td { font-size: 13px; color: #1e293b; padding: 12px 16px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
+    </style>
+
+    <div class="row g-4">
+        <div th:replace="~{settings/settings-sidebar :: sidebar}"></div>
+
+        <div class="col-md-9">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="card-title-custom mb-0"><i class="bi bi-megaphone text-primary me-2"></i>Kênh bán hàng</h5>
+                    <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#channelModal" onclick="resetChannelForm()">
+                        <i class="bi bi-plus-lg me-1"></i> Thêm kênh
+                    </button>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-custom mb-0">
+                            <thead>
+                            <tr>
+                                <th style="width: 35%">Tên kênh bán hàng</th>
+                                <th style="width: 25%">Mã kênh (Code)</th>
+                                <th style="width: 20%">Trạng thái</th>
+                                <th style="width: 20%" class="text-end">Thao tác</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(channels)}">
+                                <td colspan="4" class="text-center text-muted py-4">Chưa có kênh bán hàng nào được tạo.</td>
+                            </tr>
+
+                            <tr th:each="c : ${channels}">
+                                <td>
+                                    <div class="fw-bold text-dark d-flex align-items-center">
+                                        <i class="bi bi-box-seam text-secondary me-2"></i>
+                                        <span th:text="${c.name}"></span>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-light text-dark border font-monospace" th:text="${c.code}"></span></td>
+                                <td>
+                                    <span th:if="${c.active}" class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">Đang hoạt động</span>
+                                    <span th:unless="${c.active}" class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">Ngừng hoạt động</span>
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-light btn-sm text-primary p-1 px-2"
+                                            th:data-id="${c.id}"
+                                            th:data-name="${c.name}"
+                                            th:data-code="${c.code}"
+                                            th:data-active="${c.active}"
+                                            onclick="editChannel(this)">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="channelModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light border-bottom-0 py-3">
+                    <h6 class="modal-title fw-bold" id="channelModalTitle">Thêm kênh bán hàng mới</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="channelForm">
+                        <input type="hidden" id="channelId" name="id">
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Tên kênh <span class="text-danger">*</span></label>
+                            <input type="text" id="channelName" name="name" class="form-control form-control-custom" placeholder="VD: Shopee, Facebook, Tại cửa hàng..." required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label-custom">Mã kênh (Code) <span class="text-danger">*</span></label>
+                            <input type="text" id="channelCode" name="code" class="form-control form-control-custom text-uppercase font-monospace" placeholder="VD: SHOPEE, FB, POS" required>
+                            <small class="text-muted" style="font-size: 11px;">Mã viết liền không dấu, dùng để phân loại hệ thống.</small>
+                        </div>
+
+                        <div class="form-check form-switch mt-4" id="statusDiv" style="display: none;">
+                            <input class="form-check-input" type="checkbox" id="channelActive" name="active" checked>
+                            <label class="form-check-label small fw-bold text-dark" for="channelActive">Kênh đang hoạt động</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top-0 pt-0 pb-3 px-4">
+                    <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary fw-bold px-4" onclick="saveChannel(this)">Lưu kênh</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function resetChannelForm() {
+            document.getElementById('channelForm').reset();
+            document.getElementById('channelId').value = '';
+            document.getElementById('channelModalTitle').innerText = 'Thêm kênh bán hàng mới';
+            document.getElementById('statusDiv').style.display = 'none';
+            document.getElementById('channelActive').checked = true;
+        }
+
+        function editChannel(btn) {
+            const id = btn.getAttribute('data-id');
+            const name = btn.getAttribute('data-name');
+            const code = btn.getAttribute('data-code');
+            const active = btn.getAttribute('data-active') === 'true';
+
+            document.getElementById('channelId').value = id;
+            document.getElementById('channelName').value = name;
+            document.getElementById('channelCode').value = code;
+            document.getElementById('channelActive').checked = active;
+
+            document.getElementById('channelModalTitle').innerText = 'Cập nhật kênh bán hàng';
+            document.getElementById('statusDiv').style.display = 'block';
+
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('channelModal'));
+            modal.show();
+        }
+
+        async function saveChannel(btnElement) {
+            const form = document.getElementById('channelForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const id = document.getElementById('channelId').value;
+            const payload = {
+                name: document.getElementById('channelName').value,
+                code: document.getElementById('channelCode').value.toUpperCase(), // Tự động in hoa mã Code
+                active: document.getElementById('channelActive').checked
+            };
+
+            const originalBtnHtml = btnElement.innerHTML;
+            btnElement.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
+            btnElement.disabled = true;
+
+            const url = id ? `/api/v1/settings/channels/${id}` : '/api/v1/settings/channels';
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('channelModal'));
+                    modal.hide();
+                    window.location.reload();
+                } else {
+                    alert("Có lỗi xảy ra khi lưu kênh bán hàng!");
+                    btnElement.innerHTML = originalBtnHtml;
+                    btnElement.disabled = false;
+                }
+            } catch (error) {
+                console.error("Lỗi:", error);
+                alert("Lỗi kết nối máy chủ!");
+                btnElement.innerHTML = originalBtnHtml;
+                btnElement.disabled = false;
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

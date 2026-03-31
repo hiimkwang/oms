@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::div.setting-wrapper})}">
+<body>
+<div class="setting-wrapper">
+    <style>
+        .card-title-custom {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .form-label-custom {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .form-control-custom {
+            font-size: 13px;
+            border-color: #cbd5e1;
+            box-shadow: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .form-control-custom:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .1);
+        }
+
+        .logo-preview-box {
+            width: 70px;
+            height: 70px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 4px;
+        }
+
+        .logo-preview-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+    </style>
+
+    <div class="row g-4">
+        <div th:replace="~{settings/settings-sidebar :: sidebar}"></div>
+
+        <div class="col-md-9">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="card-title-custom mb-0"><i class="bi bi-shop text-primary me-2"></i>Cấu hình chung hệ
+                        thống</h5>
+                </div>
+
+                <div class="card-body p-4">
+                    <form id="generalSettingForm">
+                        <div class="row mb-4 g-4">
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Tên cửa hàng/Công ty <span class="text-danger">*</span></label>
+                                <input type="text" name="STORE_NAME" class="form-control form-control-custom"
+                                       placeholder="VD: MECHKEY OMS"
+                                       th:value="${configs['STORE_NAME']}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Số điện thoại liên hệ</label>
+                                <input type="text" name="STORE_PHONE" class="form-control form-control-custom"
+                                       placeholder="VD: 098xxxxxxxx"
+                                       th:value="${configs['STORE_PHONE']}">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label-custom">Địa chỉ cửa hàng</label>
+                            <textarea name="STORE_ADDRESS" class="form-control form-control-custom" rows="2"
+                                      placeholder="Số nhà, đường, phường/xã..."
+                                      th:text="${configs['STORE_ADDRESS']}"></textarea>
+                        </div>
+
+                        <div class="row mb-4 g-4 align-items-center">
+                            <div class="col-md-6">
+                                <label class="form-label-custom d-block">Logo hệ thống</label>
+                                <div class="d-flex align-items-center gap-3 bg-light p-3 rounded border border-light">
+                                    <div class="logo-preview-box bg-white shadow-sm">
+                                        <img id="logoPreview"
+                                             th:src="${configs['STORE_LOGO'] != null && configs['STORE_LOGO'] != '' ? configs['STORE_LOGO'] : 'https://placehold.co/150x150/f8fafc/a1a1aa?text=Logo'}"
+                                             alt="Logo">
+                                    </div>
+
+                                    <div class="flex-grow-1">
+                                        <input class="form-control form-control-custom mb-1" type="file"
+                                               id="logoUploadInput" accept="image/*">
+                                        <div class="small text-muted" style="font-size: 11px;" id="uploadStatus"><i
+                                                class="bi bi-info-circle me-1"></i>Hỗ trợ JPG, PNG (Tối đa 2MB)
+                                        </div>
+
+                                        <input type="hidden" name="STORE_LOGO" id="logoUrlInput"
+                                               th:value="${configs['STORE_LOGO']}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label-custom">Email thông báo</label>
+                                <input type="email" name="STORE_EMAIL" class="form-control form-control-custom"
+                                       placeholder="contact@domain.com"
+                                       th:value="${configs['STORE_EMAIL']}">
+                            </div>
+                        </div>
+
+                        <div class="border-top pt-4 mt-2 d-flex justify-content-end">
+                            <button type="button" class="btn btn-primary fw-bold px-4 shadow-sm"
+                                    onclick="submitSettings()">
+                                <i class="bi bi-save me-2"></i> Lưu cấu hình
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // 1. Logic Upload Ảnh Logo
+            document.getElementById('logoUploadInput').addEventListener('change', async function () {
+                const file = this.files[0];
+                if (!file) return;
+
+                const statusText = document.getElementById('uploadStatus');
+                statusText.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang tải ảnh lên...';
+                statusText.className = "small text-primary fw-bold mt-1";
+
+                const formData = new FormData();
+                formData.append("file", file);
+
+                try {
+                    const response = await fetch('/api/v1/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        document.getElementById('logoPreview').src = data.url;
+                        document.getElementById('logoUrlInput').value = data.url;
+
+                        statusText.innerHTML = '<i class="bi bi-check-circle me-1"></i> Tải lên thành công!';
+                        statusText.className = "small text-success fw-bold mt-1";
+                    } else {
+                        statusText.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Lỗi tải ảnh!';
+                        statusText.className = "small text-danger fw-bold mt-1";
+                    }
+                } catch (error) {
+                    statusText.innerHTML = '<i class="bi bi-wifi-off me-1"></i> Lỗi kết nối!';
+                    statusText.className = "small text-danger fw-bold mt-1";
+                }
+            });
+
+            // 2. Logic Submit Form Lưu Cấu Hình
+            async function submitSettings() {
+                const form = document.getElementById('generalSettingForm');
+                const formData = new FormData(form);
+                const payload = Object.fromEntries(formData.entries());
+
+                const btn = event.currentTarget;
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang lưu...';
+                btn.disabled = true;
+
+                try {
+                    const res = await fetch('/api/v1/settings/master-data/settings', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        alert("Đã lưu cấu hình chung thành công!");
+                        window.location.reload();
+                    } else {
+                        alert("Có lỗi xảy ra khi lưu cấu hình!");
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                    }
+                } catch (error) {
+                    alert("Lỗi kết nối đến máy chủ!");
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }
+            }
+        </script>
+    </div>
+</div>
+</body>
+</html>
