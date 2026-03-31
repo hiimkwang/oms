@@ -182,9 +182,11 @@
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-white border fw-medium bg-white text-dark px-4">Hủy</button>
-            <button type="button" class="btn btn-white border fw-medium bg-white text-dark px-4">Lưu nháp</button>
-            <button type="button" class="btn btn-primary fw-bold px-4" id="btnSubmitOrder" onclick="submitOrder()">Tạo
-                đơn và giao hàng
+            <button type="button" class="btn btn-white border fw-medium bg-white text-dark px-4"
+                    onclick="submitOrder('Nháp')">Lưu nháp
+            </button>
+            <button type="button" class="btn btn-primary fw-bold px-4" id="btnSubmitOrder"
+                    onclick="submitOrder('Khởi tạo')">Tạo đơn và giao hàng
             </button>
         </div>
     </div>
@@ -200,7 +202,8 @@
                                 <input class="form-check-input" type="checkbox" id="splitLine">
                                 <label class="form-check-label small text-muted mt-1" for="splitLine">Tách dòng</label>
                             </div>
-                            <a href="#" class="text-link">Kiểm tra tồn kho</a>
+                            <a href="javascript:void(0)" class="text-link" onclick="showInventoryCheck()"><i
+                                    class="bi bi-box-seam me-1"></i>Kiểm tra tồn kho</a>
                         </div>
                     </div>
 
@@ -544,8 +547,7 @@
                         <div class="col-md-6">
                             <label class="form-label-custom small">Số lượng</label>
                             <input type="number" id="customProductQty" class="form-control form-control-custom"
-                                   value="1"
-                                   min="1">
+                                   value="1" min="1">
                         </div>
                     </div>
                 </div>
@@ -574,6 +576,11 @@
                             <label class="form-label-custom small">Tên công ty</label>
                             <input type="text" id="invCompanyName" class="form-control form-control-custom">
                         </div>
+                        <div class="col-12 mt-2">
+                            <label class="form-label-custom small">Địa chỉ công ty</label>
+                            <input type="text" id="invCompanyAddress" class="form-control form-control-custom"
+                                   placeholder="Số nhà, tên đường, phường/xã, quận/huyện...">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2">
@@ -581,8 +588,7 @@
                             data-bs-dismiss="modal">Xóa dữ liệu
                     </button>
                     <button type="button" class="btn btn-primary px-4" onclick="saveInvoiceData()"
-                            data-bs-dismiss="modal">
-                        Xác nhận
+                            data-bs-dismiss="modal">Xác nhận
                     </button>
                 </div>
             </div>
@@ -619,14 +625,11 @@
                                    placeholder="Nhập số điện thoại">
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <a href="javascript:void(0)" class="text-link small"><i class="bi bi-chevron-down me-1"></i>Thông
                             tin thêm</a>
                     </div>
-
                     <hr class="my-4 text-muted">
-
                     <h6 class="fw-bold mb-3 text-dark">Địa chỉ nhận hàng</h6>
                     <div class="row g-3">
                         <div class="col-md-12">
@@ -662,15 +665,54 @@
         </div>
     </div>
 
+    <div class="modal fade" id="inventoryCheckModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header modal-header-custom py-3 bg-light border-bottom">
+                    <h5 class="modal-title-custom mb-0"><i class="bi bi-box-seam text-primary me-2"></i>Kiểm tra tồn kho
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle">
+                            <thead class="table-light text-muted small">
+                            <tr>
+                                <th class="ps-4" style="width: 40%">Sản phẩm</th>
+                                <th class="text-center" style="width: 15%">Cần xuất</th>
+                                <th class="text-center" style="width: 15%">Tồn tại kho</th>
+                                <th style="width: 30%">
+                                    <select id="branchStockSelect"
+                                            class="form-select form-select-sm border-0 bg-light fw-bold text-dark w-100"
+                                            onchange="renderInventoryCheckBody()">
+                                        <option value="MAIN">Cửa hàng chính</option>
+                                        <option value="BRANCH_1">Chi nhánh 1</option>
+                                        <option value="BRANCH_2">Chi nhánh 2</option>
+                                    </select>
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody id="inventoryCheckBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" data-bs-dismiss="modal">Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script th:inline="none">
         let cart = [];
         let subTotalAmount = 0;
         let finalAmountToPay = 0;
         let invoiceData = null;
         let shippingType = 'MANUAL';
-        let productSearchResults = []; // Lưu kết quả tìm kiếm sản phẩm
+        let productSearchResults = [];
 
-        // Hàm hỗ trợ tắt Modal an toàn
         function hideModalSafe(modalId) {
             const modalEl = document.getElementById(modalId);
             if (modalEl) {
@@ -679,7 +721,6 @@
             }
         }
 
-        // Chuyển tab Giao hàng
         function switchShippingTab(type, element) {
             document.querySelectorAll('.shipping-tab').forEach(el => el.classList.remove('active'));
             element.classList.add('active');
@@ -693,7 +734,6 @@
             }
         }
 
-        // Hiện ô nhập số tiền khi tick "Đã thanh toán"
         function togglePaymentInput() {
             const isPaid = document.getElementById('paid').checked;
             const methodBox = document.getElementById('paymentMethodBox');
@@ -706,7 +746,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Khởi tạo ngày giờ
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('orderDate').value = now.toISOString().slice(0, 16);
@@ -715,21 +754,18 @@
             const customerInput = document.getElementById('customerSearchInput');
             let productTimeout, customerTimeout;
 
-            // Xử lý ô tìm sản phẩm
             productInput.addEventListener('focus', e => searchProducts(e.target.value));
             productInput.addEventListener('input', e => {
                 clearTimeout(productTimeout);
                 productTimeout = setTimeout(() => searchProducts(e.target.value), 300);
             });
 
-            // Xử lý ô tìm khách hàng
             customerInput.addEventListener('focus', e => searchCustomers(e.target.value));
             customerInput.addEventListener('input', e => {
                 clearTimeout(customerTimeout);
                 customerTimeout = setTimeout(() => searchCustomers(e.target.value), 300);
             });
 
-            // Ẩn dropdown khi click ra ngoài
             document.addEventListener('click', (e) => {
                 if (!document.getElementById('productDropdownList').contains(e.target) && e.target !== productInput) document.getElementById('productDropdownList').classList.remove('show');
                 if (!document.getElementById('customerDropdownList').contains(e.target) && e.target !== customerInput) document.getElementById('customerDropdownList').classList.remove('show');
@@ -785,12 +821,77 @@
                     name: v.productName + (v.variantName ? ' - ' + v.variantName : ''),
                     price: v.price || 0,
                     quantity: 1,
+                    stock: v.stockQuantity || v.stock || 0, // Lưu lại số tồn kho
                     imageUrl: v.imageUrl || null,
                     note: "",
                     isCustom: false
                 });
             }
             renderCart();
+        }
+
+        // --- KIỂM TRA TỒN KHO THEO CHI NHÁNH ---
+        function showInventoryCheck() {
+            if (cart.length === 0) {
+                alert("Giỏ hàng đang trống, vui lòng thêm sản phẩm!");
+                return;
+            }
+            renderInventoryCheckBody();
+            new bootstrap.Modal(document.getElementById('inventoryCheckModal')).show();
+        }
+
+        function renderInventoryCheckBody() {
+            const tbody = document.getElementById('inventoryCheckBody');
+            const branchSelect = document.getElementById('branchStockSelect');
+            const branchName = branchSelect.options[branchSelect.selectedIndex].text;
+
+            let html = '';
+            cart.forEach(item => {
+                if (item.isCustom) {
+                    html += `
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <div class="fw-bold text-dark" style="font-size:13px;">${item.name}</div>
+                            <span class="badge bg-secondary mt-1" style="font-size:10px;">Tùy chỉnh</span>
+                        </td>
+                        <td class="text-center fw-bold text-primary">${item.quantity}</td>
+                        <td class="text-center text-muted">---</td>
+                        <td class="text-muted small">Không quản lý tồn kho</td>
+                    </tr>`;
+                } else {
+                    // Xử lý fake data chi nhánh cho đẹp mắt lúc code UI, nếu API có branchStocks thật thì map vào đây
+                    let branchStock = item.stock || 0;
+                    if (branchSelect.value !== 'MAIN') branchStock = Math.floor(branchStock / 2);
+
+                    const isEnough = branchStock >= item.quantity;
+                    const stockColor = isEnough ? 'text-success' : 'text-danger';
+                    const reqColor = isEnough ? 'text-dark' : 'text-danger';
+
+                    html += `
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="img-placeholder" style="width:40px; height:40px;">
+                                    ${item.imageUrl ? `<img src="${item.imageUrl}">` : '<i class="bi bi-image"></i>'}
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark" style="font-size:13px;">${item.name}</div>
+                                    <div class="text-muted mt-1" style="font-size:11px;">SKU: ${item.sku}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center fw-bold fs-6 ${reqColor}">${item.quantity}</td>
+                        <td class="text-center fw-bold fs-6 ${stockColor}">${branchStock}</td>
+                        <td class="small">
+                            <div class="d-flex justify-content-between mb-1 pb-1 border-bottom border-light">
+                                <span class="text-muted text-truncate" style="max-width:100px;">${branchName}:</span>
+                                <span class="fw-bold text-dark">${branchStock}</span>
+                            </div>
+                        </td>
+                    </tr>`;
+                }
+            });
+            tbody.innerHTML = html;
         }
 
         function addCustomProduct() {
@@ -911,7 +1012,8 @@
         function saveInvoiceData() {
             invoiceData = {
                 taxCode: document.getElementById('invTaxCode').value,
-                companyName: document.getElementById('invCompanyName').value
+                companyName: document.getElementById('invCompanyName').value,
+                companyAddress: document.getElementById('invCompanyAddress').value
             };
             document.getElementById('invoiceBadge').classList.remove('d-none');
         }
@@ -939,16 +1041,30 @@
                 let html = '<li class="border-bottom p-2 dropdown-item-hover text-primary fw-medium" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-plus-circle me-2"></i>Thêm mới khách hàng</li>';
 
                 customers.forEach(c => {
-                    const code = c.code || c.customerCode; // Support cả 2 kiểu backend trả về
+                    const code = c.code || c.customerCode;
                     const name = c.fullName || c.name || 'Chưa có tên';
                     const phone = c.phone || c.phoneNumber || '';
-                    const address = c.address || c.shipAddressDetail || '';
+
+                    // Lấy địa chỉ giao hàng và công ty
+                    const address = c.fullAddress || c.address || c.shipAddressDetail || '';
+                    const taxCode = c.taxCode || '';
+                    const company = c.company || c.companyName || '';
+                    const companyAddress = c.companyAddress || c.taxAddress || address || '';
+
+                    // Ép kiểu String để tránh lỗi .replace is not a function nếu JSON trả về kiểu Số
+                    const safeCode = String(code || '').replace(/'/g, "\\'");
+                    const safeName = String(name || '').replace(/'/g, "\\'");
+                    const safePhone = String(phone || '').replace(/'/g, "\\'");
+                    const safeAddress = String(address || '').replace(/'/g, "\\'");
+                    const safeTaxCode = String(taxCode || '').replace(/'/g, "\\'");
+                    const safeCompany = String(company || '').replace(/'/g, "\\'");
+                    const safeCompanyAddress = String(companyAddress || '').replace(/'/g, "\\'");
 
                     html += `
-                        <li class="p-2 dropdown-item-hover border-bottom" onclick="selectCustomer('${code}', '${name}', '${phone}', '${address}')">
-                            <div class="fw-bold text-dark" style="font-size: 13px;">${name}</div>
-                            <div class="text-muted" style="font-size: 11px;">${phone || '---'}</div>
-                        </li>`;
+                <li class="p-2 dropdown-item-hover border-bottom" onclick="selectCustomer('${safeCode}', '${safeName}', '${safePhone}', '${safeAddress}', '${safeTaxCode}', '${safeCompany}', '${safeCompanyAddress}')">
+                    <div class="fw-bold text-dark" style="font-size: 13px;">${name}</div>
+                    <div class="text-muted" style="font-size: 11px;">${phone || '---'}</div>
+                </li>`;
                 });
                 listEl.innerHTML = html;
             } catch (e) {
@@ -956,7 +1072,7 @@
             }
         }
 
-        function selectCustomer(code, name, phone, address) {
+        function selectCustomer(code, name, phone, address, taxCode, company, companyAddress) {
             document.getElementById('customerDropdownList').classList.remove('show');
             document.getElementById('customerSearchInput').classList.add('d-none');
             document.getElementById('customerSelectedWrapper').classList.remove('d-none');
@@ -966,6 +1082,16 @@
             document.getElementById('selectedCusPhone').innerText = phone || '';
             document.getElementById('selectedCusAddress').innerText = address || 'Chưa có địa chỉ';
             document.getElementById('displayShippingAddress').innerText = address || 'Chưa có địa chỉ giao hàng';
+
+            // AUTO FILL THÔNG TIN HÓA ĐƠN
+            if (taxCode && taxCode.trim() !== '') {
+                document.getElementById('invTaxCode').value = taxCode;
+                document.getElementById('invCompanyName').value = company || name;
+                document.getElementById('invCompanyAddress').value = companyAddress || address;
+                saveInvoiceData(); // Tự động active trạng thái "Đã thêm" hóa đơn
+            } else {
+                clearInvoiceData();
+            }
         }
 
         function clearCustomer() {
@@ -977,9 +1103,14 @@
         }
 
         async function submitNewCustomer() {
+            const firstName = document.getElementById('newCusFirstName').value;
+            const lastName = document.getElementById('newCusLastName').value;
+            const fullName = (lastName ? lastName + ' ' : '') + firstName;
+
             const payload = {
-                firstName: document.getElementById('newCusFirstName').value,
-                lastName: document.getElementById('newCusLastName').value,
+                firstName: firstName,
+                lastName: lastName,
+                fullName: fullName.trim(),
                 email: document.getElementById('newCusEmail').value,
                 phone: document.getElementById('newCusPhone').value,
                 company: document.getElementById('newCusCompany').value,
@@ -1003,8 +1134,8 @@
                 if (res.ok) {
                     const newCus = await res.json();
                     hideModalSafe('addCustomerModal');
-                    const fullName = (payload.lastName ? payload.lastName + ' ' : '') + payload.firstName;
-                    selectCustomer(newCus.code || newCus.id, fullName, payload.phone, payload.address);
+                    // Gán vào đơn hàng (để trống thông tin MST vì khách mới chưa có)
+                    selectCustomer(newCus.code || newCus.id, payload.fullName, payload.phone, payload.address, '', '', '');
                 } else {
                     const err = await res.json();
                     alert("Lỗi khi lưu khách hàng: " + (err.message || "Kiểm tra lại dữ liệu"));
@@ -1017,7 +1148,7 @@
         // ============================
         // GỬI ĐƠN HÀNG LÊN BACKEND
         // ============================
-        async function submitOrder() {
+        async function submitOrder(orderStatus = 'Khởi tạo') {
             if (cart.length === 0) {
                 alert("Vui lòng chọn ít nhất 1 sản phẩm!");
                 return;
@@ -1029,7 +1160,6 @@
                 return;
             }
 
-            // Vô hiệu hóa nút để tránh spam click
             const btn = document.getElementById('btnSubmitOrder');
             const originalBtnText = btn.innerHTML;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
@@ -1041,9 +1171,10 @@
                 orderCode: "DH" + Date.now(),
                 customerCode: customerCode,
                 salesChannel: document.getElementById('orderSource').value,
+                status: orderStatus, // Truyền trạng thái "Khởi tạo" hoặc "Nháp"
 
                 // Thanh toán
-                paymentStatus: document.querySelector('input[name="paymentStatus"]:checked').value, // PAID hoặc UNPAID
+                paymentStatus: document.querySelector('input[name="paymentStatus"]:checked').value,
                 paymentMethod: isPaid ? document.getElementById('paymentMethod').value : null,
                 amountPaid: isPaid ? (parseFloat(document.getElementById('amountPaidInput').value) || 0) : 0,
 
@@ -1063,6 +1194,7 @@
                 // Hóa đơn
                 invoiceTaxCode: invoiceData ? invoiceData.taxCode : null,
                 invoiceCompanyName: invoiceData ? invoiceData.companyName : null,
+                invoiceCompanyAddress: invoiceData ? invoiceData.companyAddress : null,
 
                 // Thông tin thêm
                 branchName: document.getElementById('branchName').value,
@@ -1090,7 +1222,7 @@
                 });
 
                 if (res.ok) {
-                    alert("Tạo đơn hàng thành công!");
+                    alert(orderStatus === 'Nháp' ? "Lưu đơn nháp thành công!" : "Tạo đơn hàng thành công!");
                     window.location.href = "/ui/orders";
                 } else {
                     const err = await res.json();

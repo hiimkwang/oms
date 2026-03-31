@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -15,6 +16,8 @@ public class OrderRequest {
     private String customerCode; // Nếu dùng ID thì đổi tên thành customerId
     private String salesChannel;
     private String paymentMethod;
+    private String paymentStatus;
+    private BigDecimal amountPaid;
     private String status = "Khởi tạo";
     private String note;
     private Double discount;      // Giảm giá tổng đơn
