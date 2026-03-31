@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{settings/settings-layout :: layout(~{::div.user-content})}">
+<body>
+<div class="user-content">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">Danh sách nhân viên</h5>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="bi bi-plus-lg"></i> Thêm nhân viên
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Họ tên</th>
+                    <th>Tài khoản</th>
+                    <th>Quyền</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="u : ${users}">
+                    <td th:text="${u.fullName}"></td>
+                    <td th:text="${u.username}"></td>
+                    <td>
+                            <span th:class="${u.role == 'ADMIN' ? 'badge bg-danger' : 'badge bg-info'}"
+                                  th:text="${u.role}"></span>
+                    </td>
+                    <td>
+                            <span th:text="${u.active ? 'Đang hoạt động' : 'Đã khóa'}"
+                                  th:class="${u.active ? 'text-success' : 'text-danger'}"></span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-light"><i class="bi bi-pencil"></i></button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold">Tạo tài khoản nhân viên</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="addUserForm">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Họ và tên</label>
+                            <input type="text" name="fullName" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Tên đăng nhập</label>
+                            <input type="text" name="username" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Mật khẩu mặc định</label>
+                            <input type="password" name="password" class="form-control" value="123456" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Quyền hạn</label>
+                            <select name="role" class="form-select">
+                                <option value="STAFF">Nhân viên (Staff)</option>
+                                <option value="ADMIN">Quản trị viên (Admin)</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="submitAddUser()">Tạo tài khoản</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function submitAddUser() {
+            const form = document.getElementById('addUserForm');
+            const formData = new FormData(form);
+            const payload = Object.fromEntries(formData.entries());
+
+            const res = await fetch('/api/v1/users', { // Anh cần tạo API này ở backend
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("Tạo nhân viên thành công!");
+                location.reload();
+            } else {
+                alert("Có lỗi xảy ra, có thể tên đăng nhập đã tồn tại.");
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

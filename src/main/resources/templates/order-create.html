@@ -488,7 +488,11 @@
                     <div class="mb-3">
                         <label class="form-label-custom text-muted small fw-normal">Nhân viên phụ trách</label>
                         <select id="assignee" class="form-select form-select-custom">
-                            <option value="QUANG BUI">QUANG BUI</option>
+                            <option th:each="u : ${users}"
+                                    th:value="${u.fullName}"
+                                    th:text="${u.fullName}"
+                                    th:selected="${currentUser != null && u.id == currentUser.id}">
+                            </option>
                         </select>
                     </div>
                     <div class="mb-3">

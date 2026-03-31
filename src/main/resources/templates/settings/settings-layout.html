@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::div.setting-wrapper})}">
+<body>
+<div class="setting-wrapper">
+    <div class="row g-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="list-group list-group-flush rounded">
+                    <a th:href="@{/ui/settings/general}" class="list-group-item list-group-item-action py-3"
+                       th:classappend="${activeMenu == 'general' ? 'active' : ''}">
+                        <i class="bi bi-gear me-2"></i> Cấu hình chung
+                    </a>
+                    <a th:href="@{/ui/settings/branches}" class="list-group-item list-group-item-action py-3"
+                       th:classappend="${activeMenu == 'branches' ? 'active' : ''}">
+                        <i class="bi bi-building me-2"></i> Quản lý chi nhánh
+                    </a>
+                    <a th:href="@{/ui/settings/users}" class="list-group-item list-group-item-action py-3"
+                       th:classappend="${activeMenu == 'users' ? 'active' : ''}">
+                        <i class="bi bi-people me-2"></i> Quản lý nhân viên
+                    </a>
+                    <a th:href="@{/ui/settings/channels}" class="list-group-item list-group-item-action py-3"
+                       th:classappend="${activeMenu == 'channels' ? 'active' : ''}">
+                        <i class="bi bi-megaphone me-2"></i> Kênh bán hàng
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div th:replace="${settingContent}"></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

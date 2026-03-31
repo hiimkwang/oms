@@ -1,5 +1,7 @@
 package com.oms.ui;
 
+import com.oms.module.account.entity.User;
+import com.oms.module.account.repository.UserRepository;
 import com.oms.module.category.service.CategoryService; // Thêm import này
 import com.oms.module.customer.service.CustomerService;
 import com.oms.module.product.repository.ProductVariantRepository;
@@ -12,10 +14,12 @@ import com.oms.module.setting.service.MasterDataService;
 import com.oms.module.supplier.service.SupplierService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -33,6 +37,8 @@ public class WebController {
     // 1. INJECT THÊM CATEGORY SERVICE VÀO ĐÂY
     private final CategoryService categoryService;
 
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     // Trang chủ - Bảng điều khiển (Dashboard)
     @GetMapping("/")
     public String dashboard(Model model) {
@@ -50,6 +56,58 @@ public class WebController {
         model.addAttribute("totalProducts", totalProducts);
 
         return "dashboard";
+    }
+
+    @GetMapping("/login")
+    public String login() {
+        return "login";
+    }
+    @GetMapping("/profile")
+    public String profile(Model model, Principal principal) {
+        // Lấy thông tin user đang đăng nhập từ username
+        String username = principal.getName();
+        User user = userRepository.findByUsername(username).orElse(null);
+        model.addAttribute("user", user);
+        return "profile";
+    }
+
+    @PostMapping("/profile/change-password")
+    public ResponseEntity<?> changePassword(@RequestParam String oldPassword,
+                                            @RequestParam String newPassword,
+                                            Principal principal) {
+        User user = userRepository.findByUsername(principal.getName()).orElse(null);
+
+        // Kiểm tra mật khẩu cũ có khớp không
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            return ResponseEntity.badRequest().body("Mật khẩu cũ không chính xác!");
+        }
+
+        // Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Đổi mật khẩu thành công!");
+    }
+
+    @PostMapping("/profile/update")
+    @ResponseBody
+    public ResponseEntity<?> updateProfile(@RequestParam String fullName,
+                                           @RequestParam(required = false) String email,
+                                           @RequestParam(required = false) String phone,
+                                           Principal principal) {
+        // 1. Lấy user đầy đủ từ DB dựa trên username đang đăng nhập
+        User user = userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        // 2. CHỈ cập nhật các trường cho phép sửa từ form
+        user.setFullName(fullName);
+        user.setEmail(email);
+        user.setPhone(phone);
+
+        // 3. Lưu lại (Lúc này các trường username, password, role vẫn được giữ nguyên)
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Cập nhật thông tin thành công!");
     }
 
     // Trang quản lý sản phẩm
@@ -111,6 +169,7 @@ public class WebController {
     // 1. DANH SÁCH ĐƠN HÀNG
     @GetMapping("/ui/orders")
     public String orderListPage() {
+
         return "order-list";
     }
 
@@ -122,7 +181,7 @@ public class WebController {
         // Sinh mã đơn hàng ngẫu nhiên gửi xuống UI
         String randomOrderCode = "DH" + LocalDate.now().toString().replace("-", "").substring(2) + "-" + (int) (Math.random() * 10000);
         model.addAttribute("defaultOrderCode", randomOrderCode);
-
+        model.addAttribute("users", userRepository.findAll());
         return "order-create";
     }
 
@@ -239,7 +298,7 @@ public class WebController {
         model.addAttribute("categories", categoryService.getAll());
         model.addAttribute("brands", masterDataService.getValuesByType("BRAND"));
         model.addAttribute("units", masterDataService.getValuesByType("UNIT"));
-
+        model.addAttribute("users", userRepository.findAll());
         return "import-create";
     }
 
