@@ -1,5 +1,6 @@
 package com.oms.module.customer.repository;
 
+import com.oms.module.common.dto.TargetDropdownResponse;
 import com.oms.module.customer.entity.Customer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -26,4 +27,5 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     @Query("DELETE FROM Customer c WHERE c.code IN :codes")
     void deleteAllByCodeIn(@Param("codes") List<String> codes);
     long countByCustomerGroup(String customerGroup);
+    List<Customer> findByFullNameContainingIgnoreCaseOrPhoneContaining(String fullName, String phone);
 }

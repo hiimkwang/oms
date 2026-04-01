@@ -17,11 +17,15 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     boolean existsByCode(String code);
 
-    // 1. Lấy danh sách phiếu nhập trong khoảng thời gian (để hiện bảng lịch sử)
     List<Receipt> findBySupplierCodeAndCreatedAtBetweenOrderByCreatedAtDesc(
             String code, LocalDateTime start, LocalDateTime end);
 
-    // 2. Tính tổng số đơn và tổng tiền (chỉ tính đơn không bị hủy)
+    List<Receipt> findBySupplierCodeOrderByCreatedAtDesc(String code);
+
+    @Query("SELECT SUM(r.totalAmount - r.amountPaid) FROM Receipt r " +
+            "WHERE r.supplier.code = :code AND r.status != 'CANCELLED'")
+    BigDecimal getTotalDebtAllTime(@Param("code") String code);
+
     @Query("SELECT COUNT(r), SUM(r.totalAmount) FROM Receipt r " +
             "WHERE r.supplier.code = :code AND r.createdAt BETWEEN :start AND :end " +
             "AND r.status != 'CANCELLED'")
@@ -29,7 +33,6 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
                            @Param("start") LocalDateTime start,
                            @Param("end") LocalDateTime end);
 
-    // 3. Tính nợ (Công nợ): Những đơn đã NHẬP KHO (RECEIVED/COMPLETED) nhưng CHƯA trả tiền (UNPAID)
     @Query("SELECT SUM(r.totalAmount - COALESCE(r.amountPaid, 0)) FROM Receipt r " +
             "WHERE r.supplier.code = :code " +
             "AND r.paymentStatus IN ('UNPAID', 'PARTIAL') " +

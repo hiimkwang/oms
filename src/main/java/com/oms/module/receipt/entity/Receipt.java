@@ -27,6 +27,9 @@ public class Receipt {
     @JoinColumn(name = "supplier_id")
     private Supplier supplier;
 
+    @Column(name = "branch_id") // THÊM DÒNG NÀY
+    private Long branchId;
+
     private String branchName; // Chi nhánh nhập
     private String creatorName; // Nhân viên tạo
     private BigDecimal totalAmount; // Tổng giá trị đơn

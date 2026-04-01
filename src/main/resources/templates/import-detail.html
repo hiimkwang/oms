@@ -50,7 +50,6 @@
             color: #dc2626;
         }
 
-        /* Timeline đẹp hơn */
         .timeline {
             margin-top: 1rem;
             padding-left: 10px;
@@ -88,7 +87,6 @@
             color: #f59e0b !important;
         }
 
-        /* Bảng hiển thị tiền */
         .summary-box {
             background-color: #f8f9fa;
             border-radius: 8px;
@@ -96,7 +94,6 @@
             border: 1px solid #e9ecef;
         }
 
-        /* Empty state */
         .empty-state {
             text-align: center;
             padding: 30px 15px;
@@ -121,28 +118,25 @@
                           th:text="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}">
                     </span>
                 </div>
-                <div class="text-muted small mt-1"><i class="bi bi-clock me-1"></i> Ngày tạo: <span
-                        th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></span></div>
+                <div class="text-muted small mt-1">
+                    <i class="bi bi-clock me-1"></i> Ngày tạo: <span
+                        th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></span>
+                </div>
             </div>
         </div>
         <div class="d-flex gap-2">
-            <th:block th:if="${order.status == 'TRADING' && order.importStatus != 'COMPLETED'}">
+            <th:block th:if="${order.status != 'CANCELLED' and order.importStatus != 'COMPLETED'}">
                 <a th:href="@{/ui/imports/edit/{code}(code=${order.code})}"
                    class="btn btn-white border fw-medium shadow-sm px-3 text-dark text-decoration-none">
                     <i class="bi bi-pencil me-1"></i> Sửa đơn
                 </a>
-                <div class="dropdown">
-                    <button class="btn btn-white border fw-medium shadow-sm px-3 dropdown-toggle"
-                            data-bs-toggle="dropdown">Thao tác khác
-                    </button>
-                    <ul class="dropdown-menu shadow">
-                        <li><a class="dropdown-item text-danger fw-medium" href="javascript:void(0)"
-                               th:onclick="'cancelOrder(' + ${order.id} + ')'"><i class="bi bi-x-circle me-2"></i>Hủy
-                            đơn</a></li>
-                    </ul>
-                </div>
+                <button class="btn btn-white border text-danger fw-medium shadow-sm px-3"
+                        th:onclick="'cancelOrder(' + ${order.id} + ')'">
+                    <i class="bi bi-x-circle me-1"></i> Hủy đơn
+                </button>
             </th:block>
-            <button class="btn btn-white border fw-medium shadow-sm px-3"><i class="bi bi-printer me-1"></i> In đơn
+            <button class="btn btn-white border fw-medium shadow-sm px-3" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> In đơn
             </button>
         </div>
     </div>
@@ -155,12 +149,12 @@
                         <div class="detail-card-title mb-0"
                              th:classappend="${order.importStatus == 'COMPLETED' ? 'text-success-custom' : 'text-warning-custom'}">
                             <i th:class="${order.importStatus == 'COMPLETED' ? 'bi bi-check-circle-fill' : 'bi bi-clock-history'}"></i>
-                            <span th:text="${order.importStatus == 'COMPLETED' ? 'Trạng thái: Đã nhập kho' : 'Trạng thái: Chưa nhập kho'}"></span>
+                            <span th:text="${order.importStatus == 'COMPLETED' ? 'Trạng thái: Đã nhập vào kho' : 'Trạng thái: Đang chờ nhập kho'}"></span>
                         </div>
                         <div th:if="${order.importStatus != 'COMPLETED' && order.status != 'CANCELLED'}">
                             <button class="btn btn-primary fw-bold px-4 shadow-sm"
-                                    th:onclick="'confirmReceive(' + ${order.id} + ')'"><i
-                                    class="bi bi-box-arrow-in-down me-1"></i> Nhập kho ngay
+                                    th:onclick="'confirmReceive(' + ${order.id} + ')'">
+                                <i class="bi bi-box-arrow-in-down me-1"></i> Nhập kho ngay
                             </button>
                         </div>
                     </div>
@@ -169,9 +163,10 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light">
                             <tr class="text-muted small">
-                                <th style="width: 50%" class="ps-3">Sản phẩm</th>
+                                <th style="width: 45%" class="ps-3">Sản phẩm</th>
                                 <th class="text-center">Số lượng</th>
-                                <th class="text-end">Đơn giá</th>
+                                <th class="text-end">Đơn giá nhập</th>
+                                <th class="text-center">Bảo hành</th>
                                 <th class="text-end pe-3">Thành tiền</th>
                             </tr>
                             </thead>
@@ -179,20 +174,24 @@
                             <tr th:each="item : ${order.details}">
                                 <td class="py-3 ps-3">
                                     <div class="d-flex align-items-center gap-3">
-                                        <div class="bg-light border rounded d-flex align-items-center justify-content-center"
-                                             style="width:40px; height:40px;"><i
-                                                class="bi bi-box-seam text-secondary"></i></div>
+                                        <div class="img-product bg-light border rounded d-flex align-items-center justify-content-center"
+                                             style="width:40px; height:40px;">
+                                            <i class="bi bi-box-seam text-secondary"></i>
+                                        </div>
                                         <div>
-                                            <div class="text-primary fw-bold" style="font-size: 14px;"
-                                                 th:text="${item.productName}"></div>
-                                            <div class="text-muted" style="font-size: 12px;"
+                                            <div class="text-dark fw-bold" style="font-size: 14px;"
                                                  th:text="${item.sku}"></div>
+                                            <div class="text-muted small">Sản phẩm hệ thống</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="text-center fw-medium" th:text="${item.quantity}"></td>
                                 <td class="text-end"
                                     th:text="${#numbers.formatDecimal(item.importPrice, 0, 'COMMA', 0, 'POINT') + '₫'}"></td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border"
+                                          th:text="${item.warrantyMonths + ' tháng'}"></span>
+                                </td>
                                 <td class="text-end fw-bold text-dark pe-3"
                                     th:text="${#numbers.formatDecimal(item.importPrice * item.quantity, 0, 'COMMA', 0, 'POINT') + '₫'}"></td>
                             </tr>
@@ -204,39 +203,57 @@
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div class="detail-card-title mb-0"
-                             th:classappend="${order.paymentStatus == 'PAID' ? 'text-success-custom' : (order.paymentStatus == 'PARTIAL' ? 'text-primary' : 'text-warning-custom')}">
-                            <i th:class="${order.paymentStatus == 'PAID' ? 'bi bi-check-circle-fill' : 'bi bi-wallet2'}"></i>
-                            <span th:if="${order.paymentStatus == 'PAID'}">Đã thanh toán đủ</span>
-                            <span th:if="${order.paymentStatus == 'PARTIAL'}">Thanh toán một phần</span>
-                            <span th:if="${order.paymentStatus == 'UNPAID'}">Chưa thanh toán</span>
-                        </div>
+                    <div class="detail-card-title mb-4">
+                        <i class="bi bi-credit-card-2-back text-primary"></i> Thông tin thanh toán
                     </div>
 
-                    <div class="summary-box ms-auto" style="max-width: 350px;">
-                        <div class="d-flex justify-content-between text-muted mb-2"
-                             th:with="total=${order.totalAmount != null ? order.totalAmount : 0}">
-                            <span>Tổng cần trả NCC:</span>
-                            <span class="fw-medium text-dark"
-                                  th:text="${#numbers.formatDecimal(total, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                    <div class="row align-items-end">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded border">
+                                <div class="small text-muted mb-1">Trạng thái thanh toán:</div>
+                                <div class="fw-bold fs-5"
+                                     th:classappend="${order.paymentStatus == 'PAID' ? 'text-success' : (order.paymentStatus == 'PARTIAL' ? 'text-primary' : 'text-danger')}"
+                                     th:text="${order.paymentStatus == 'PAID' ? 'ĐÃ THANH TOÁN' : (order.paymentStatus == 'PARTIAL' ? 'THANH TOÁN MỘT PHẦN' : 'CHƯA THANH TOÁN')}">
+                                </div>
+                            </div>
                         </div>
-                        <div class="d-flex justify-content-between fw-medium text-success mb-3"
-                             th:with="paid=${order.amountPaid != null ? order.amountPaid : 0}">
-                            <span>Đã thanh toán:</span>
-                            <span th:text="${#numbers.formatDecimal(paid, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
-                        </div>
-                        <div class="d-flex justify-content-between fw-bold text-danger fs-5 pt-3 border-top"
-                             th:with="total=${order.totalAmount != null ? order.totalAmount : 0}, paid=${order.amountPaid != null ? order.amountPaid : 0}">
-                            <span>Còn nợ NCC:</span>
-                            <span th:text="${#numbers.formatDecimal(total - paid, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                        <div class="col-md-6">
+                            <div class="summary-box ms-auto">
+                                <div class="d-flex justify-content-between text-muted mb-2">
+                                    <span>Tổng tiền hàng:</span>
+                                    <span class="fw-medium text-dark"
+                                          th:text="${#numbers.formatDecimal(order.itemsAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted mb-2">
+                                    <span>Giảm giá/Chiết khấu:</span>
+                                    <span class="text-danger"
+                                          th:text="'-' + ${#numbers.formatDecimal(order.discount ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted mb-2 pb-2 border-bottom">
+                                    <span>Phí nhập hàng:</span>
+                                    <span class="text-dark"
+                                          th:text="${#numbers.formatDecimal(order.shippingFee ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                </div>
+                                <div class="d-flex justify-content-between fw-bold text-dark fs-5 mt-2">
+                                    <span>Tổng cần trả:</span>
+                                    <span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                </div>
+                                <div class="d-flex justify-content-between fw-medium text-success mt-1">
+                                    <span>Đã trả NCC:</span>
+                                    <span th:text="${#numbers.formatDecimal(order.amountPaid ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                </div>
+                                <div class="d-flex justify-content-between fw-bold text-danger pt-2 mt-2 border-top">
+                                    <span>Còn nợ NCC:</span>
+                                    <span th:text="${#numbers.formatDecimal(order.totalAmount - (order.amountPaid ?: 0), 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="text-end mt-4" th:if="${order.paymentStatus != 'PAID' && order.status != 'CANCELLED'}">
-                        <button class="btn btn-primary fw-bold px-4 shadow-sm" data-bs-toggle="modal"
+                        <button class="btn btn-outline-primary fw-bold px-4 shadow-sm" data-bs-toggle="modal"
                                 data-bs-target="#paymentModal">
-                            <i class="bi bi-cash-coin me-1"></i> Thanh toán nốt công nợ
+                            <i class="bi bi-cash-coin me-1"></i> Thanh toán thêm
                         </button>
                     </div>
                 </div>
@@ -245,8 +262,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <div class="detail-card-title border-bottom pb-3">Lịch sử đơn nhập hàng</div>
-
-                    <div class="timeline" th:if="${order.activities != null and not #lists.isEmpty(order.activities)}">
+                    <div class="timeline" th:if="${not #lists.isEmpty(order.activities)}">
                         <div class="timeline-item" th:each="activity : ${order.activities}">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
@@ -260,10 +276,9 @@
                             </div>
                         </div>
                     </div>
-
-                    <div class="empty-state" th:if="${order.activities == null or #lists.isEmpty(order.activities)}">
+                    <div class="empty-state" th:if="${#lists.isEmpty(order.activities)}">
                         <i class="bi bi-journal-x"></i>
-                        <div class="text-muted small">Đơn hàng này chưa ghi nhận lịch sử thao tác nào.</div>
+                        <div class="text-muted small">Chưa có lịch sử thao tác.</div>
                     </div>
                 </div>
             </div>
@@ -275,39 +290,44 @@
                     <div class="detail-card-title border-bottom pb-2">Nhà cung cấp</div>
                     <div class="d-flex align-items-center gap-3 mb-4 mt-3">
                         <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                             style="width:45px; height:45px;"><i class="bi bi-shop fs-5"></i></div>
+                             style="width:45px; height:45px;">
+                            <i class="bi bi-shop fs-5"></i>
+                        </div>
                         <div>
                             <div class="fw-bold text-dark fs-6" th:text="${order.supplier.name}"></div>
-                            <a th:href="@{/ui/suppliers/{code}(code=${order.supplier.code})}"
-                               class="text-decoration-none small text-primary fw-medium">Xem chi tiết <i
-                                    class="bi bi-arrow-right"></i></a>
+                            <div class="text-muted small" th:text="'Mã: ' + ${order.supplier.code}"></div>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-between mb-2 pb-2 border-bottom"><span
-                            class="info-label">Mã NCC:</span><span class="info-value text-end"
-                                                                   th:text="${order.supplier.code}"></span></div>
                     <div class="d-flex justify-content-between mb-2"><span class="info-label">Số điện thoại:</span><span
                             class="info-value text-end" th:text="${order.supplier.phone ?: '---'}"></span></div>
+                    <div class="text-center mt-3 pt-3 border-top">
+                        <a th:href="@{/ui/suppliers/{code}(code=${order.supplier.code})}"
+                           class="text-decoration-none small fw-bold">Xem hồ sơ nhà cung cấp</a>
+                    </div>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <div class="detail-card-title border-bottom pb-2">Thông tin bổ sung</div>
+                    <div class="detail-card-title border-bottom pb-2">Thông tin lưu kho</div>
                     <div class="mt-3 mb-3">
                         <label class="info-label d-block mb-1">Chi nhánh nhập</label>
-                        <div class="info-value fw-medium text-dark"><i class="bi bi-geo-alt text-muted me-1"></i> <span
-                                th:text="${order.branchName}"></span></div>
+                        <div class="info-value fw-bold text-primary">
+                            <i class="bi bi-geo-alt me-1"></i> <span
+                                th:text="${order.branchName ?: 'Kho mặc định'}"></span>
+                        </div>
+                        <small class="text-muted" th:text="'(ID Chi nhánh: ' + ${order.branchId} + ')'"></small>
                     </div>
                     <div class="mb-3">
                         <label class="info-label d-block mb-1">Nhân viên phụ trách</label>
-                        <div class="info-value fw-medium text-dark"><i class="bi bi-person text-muted me-1"></i> <span
-                                th:text="${order.creatorName}"></span></div>
+                        <div class="info-value fw-medium text-dark">
+                            <i class="bi bi-person me-1"></i> <span th:text="${order.creatorName}"></span>
+                        </div>
                     </div>
-                    <div>
-                        <label class="info-label d-block mb-1">Ghi chú</label>
-                        <div class="info-value p-2 bg-light rounded text-muted small"
-                             th:text="${order.note ?: 'Không có ghi chú'}"></div>
+                    <div class="mb-0">
+                        <label class="info-label d-block mb-1">Ghi chú đơn</label>
+                        <div class="p-2 bg-light rounded text-muted small" style="min-height: 60px;"
+                             th:text="${order.note ?: 'Không có ghi chú.'}"></div>
                     </div>
                 </div>
             </div>
@@ -315,7 +335,7 @@
     </div>
 
     <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true"
-         th:with="total=${order.totalAmount != null ? order.totalAmount : 0}, paid=${order.amountPaid != null ? order.amountPaid : 0}, debt=${total - paid}">
+         th:with="debt=${order.totalAmount - (order.amountPaid ?: 0)}">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header border-bottom py-3">
@@ -324,33 +344,31 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="bg-light p-3 rounded mb-4 text-center border">
-                        <div class="text-muted small mb-1">Số tiền còn nợ nhà cung cấp</div>
+                        <div class="text-muted small mb-1">Số tiền còn nợ NCC</div>
                         <div class="fw-bold text-danger fs-3"
                              th:text="${#numbers.formatDecimal(debt, 0, 'COMMA', 0, 'POINT')} + '₫'"></div>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label fw-bold small">Hình thức thanh toán</label>
                         <select id="payMethod" class="form-select">
-                            <option value="CASH">Tiền mặt</option>
                             <option value="TRANSFER">Chuyển khoản</option>
+                            <option value="CASH">Tiền mặt</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Số tiền thanh toán đợt này <span
+                        <label class="form-label fw-bold small">Số tiền thanh toán <span
                                 class="text-danger">*</span></label>
                         <div class="input-group">
                             <input type="number" id="payAmountInput" class="form-control text-end fw-bold text-success"
                                    th:max="${debt}" th:value="${debt}">
                             <span class="input-group-text bg-white">₫</span>
                         </div>
-                        <div class="form-text">Bạn có thể sửa số tiền nếu chỉ muốn thanh toán một phần.</div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-top py-3">
                     <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
                     <button type="button" class="btn btn-primary fw-bold px-4"
-                            th:onclick="'submitPaymentModal(' + ${order.id} + ')'">Xác nhận thanh toán
+                            th:onclick="'submitPaymentModal(' + ${order.id} + ')'">Xác nhận trả tiền
                     </button>
                 </div>
             </div>
@@ -358,57 +376,48 @@
     </div>
 
     <script th:inline="javascript">
+        // 1. Nhập kho - Gọi confirmImport của Service
         function confirmReceive(id) {
-            if (!confirm("Xác nhận nhập kho? Hệ thống sẽ cộng tồn kho và tính lại giá vốn bình quân (MAC) dựa trên chi phí của phiếu này.")) return;
-            postAction(`/api/v1/receipt/${id}/receive`, null, "Nhập kho thành công!");
+            if (!confirm("Xác nhận nhập kho? Số lượng sẽ được cộng vào: " + [[${order.branchName}]])) return;
+            postAction(`/api/v1/receipt/${id}/receive`, null, "Đã nhập hàng vào kho thành công!");
         }
 
+        // 2. Hủy đơn
         function cancelOrder(id) {
-            if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này? Các phiếu thanh toán liên quan sẽ bị hủy bỏ.")) return;
+            if (!confirm("Bạn muốn hủy đơn nhập hàng này?")) return;
             postAction(`/api/v1/receipt/${id}/cancel`, null, "Đã hủy đơn hàng!");
         }
 
-        // ĐÃ FIX: Hàm xử lý gửi số tiền thanh toán từ Modal
+        // 3. Thanh toán nợ
         function submitPaymentModal(id) {
-            const amountStr = document.getElementById('payAmountInput').value;
+            const amount = parseFloat(document.getElementById('payAmountInput').value);
             const method = document.getElementById('payMethod').value;
 
-            const amount = parseFloat(amountStr);
             if (!amount || amount <= 0) {
-                alert("Vui lòng nhập số tiền hợp lệ lớn hơn 0!");
+                alert("Vui lòng nhập số tiền hợp lệ!");
                 return;
             }
 
-            const payload = {
-                amountPaid: amount,
-                paymentMethod: method
-            };
-
-            // Đóng modal để tránh bấm nhiều lần
+            const payload = {amountPaid: amount, paymentMethod: method};
             bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
 
+            // API xử lý addPayment trong Service
             postAction(`/api/v1/receipt/${id}/payment`, payload, "Ghi nhận thanh toán thành công!");
         }
 
         function postAction(url, payload, successMsg) {
-            const options = {
+            fetch(url, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'}
-            };
-            if (payload) {
-                options.body = JSON.stringify(payload);
-            }
-
-            fetch(url, options)
-                .then(res => {
-                    if (res.ok) {
-                        alert(successMsg);
-                        location.reload();
-                    } else {
-                        res.text().then(text => alert("Lỗi: " + text));
-                    }
-                })
-                .catch(err => alert("Lỗi kết nối máy chủ!"));
+                headers: {'Content-Type': 'application/json'},
+                body: payload ? JSON.stringify(payload) : null
+            }).then(res => {
+                if (res.ok) {
+                    alert(successMsg);
+                    location.reload();
+                } else {
+                    res.text().then(text => alert("Lỗi hệ thống: " + text));
+                }
+            }).catch(err => alert("Lỗi kết nối!"));
         }
     </script>
 </div>

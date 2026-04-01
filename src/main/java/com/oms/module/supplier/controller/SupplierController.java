@@ -1,5 +1,6 @@
 package com.oms.module.supplier.controller;
 import com.oms.module.receipt.dto.SupplierStatsResponse;
+import com.oms.module.receipt.service.ReceiptService;
 import com.oms.module.supplier.dto.SupplierRequest;
 import com.oms.module.supplier.entity.Supplier;
 import com.oms.module.supplier.service.SupplierService;
@@ -20,6 +21,7 @@ import java.util.List;
 public class SupplierController {
 
     private final SupplierService supplierService;
+    private final ReceiptService receiptService;
 
     // Lấy danh sách NCC (Có tìm kiếm)
     @GetMapping
@@ -57,14 +59,12 @@ public class SupplierController {
         }
     }
     @GetMapping("/{code}/stats")
-    public ResponseEntity<SupplierStatsResponse> getSupplierStats(
+    public ResponseEntity<SupplierStatsResponse> getStats(
             @PathVariable String code,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
 
-        // Gọi Service để xử lý logic
-        SupplierStatsResponse stats = supplierService.getSupplierStats(code, start, end);
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.ok(receiptService.getSupplierStats(code, start, end));
     }
 
     @PutMapping("/{code}/status")

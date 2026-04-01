@@ -26,23 +26,17 @@
         }
 
         .form-control-custom:focus {
-            border-color: #b1b9c1;
-            box-shadow: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.1);
         }
 
         .asterisk {
             color: #dc3545;
             margin-left: 2px;
         }
-
-        .info-icon {
-            color: #0d6efd;
-            font-size: 14px;
-            cursor: pointer;
-        }
     </style>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
         <div class="d-flex align-items-center gap-3">
             <a th:href="@{/ui/suppliers}" class="btn btn-white border shadow-sm px-2"><i
                     class="bi bi-arrow-left"></i></a>
@@ -62,7 +56,7 @@
                     <div class="card-body p-4">
                         <div class="card-title-custom">Thông tin chung</div>
                         <div class="mb-4">
-                            <label class="form-label-custom">Tên nhà cung cấp<span class="asterisk">*</span></label>
+                            <label class="form-label-custom">Tên nhà cung cấp <span class="asterisk">*</span></label>
                             <input type="text" id="name" class="form-control form-control-custom"
                                    placeholder="Nhập tên nhà cung cấp" required>
                         </div>
@@ -70,7 +64,7 @@
                             <div class="col-md-6">
                                 <label class="form-label-custom">Mã nhà cung cấp</label>
                                 <input type="text" id="code" class="form-control form-control-custom"
-                                       placeholder="Nhập mã nhà cung cấp">
+                                       placeholder="Nhập mã nhà cung cấp (Ví dụ: NCC001)">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label-custom">Số điện thoại</label>
@@ -116,46 +110,30 @@
                         <div class="mb-4">
                             <label class="form-label-custom">Quốc gia</label>
                             <select id="country" class="form-select form-control-custom">
-                                <option value="Vietnam" selected>Vietnam</option>
-                                <option value="China">China</option>
-                                <option value="US">United States</option>
-                                <option value="Other">Khác</option>
+                                <option value="Việt Nam" selected>Việt Nam</option>
+                                <option value="Trung Quốc">Trung Quốc</option>
+                                <option value="Mỹ">Mỹ</option>
+                                <option value="Khác">Khác</option>
                             </select>
-                        </div>
-
-                        <div class="bg-light p-3 rounded border mb-4 d-flex align-items-center">
-                            <div class="form-check form-switch m-0">
-                                <input class="form-check-input" type="checkbox" role="switch" id="newAddressSwitch"
-                                       checked disabled>
-                                <label class="form-check-label ms-2 small fw-medium" for="newAddressSwitch">Thông tin
-                                    địa chỉ</label>
-                            </div>
                         </div>
 
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label-custom">Tỉnh/Thành phố</label>
                                 <input type="text" id="province" class="form-control form-control-custom"
-                                       placeholder="VD: Hà Nội hoặc Quảng Đông">
+                                       placeholder="VD: Hà Nội">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label-custom">Quận huyện</label>
-                                <input type="text" id="district" class="form-control form-control-custom"
-                                       placeholder="VD: Cầu Giấy hoặc Bạch Vân">
-                            </div>
-                        </div>
-
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <label class="form-label-custom">Phường xã</label>
+                                <label class="form-label-custom">Phường/Xã</label>
                                 <input type="text" id="ward" class="form-control form-control-custom"
                                        placeholder="VD: Dịch Vọng">
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label-custom">Địa chỉ cụ thể</label>
-                                <input type="text" id="addressDetail" class="form-control form-control-custom"
-                                       placeholder="Số nhà, tên đường, tòa nhà...">
-                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label-custom">Địa chỉ chi tiết</label>
+                            <input type="text" id="addressDetail" class="form-control form-control-custom"
+                                   placeholder="Số nhà, tên đường, tòa nhà...">
                         </div>
                     </div>
                 </div>
@@ -165,10 +143,13 @@
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body p-4">
                         <div class="card-title-custom">Nhân viên phụ trách</div>
-                        <label class="form-label-custom">Nhân viên phụ trách</label>
+                        <label class="form-label-custom">Người chịu trách nhiệm</label>
                         <select id="assignee" class="form-select form-control-custom">
-                            <option value="QUANG BUI" selected>QUANG BUI</option>
-                            <option value="ADMIN">ADMIN</option>
+                            <option th:each="u : ${users}"
+                                    th:value="${u.fullName}"
+                                    th:text="${u.fullName}"
+                                    th:selected="${currentUser != null && u.id == currentUser.id}">
+                            </option>
                         </select>
                     </div>
                 </div>
@@ -177,28 +158,29 @@
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="card-title-custom mb-0">Tag</div>
-                            <a href="javascript:void(0)" class="text-primary small text-decoration-none fw-medium">Danh
-                                sách tag</a>
+                            <a href="javascript:void(0)" class="text-primary small text-decoration-none fw-medium">Quản
+                                lý tag</a>
                         </div>
                         <input type="text" id="tags" class="form-control form-control-custom"
-                               placeholder="Tìm kiếm hoặc thêm mới tag">
+                               placeholder="Nhập tag và ấn enter">
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="d-flex justify-content-end mt-4 border-top pt-4">
-            <button type="button" class="btn btn-primary fw-bold shadow-sm px-5 py-2" onclick="submitSupplier()">Thêm
-                mới
+            <button type="button" class="btn btn-primary fw-bold shadow-sm px-5 py-2" onclick="submitSupplier()">Lưu nhà
+                cung cấp
             </button>
         </div>
     </form>
 
-    <script>
+    <script th:inline="javascript">
         async function submitSupplier() {
             const name = document.getElementById('name').value.trim();
             if (!name) {
-                alert('Tên nhà cung cấp không được để trống!');
+                alert('Vui lòng nhập tên nhà cung cấp!');
+                document.getElementById('name').focus();
                 return;
             }
 
@@ -212,7 +194,6 @@
                 fax: document.getElementById('fax').value.trim(),
                 country: document.getElementById('country').value,
                 province: document.getElementById('province').value.trim(),
-                district: document.getElementById('district').value.trim(),
                 ward: document.getElementById('ward').value.trim(),
                 addressDetail: document.getElementById('addressDetail').value.trim(),
                 assignee: document.getElementById('assignee').value,
@@ -231,11 +212,11 @@
                     window.location.href = '/ui/suppliers';
                 } else {
                     const errorData = await response.json();
-                    alert('Lỗi: ' + (errorData.message || 'Không thể thêm nhà cung cấp.'));
+                    alert('Lỗi: ' + (errorData.message || 'Không thể lưu dữ liệu.'));
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Có lỗi xảy ra trong quá trình lưu dữ liệu!');
+                alert('Lỗi kết nối đến máy chủ!');
             }
         }
     </script>

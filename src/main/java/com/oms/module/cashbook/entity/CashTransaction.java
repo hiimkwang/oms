@@ -3,7 +3,9 @@ package com.oms.module.cashbook.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "cash_transactions")
@@ -13,44 +15,54 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class CashTransaction {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "voucher_code", unique = true, nullable = false)
-    private String voucherCode; // Số phiếu thu/chi (VD: PT001, PC005)
+    @Column(unique = true, nullable = false)
+    private String code; // PT0001, PC0001
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "transaction_type", nullable = false)
-    private TransactionType transactionType; // Phân loại: THU hoặc CHI
+    private TransactionType type;
 
-    @Column(name = "transaction_date", nullable = false)
-    private LocalDate transactionDate; // Ngày chứng từ
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod paymentMethod;
 
-    @Column(name = "person_name", nullable = false)
-    private String personName; // Người Nộp / Người Nhận Tiền
+    @Enumerated(EnumType.STRING)
+    private TargetGroup targetGroup;
 
-    @Column(name = "address")
-    private String address; // Địa Chỉ
+    private Long targetId; // ID của Khách/NCC/Nhân viên tương ứng
+    private String targetName; // Lưu tên tại thời điểm thu/chi để làm báo cáo nhanh
 
-    @Column(name = "reference_document")
-    private String referenceDocument; // Chứng Từ (VD: Số Đơn hàng hoặc Số Phiếu nhập)
+    private BigDecimal amount;
+    private String reason;
+    private String description;
+    private String referenceCode; // Mã đơn hàng hoặc mã hóa đơn liên quan
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description; // Nội Dung Diễn Giải
+    @Column(name = "branch_id")
+    private Long branchId;
 
-    @Column(name = "amount", nullable = false)
-    private Double amount; // Số Tiền
+    private LocalDateTime transactionDate;
+    private String creatorName;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String attachments;
 
     @PrePersist
     protected void onCreate() {
-        if (this.transactionDate == null) {
-            this.transactionDate = LocalDate.now();
-        }
+        this.createdAt = LocalDateTime.now();
+        if (this.transactionDate == null) this.transactionDate = LocalDateTime.now();
     }
 
-    public enum TransactionType {
-        THU, CHI
-    }
+    // Loại giao dịch
+    public enum TransactionType {RECEIPT, PAYMENT} // Phiếu thu, Phiếu chi
+
+    // Hình thức thanh toán
+    public enum PaymentMethod {CASH, BANK} // Tiền mặt, Ngân hàng
+
+    // Nhóm đối tượng
+    public enum TargetGroup {CUSTOMER, SUPPLIER, EMPLOYEE, OTHER}
 }

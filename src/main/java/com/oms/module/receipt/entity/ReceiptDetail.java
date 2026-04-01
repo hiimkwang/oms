@@ -25,5 +25,6 @@ public class ReceiptDetail {
     private String productName;
     private Integer quantity;
     private BigDecimal importPrice; // Giá nhập tại thời điểm đó
-
+    @Column(name = "warranty_months")
+    private Integer warrantyMonths;
 }

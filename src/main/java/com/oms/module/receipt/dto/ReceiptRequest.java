@@ -9,6 +9,7 @@ import java.util.List;
 public class ReceiptRequest {
     private String supplierCode;
     private String branchName;
+    private Long branchId;
     private String note;
 
     private BigDecimal itemsAmount;  // Tổng tiền hàng
@@ -21,6 +22,8 @@ public class ReceiptRequest {
     private String paymentMethod;
 
     private Boolean isImportStock;
+    private String referenceCode; // Số hóa đơn NCC (Nếu cần)
+    private Long assigneeId;      // Nhân viên phụ trách (Nếu cần)
 
     private List<ItemRequest> items;
 
@@ -29,5 +32,6 @@ public class ReceiptRequest {
         private String sku;
         private int quantity;
         private BigDecimal importPrice;
+        private Integer warrantyMonths;
     }
 }

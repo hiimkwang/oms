@@ -6,17 +6,63 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface CashTransactionRepository extends JpaRepository<CashTransaction, Long> {
-    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.transactionType = 'THU' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
+    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.type = 'THU' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
     Double sumOtherIncomeByMonthAndYear(@Param("month") int month, @Param("year") int year);
 
-    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.transactionType = 'CHI' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
+    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.type = 'CHI' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
     Double sumOperatingExpensesByMonthAndYear(@Param("month") int month, @Param("year") int year);
 
-    Optional<CashTransaction> findByVoucherCode(String voucherCode);
+    boolean existsByCode(String code);
 
-    boolean existsByVoucherCode(String voucherCode);
+    @Query("SELECT COALESCE(SUM(CASE WHEN t.type = 'RECEIPT' THEN t.amount ELSE 0 END), 0) - " +
+            "       COALESCE(SUM(CASE WHEN t.type = 'PAYMENT' THEN t.amount ELSE 0 END), 0) " +
+            "FROM CashTransaction t " +
+            "WHERE t.transactionDate < :startDate")
+    BigDecimal calculateOpeningBalance(@Param("startDate") LocalDateTime startDate);
+
+    // 1. Tính tổng số tiền của một LOẠI (Thu/Chi) TRƯỚC một thời điểm (Để tính Đầu Kỳ)
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t " +
+            "WHERE t.type = :type AND t.transactionDate < :date")
+    BigDecimal sumAmountByTypeBefore(@Param("type") CashTransaction.TransactionType type,
+                                     @Param("date") LocalDateTime date);
+
+    // 2. Tính tổng số tiền của một LOẠI trong KHOẢNG thời gian (Để tính Tổng Thu/Chi trong kỳ)
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t " +
+            "WHERE t.type = :type AND t.transactionDate BETWEEN :start AND :end")
+    BigDecimal sumAmountByTypeBetween(@Param("type") CashTransaction.TransactionType type,
+                                      @Param("start") LocalDateTime start,
+                                      @Param("end") LocalDateTime end);
+
+    // 3. Tính tổng theo PHƯƠNG THỨC và LOẠI (Để tính số dư Tiền mặt / Tiền gửi hiện tại)
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t " +
+            "WHERE t.paymentMethod = :method AND t.type = :type")
+    BigDecimal sumByMethodAndType(@Param("method") CashTransaction.PaymentMethod method,
+                                  @Param("type") CashTransaction.TransactionType type);
+
+    List<CashTransaction> findByTransactionDateBetweenOrderByTransactionDateDesc(
+            LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT t FROM CashTransaction t WHERE " +
+            "(t.transactionDate BETWEEN :start AND :end) AND " +
+            "(:branchId IS NULL OR t.branchId = :branchId) AND " +
+            "(:type IS NULL OR t.type = :type) AND " +
+            "(:keyword IS NULL OR :keyword = '' OR " +
+            " LOWER(t.code) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            " LOWER(t.targetName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            " LOWER(t.reason) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            " LOWER(t.referenceCode) LIKE LOWER(CONCAT('%', :keyword, '%')) ) " +
+            "ORDER BY t.transactionDate DESC")
+    List<CashTransaction> searchAndFilter(
+            @Param("keyword") String keyword,
+            @Param("branchId") Long branchId,
+            @Param("type") CashTransaction.TransactionType type,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 }

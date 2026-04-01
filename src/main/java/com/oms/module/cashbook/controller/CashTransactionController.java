@@ -1,8 +1,13 @@
 package com.oms.module.cashbook.controller;
 
+import com.oms.module.account.repository.UserRepository;
 import com.oms.module.cashbook.dto.CashTransactionRequest;
 import com.oms.module.cashbook.entity.CashTransaction;
-import com.oms.module.cashbook.service.CashTransactionService;
+import com.oms.module.cashbook.service.CashbookService;
+import com.oms.module.customer.repository.CustomerRepository;
+import com.oms.module.customer.service.CustomerService;
+import com.oms.module.supplier.repository.SupplierRepository;
+import com.oms.module.supplier.service.SupplierService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -10,33 +15,55 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/cashbook")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class CashTransactionController {
 
-    private final CashTransactionService cashTransactionService;
-
-    @GetMapping
-    public ResponseEntity<List<CashTransaction>> getAllTransactions() {
-        return ResponseEntity.ok(cashTransactionService.getAllTransactions());
-    }
-
-    @GetMapping("/{voucherCode}")
-    public ResponseEntity<CashTransaction> getTransactionByCode(@PathVariable String voucherCode) {
-        return ResponseEntity.ok(cashTransactionService.getTransactionByCode(voucherCode));
-    }
+    private final CashbookService cashbookService;
+    private final CustomerRepository customerRepository;
+    private final SupplierRepository supplierRepository;
+    private final UserRepository userRepository;
 
     @PostMapping
-    public ResponseEntity<CashTransaction> createTransaction(@Valid @RequestBody CashTransactionRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(cashTransactionService.createTransaction(request));
+    public ResponseEntity<?> create(@RequestBody CashTransactionRequest request) {
+        return ResponseEntity.ok(cashbookService.createTransaction(request));
     }
 
-    @DeleteMapping("/{voucherCode}")
-    public ResponseEntity<Void> deleteTransaction(@PathVariable String voucherCode) {
-        cashTransactionService.deleteTransaction(voucherCode);
-        return ResponseEntity.noContent().build();
+    // Sửa search-user thành search-employee cho khớp JS
+    @GetMapping("/search-employee")
+    public List<?> searchEmployee(@RequestParam String query) {
+        return userRepository.findByFullNameContainingIgnoreCaseOrUsernameContaining(query, query);
+    }
+
+    @GetMapping("/search-customer")
+    public List<?> searchCustomer(@RequestParam String query) {
+        return customerRepository.findByFullNameContainingIgnoreCaseOrPhoneContaining(query, query);
+    }
+
+    @GetMapping("/search-supplier")
+    public List<?> searchSupplier(@RequestParam String query) {
+        return supplierRepository.findByNameContainingIgnoreCaseOrCodeContaining(query, query);
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        String desc = payload.get("description");
+        String attachments = payload.get("attachments"); // Dạng JSON string: "['url1', 'url2']"
+        return ResponseEntity.ok(cashbookService.updateDetails(id, desc, attachments));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        cashbookService.deleteTransaction(id);
+        return ResponseEntity.ok("Đã xóa");
+    }
+    @DeleteMapping("/bulk")
+    public ResponseEntity<?> deleteBulk(@RequestBody List<Long> ids) {
+        for(Long id : ids) {
+            cashbookService.deleteTransaction(id);
+        }
+        return ResponseEntity.ok("Xóa thành công");
     }
 }

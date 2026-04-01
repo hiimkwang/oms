@@ -2,11 +2,12 @@ package com.oms.ui;
 
 import com.oms.module.account.entity.User;
 import com.oms.module.account.repository.UserRepository;
+import com.oms.module.cashbook.entity.CashTransaction;
+import com.oms.module.cashbook.service.CashbookService;
 import com.oms.module.category.service.CategoryService; // Thêm import này
 import com.oms.module.customer.service.CustomerService;
 import com.oms.module.inventory.dto.InventoryDTO;
 import com.oms.module.inventory.service.InventoryService;
-import com.oms.module.product.repository.ProductVariantRepository;
 import com.oms.module.product.service.ProductService;
 import com.oms.module.receipt.entity.Receipt;
 import com.oms.module.receipt.service.ReceiptService;
@@ -18,7 +19,10 @@ import com.oms.module.setting.repository.SalesChannelRepository;
 import com.oms.module.setting.service.MasterDataService;
 import com.oms.module.supplier.service.SupplierService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,7 +30,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequiredArgsConstructor
@@ -47,6 +53,8 @@ public class WebController {
     private final PasswordEncoder passwordEncoder;
     private final BranchRepository branchRepository;
     private final SalesChannelRepository channelRepository;
+    private final CashbookService cashbookService;
+
     // Trang chủ - Bảng điều khiển (Dashboard)
     @GetMapping("/")
     public String dashboard(Model model) {
@@ -70,6 +78,7 @@ public class WebController {
     public String login() {
         return "login";
     }
+
     @GetMapping("/profile")
     public String profile(Model model, Principal principal) {
         // Lấy thông tin user đang đăng nhập từ username
@@ -300,17 +309,22 @@ public class WebController {
 
         return "inventory";
     }
+
     // Mở trang Danh sách nhà cung cấp
     @GetMapping("/ui/suppliers")
-    public String suppliersPage(@RequestParam(required = false) String keyword, Model model) {
+    public String listSuppliers(Model model, @RequestParam(required = false) String keyword,
+                                @RequestParam(required = false) String assignee) {
         model.addAttribute("suppliers", supplierService.getSuppliers(keyword));
         model.addAttribute("keyword", keyword);
+        model.addAttribute("users", userRepository.findAll());
+        model.addAttribute("assignee", assignee);
         return "suppliers";
     }
 
     // Mở trang Thêm mới nhà cung cấp
     @GetMapping("/ui/suppliers/create")
-    public String createSupplierPage() {
+    public String createSupplierPage(Model model) {
+        model.addAttribute("users", userRepository.findAll());
         return "supplier-create";
     }
 
@@ -318,17 +332,23 @@ public class WebController {
     @GetMapping("/ui/suppliers/{code}")
     public String supplierDetailPage(@PathVariable String code, Model model) {
         model.addAttribute("supplier", supplierService.getSupplierByCode(code));
+        model.addAttribute("users", userRepository.findAll());
         return "supplier-detail";
     }
 
     // Mở trang Nhập hàng (Tạo đơn nhập hàng)
     @GetMapping("/ui/imports/create")
-    public String createImportPage(Model model) {
-        // PHẢI CÓ 3 DÒNG NÀY THÌ MODAL MỚI CÓ DATA ĐỂ CHỌN
+    public String createImportPage(Model model, @AuthenticationPrincipal UserDetails currentUser) {
         model.addAttribute("categories", categoryService.getAll());
         model.addAttribute("brands", masterDataService.getValuesByType("BRAND"));
         model.addAttribute("units", masterDataService.getValuesByType("UNIT"));
         model.addAttribute("users", userRepository.findAll());
+
+        model.addAttribute("branches", branchRepository.findAll());
+        if (currentUser != null) {
+            User userObj = userRepository.findByUsername(currentUser.getUsername()).orElse(null);
+            model.addAttribute("currentUser", userObj);
+        }
         return "import-create";
     }
 
@@ -361,5 +381,49 @@ public class WebController {
 
         model.addAttribute("order", receipt);
         return "import-edit"; // Mở file import-edit.html
+    }
+
+
+    @GetMapping("/ui/cashbook")
+    public String cashbookOverview(
+            Model model,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+
+        if (start == null) start = LocalDateTime.now().minusDays(30).withHour(0).withMinute(0).withSecond(0);
+        if (end == null) end = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);
+
+        List<CashTransaction> filteredList = cashbookService.filterTransactions(keyword, branchId, type, start, end);
+
+        model.addAttribute("transactions", filteredList);
+        model.addAttribute("summary", cashbookService.getSummary(start, end));
+        model.addAttribute("branches", branchRepository.findAll());
+
+        return "cashbook";
+    }
+
+    @GetMapping("/ui/cashbook/receipt/create")
+    public String createReceiptPage(Model model) {
+        model.addAttribute("branches", branchRepository.findAll());
+        return "cash-receipt-create";
+    }
+
+    @GetMapping("/ui/cashbook/payment/create")
+    public String createPaymentPage(Model model) {
+        model.addAttribute("branches", branchRepository.findAll());
+        return "cash-payment-create";
+    }
+
+    @GetMapping("/ui/cashbook/detail/{id}")
+    public String transactionDetail(@PathVariable Long id, Model model) {
+        CashTransaction transaction = cashbookService.getById(id);
+        model.addAttribute("transaction", transaction);
+        if (transaction.getType().name().equals("RECEIPT")) {
+            return "cash-receipt-detail";
+        }
+        return "cash-payment-detail";
     }
 }

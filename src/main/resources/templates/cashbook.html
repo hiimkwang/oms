@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .stat-card {
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .math-operator {
+            font-size: 20px;
+            color: #94a3b8;
+            font-weight: 300;
+        }
+
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #4b566b;
+            font-size: 13px;
+            font-weight: 500;
+            height: 36px;
+            display: flex;
+            align-items: center;
+        }
+
+        .filter-btn:hover {
+            background-color: #f8f9fb;
+            border-color: #cbd5e1;
+        }
+
+        .table-custom thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+            padding: 12px 10px;
+            white-space: nowrap;
+        }
+
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #64748b;
+            font-weight: 500;
+            padding: 10px 20px;
+            font-size: 14px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+            font-weight: 600;
+        }
+
+        .nav-tabs-custom .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        .nav-tabs-custom .nav-link:hover:not(.active) {
+            color: #0f172a;
+        }
+
+        .search-box {
+            max-width: 450px;
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            background: white;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .search-box:focus-within {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            padding-right: 8px;
+        }
+
+        .search-box .form-control {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding-left: 0;
+            font-size: 13px;
+            height: 36px;
+        }
+
+        .text-receipt {
+            color: #10b981 !important;
+            font-weight: 600;
+        }
+
+        .text-payment {
+            color: #ef4444 !important;
+            font-weight: 600;
+        }
+
+        .hover-primary:hover {
+            color: #0d6efd !important;
+            text-decoration: underline !important;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <h4 class="fw-bold mb-0 text-dark">Sổ quỹ</h4>
+        <div class="d-flex gap-2">
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
+            <div class="dropdown">
+                <button class="btn btn-primary fw-bold px-3 shadow-sm dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown">
+                    <i class="bi bi-plus-circle me-2"></i>Tạo phiếu
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                    <li><a class="dropdown-item py-2" th:href="@{/ui/cashbook/receipt/create}"><i
+                            class="bi bi-arrow-down-left-circle text-success me-2"></i>Tạo phiếu thu</a></li>
+                    <li><a class="dropdown-item py-2" th:href="@{/ui/cashbook/payment/create}"><i
+                            class="bi bi-arrow-up-right-circle text-danger me-2"></i>Tạo phiếu chi</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card mb-4">
+        <div class="row align-items-center text-center">
+            <div class="col">
+                <div class="stat-label">Quỹ đầu kỳ</div>
+                <div class="stat-value"
+                     th:text="${#numbers.formatDecimal(summary.openingBalance, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+            </div>
+            <div class="col-auto math-operator">+</div>
+            <div class="col">
+                <div class="stat-label">Tổng thu</div>
+                <div class="stat-value text-success"
+                     th:text="${#numbers.formatDecimal(summary.totalIn, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+            </div>
+            <div class="col-auto math-operator">-</div>
+            <div class="col">
+                <div class="stat-label">Tổng chi</div>
+                <div class="stat-value text-danger"
+                     th:text="${#numbers.formatDecimal(summary.totalOut, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+            </div>
+            <div class="col-auto math-operator">=</div>
+            <div class="col">
+                <div class="stat-label">Tồn quỹ</div>
+                <div class="stat-value text-primary"
+                     th:text="${#numbers.formatDecimal(summary.closingBalance, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+
+        <div class="card-header bg-white border-0 p-0">
+            <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3" id="cashbookTabs">
+                <li class="nav-item"><a class="nav-link active" data-type="ALL">Tất cả giao dịch</a></li>
+                <li class="nav-item"><a class="nav-link" data-type="RECEIPT">Phiếu thu</a></li>
+                <li class="nav-item"><a class="nav-link" data-type="PAYMENT">Phiếu chi</a></li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div id="defaultToolbar"
+                 class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
+                <div class="input-group search-box flex-grow-1">
+                    <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
+                    <input type="text" id="txSearchInput" class="form-control"
+                           placeholder="Tìm theo mã phiếu, tên đối tượng, lý do...">
+                </div>
+
+                <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select filter-btn w-auto fw-bold text-primary" id="datePreset"
+                            onchange="handleDatePreset()">
+                        <option value="today">Hôm nay</option>
+                        <option value="yesterday">Hôm qua</option>
+                        <option value="thisMonth">Tháng này</option>
+                        <option value="lastMonth">Tháng trước</option>
+                        <option value="thisYear">Năm nay</option>
+                        <option value="custom">Tùy chọn...</option>
+                    </select>
+
+                    <div id="customDateContainer" class="d-none gap-2 align-items-center">
+                        <input type="date" class="form-control filter-btn w-auto text-muted" id="startDate"
+                               onchange="applyFilters()">
+                        <span class="text-muted">-</span>
+                        <input type="date" class="form-control filter-btn w-auto text-muted" id="endDate"
+                               onchange="applyFilters()">
+                    </div>
+
+                    <select class="form-select filter-btn w-auto" id="branchFilter" onchange="applyFilters()">
+                        <option value="ALL">Tất cả chi nhánh</option>
+                        <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
+                    </select>
+
+                    <button class="btn filter-btn" onclick="clearAllFilters()">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Xóa lọc
+                    </button>
+                </div>
+            </div>
+
+            <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
+                 style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4;">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-medium" style="color: #0369a1; font-size: 13px;">Đã chọn <span id="selectedCount"
+                                                                                                   class="fw-bold fs-6">0</span> phiếu</span>
+                    <span class="text-muted small">|</span>
+                    <a href="javascript:void(0)" class="text-decoration-none fw-medium"
+                       style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
+                </div>
+                <div>
+                    <button class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
+                            style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;"
+                            onclick="deleteSelectedTransactions()">
+                        <i class="bi bi-trash3 me-1"></i>Xóa giao dịch
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive" style="min-height: 400px;">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th class="ps-4" style="width: 40px;"><input type="checkbox" class="form-check-input"
+                                                                     id="checkAll"></th>
+                        <th>Mã phiếu</th>
+                        <th>Ngày ghi nhận</th>
+                        <th>Tên đối tượng</th>
+                        <th>Lý do</th>
+                        <th>Tham chiếu</th>
+                        <th class="text-end pe-4">Số tiền</th>
+                    </tr>
+                    </thead>
+                    <tbody id="txTableBody">
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
+                            Đang xử lý dữ liệu...
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
+                <div class="text-muted small" id="recordInfo">Đang tải...</div>
+                <div class="d-flex align-items-center gap-3">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item disabled"><a class="page-link" href="#"><i
+                                    class="bi bi-chevron-left"></i></a></li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item disabled"><a class="page-link" href="#"><i
+                                    class="bi bi-chevron-right"></i></a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const rawTransactions = /*[[${transactions}]]*/ [];
+        let currentTabType = 'ALL';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Thiết lập mặc định là Hôm nay khi vừa mở trang
+            document.getElementById('datePreset').value = 'today';
+            handleDatePreset();
+
+            // Events
+            document.querySelectorAll('#cashbookTabs .nav-link').forEach(tab => {
+                tab.addEventListener('click', function () {
+                    document.querySelectorAll('#cashbookTabs .nav-link').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentTabType = this.getAttribute('data-type');
+                    applyFilters();
+                });
+            });
+
+            let searchTimeout;
+            document.getElementById('txSearchInput').addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(applyFilters, 300);
+            });
+
+            document.getElementById('checkAll').addEventListener('change', function () {
+                document.querySelectorAll('.tx-checkbox').forEach(cb => {
+                    cb.checked = this.checked;
+                });
+                toggleBulkActionBar();
+            });
+        });
+
+        // HÀM XỬ LÝ LỌC NGÀY (Dropdown & Custom)
+        function handleDatePreset() {
+            const preset = document.getElementById('datePreset').value;
+            const customContainer = document.getElementById('customDateContainer');
+            const now = new Date();
+            let start = new Date();
+            let end = new Date();
+
+            if (preset === 'custom') {
+                customContainer.classList.remove('d-none');
+                customContainer.classList.add('d-flex');
+                return; // Dừng lại để người dùng tự chọn ngày
+            } else {
+                customContainer.classList.add('d-none');
+                customContainer.classList.remove('d-flex');
+            }
+
+            if (preset === 'today') {
+                // Giữ nguyên Date
+            } else if (preset === 'yesterday') {
+                start.setDate(now.getDate() - 1);
+                end.setDate(now.getDate() - 1);
+            } else if (preset === 'thisMonth') {
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            } else if (preset === 'lastMonth') {
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                end = new Date(now.getFullYear(), now.getMonth(), 0);
+            } else if (preset === 'thisYear') {
+                start = new Date(now.getFullYear(), 0, 1);
+                end = new Date(now.getFullYear(), 11, 31);
+            }
+
+            // Gắn vào field ẩn (Để JS lấy ra lọc)
+            document.getElementById('startDate').value = start.toISOString().split('T')[0];
+            document.getElementById('endDate').value = end.toISOString().split('T')[0];
+
+            applyFilters();
+        }
+
+        // HÀM GIẢI MÃ DATE CỦA SPRING BOOT TRÁNH LỖI "INVALID DATE"
+        function parseDateSafely(dateInput) {
+            if (!dateInput) return null;
+            // Nếu là mảng [YYYY, MM, DD, hh, mm, ss]
+            if (Array.isArray(dateInput)) {
+                return new Date(dateInput[0], dateInput[1] - 1, dateInput[2], dateInput[3] || 0, dateInput[4] || 0, dateInput[5] || 0);
+            }
+            // Nếu là chuỗi
+            return new Date(dateInput);
+        }
+
+        function applyFilters() {
+            const keyword = document.getElementById('txSearchInput').value.toLowerCase().trim();
+            const branchId = document.getElementById('branchFilter').value;
+
+            // Lấy khoảng thời gian
+            const sVal = document.getElementById('startDate').value;
+            const eVal = document.getElementById('endDate').value;
+            const startFilter = sVal ? new Date(sVal + 'T00:00:00').getTime() : null;
+            const endFilter = eVal ? new Date(eVal + 'T23:59:59').getTime() : null;
+
+            const filteredData = rawTransactions.filter(t => {
+                const matchTab = (currentTabType === 'ALL') || (t.type === currentTabType);
+                const matchBranch = (branchId === 'ALL') || (t.branchId == branchId);
+
+                // Kiểm tra điều kiện ngày
+                let matchDate = true;
+                if (startFilter || endFilter) {
+                    const txDateObj = parseDateSafely(t.transactionDate);
+                    if (txDateObj) {
+                        const txTime = txDateObj.getTime();
+                        if (startFilter && txTime < startFilter) matchDate = false;
+                        if (endFilter && txTime > endFilter) matchDate = false;
+                    } else {
+                        matchDate = false;
+                    }
+                }
+
+                const code = t.code ? t.code.toLowerCase() : '';
+                const target = t.targetName ? t.targetName.toLowerCase() : '';
+                const reason = t.reason ? t.reason.toLowerCase() : '';
+                const ref = t.referenceCode ? t.referenceCode.toLowerCase() : '';
+
+                const matchKeyword = !keyword || code.includes(keyword) || target.includes(keyword) || reason.includes(keyword) || ref.includes(keyword);
+
+                return matchTab && matchBranch && matchDate && matchKeyword;
+            });
+
+            renderTable(filteredData);
+        }
+
+        function clearAllFilters() {
+            document.getElementById('txSearchInput').value = '';
+            document.getElementById('branchFilter').value = 'ALL';
+            document.getElementById('datePreset').value = 'today';
+            handleDatePreset(); // Reset về Hôm nay
+        }
+
+        function renderTable(dataList) {
+            const tbody = document.getElementById('txTableBody');
+            const info = document.getElementById('recordInfo');
+
+            if (!dataList || dataList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy giao dịch nào.</td></tr>';
+                info.innerText = 'Hiển thị 0 kết quả';
+                clearSelection();
+                return;
+            }
+
+            let html = '';
+            dataList.forEach(t => {
+                // FORMAT NGÀY THÁNG DD/MM/YYYY CHUẨN XÁC
+                let formattedDate = '---';
+                const d = parseDateSafely(t.transactionDate);
+                if (d) {
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const year = d.getFullYear();
+                    formattedDate = `${day}/${month}/${year}`;
+                }
+
+                const isReceipt = t.type === 'RECEIPT';
+                const amountClass = isReceipt ? 'text-receipt' : 'text-payment';
+                const amountPrefix = isReceipt ? '' : '-';
+                const formattedAmount = amountPrefix + new Intl.NumberFormat('vi-VN').format(t.amount || 0) + '₫';
+
+                html += `
+                    <tr>
+                        <td class="ps-4"><input type="checkbox" class="form-check-input tx-checkbox" value="${t.id}" onchange="toggleBulkActionBar()"></td>
+                        <td><a href="/ui/cashbook/detail/${t.id}" class="text-decoration-none fw-bold text-primary hover-primary">${t.code}</a></td>
+                        <td class="text-muted">${formattedDate}</td>
+                        <td class="fw-medium text-dark">${t.targetName || 'Khách vãng lai'}</td>
+                        <td>${t.reason || '---'}</td>
+                        <td class="text-muted small">${t.referenceCode || '---'}</td>
+                        <td class="text-end fw-bold ${amountClass} pe-4">${formattedAmount}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            info.innerText = `Hiển thị ${dataList.length} phiếu`;
+            clearSelection();
+        }
+
+        // --- BULK ACTION GIỮ NGUYÊN ---
+        function toggleBulkActionBar() {
+            const checkedBoxes = document.querySelectorAll('.tx-checkbox:checked');
+            const bulkBar = document.getElementById('bulkActionBar');
+            const defaultToolbar = document.getElementById('defaultToolbar');
+
+            document.getElementById('checkAll').checked = (checkedBoxes.length > 0 && checkedBoxes.length === document.querySelectorAll('.tx-checkbox').length);
+
+            if (checkedBoxes.length > 0) {
+                document.getElementById('selectedCount').innerText = checkedBoxes.length;
+                defaultToolbar.classList.add('d-none');
+                defaultToolbar.classList.remove('d-flex');
+                bulkBar.classList.remove('d-none');
+                bulkBar.classList.add('d-flex');
+            } else {
+                bulkBar.classList.add('d-none');
+                bulkBar.classList.remove('d-flex');
+                defaultToolbar.classList.add('d-flex');
+                defaultToolbar.classList.remove('d-none');
+            }
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.tx-checkbox, #checkAll').forEach(cb => cb.checked = false);
+            toggleBulkActionBar();
+        }
+
+        async function deleteSelectedTransactions() {
+            const checkboxes = document.querySelectorAll('.tx-checkbox:checked');
+            if (checkboxes.length === 0) return;
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+
+            if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} giao dịch này?`)) return;
+
+            try {
+                const res = await fetch('/api/v1/cashbook/bulk', {
+                    method: 'DELETE',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(ids)
+                });
+                if (res.ok) window.location.reload();
+            } catch (e) {
+                alert("Lỗi kết nối Server!");
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

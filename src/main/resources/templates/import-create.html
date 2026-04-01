@@ -133,11 +133,9 @@
         <div class="col-md-8">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="card-title-custom mb-0">Sản phẩm</div>
-                    </div>
+                    <div class="card-title-custom mb-0">Sản phẩm</div>
 
-                    <div class="d-flex gap-2 mb-4">
+                    <div class="d-flex gap-2 mb-4 mt-3">
                         <div class="position-relative flex-grow-1">
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0"><i
@@ -161,9 +159,10 @@
                             <table class="table table-product mb-0">
                                 <thead>
                                 <tr>
-                                    <th style="width: 40%;" class="ps-3">Sản phẩm</th>
-                                    <th style="width: 15%; text-align: center;">Số lượng</th>
-                                    <th style="width: 20%; text-align: right;">Đơn giá</th>
+                                    <th style="width: 30%;" class="ps-3">Sản phẩm</th>
+                                    <th style="width: 12%; text-align: center;">Số lượng</th>
+                                    <th style="width: 18%; text-align: right;">Đơn giá</th>
+                                    <th style="width: 15%; text-align: center;">BH (Tháng)</th>
                                     <th style="width: 20%; text-align: right;">Thành tiền</th>
                                     <th style="width: 5%;"></th>
                                 </tr>
@@ -173,9 +172,9 @@
                         </div>
 
                         <div class="form-check mt-3 border-top pt-3">
-                            <input class="form-check-input" type="checkbox" id="importStock">
-                            <label class="form-check-label fw-medium text-dark" for="importStock">Nhập kho khi tạo
-                                đơn</label>
+                            <input class="form-check-input" type="checkbox" id="importStock" checked>
+                            <label class="form-check-label fw-bold text-primary" for="importStock">Cập nhật tồn kho ngay
+                                khi tạo đơn</label>
                         </div>
                     </div>
                 </div>
@@ -187,9 +186,8 @@
 
                     <div id="emptyPaymentState">
                         <div class="payment-summary-row text-muted"><span>Tổng tiền</span> <span>0₫</span></div>
-                        <div class="payment-summary-row text-muted"><span>Giảm giá</span> <span>0₫</span></div>
-                        <div class="payment-summary-row text-muted border-bottom pb-3"><span>Chi phí nhập hàng</span>
-                            <span>0₫</span></div>
+                        <div class="payment-summary-row text-muted border-bottom pb-3">
+                            <span>Chi phí nhập hàng</span><span>0₫</span></div>
                         <div class="payment-summary-row pt-3"><span
                                 class="fw-bold text-dark">Tiền cần trả NCC</span><span
                                 class="fw-bold text-dark fs-5">0₫</span></div>
@@ -203,7 +201,7 @@
                         </div>
 
                         <div class="payment-summary-row mb-2">
-                            <span class="text-muted">Giảm giá</span>
+                            <span class="text-muted">Giảm giá đơn</span>
                             <div class="input-group input-group-sm w-auto" style="max-width: 150px;">
                                 <input type="number" id="discountInput" class="form-control text-end" value="0" min="0"
                                        onchange="calculateFinalAmount()">
@@ -212,7 +210,7 @@
                         </div>
 
                         <div class="payment-summary-row border-bottom pb-3">
-                            <span class="text-muted">Chi phí nhập hàng</span>
+                            <span class="text-muted">Chi phí nhập hàng (Vận chuyển, phí khác)</span>
                             <div class="input-group input-group-sm w-auto" style="max-width: 150px;">
                                 <input type="number" id="shippingFeeInput" class="form-control text-end" value="0"
                                        min="0" onchange="calculateFinalAmount()">
@@ -229,18 +227,18 @@
                             <div class="form-check mb-3">
                                 <input class="form-check-input" type="radio" name="paymentStatus" id="paid" checked
                                        onchange="togglePaymentInput()">
-                                <label class="form-check-label fw-medium" for="paid">Thanh toán cho NCC</label>
+                                <label class="form-check-label fw-medium" for="paid">Thanh toán ngay cho NCC</label>
                             </div>
                             <div class="row g-3 mb-3 ms-3" id="paymentDetailsDiv">
                                 <div class="col-md-6">
-                                    <label class="form-label-custom text-muted">Hình thức thanh toán</label>
+                                    <label class="form-label-custom text-muted small">Hình thức thanh toán</label>
                                     <select id="paymentMethod" class="form-select form-select-custom">
-                                        <option value="CASH">Tiền mặt</option>
                                         <option value="TRANSFER">Chuyển khoản</option>
+                                        <option value="CASH">Tiền mặt</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label-custom text-muted">Số tiền đã trả</label>
+                                    <label class="form-label-custom text-muted small">Số tiền đã trả</label>
                                     <div class="input-group">
                                         <input type="number" id="paymentAmountInput"
                                                class="form-control form-control-custom text-end fw-bold text-success"
@@ -252,7 +250,7 @@
                             <div class="form-check mt-2 border-top pt-3">
                                 <input class="form-check-input" type="radio" name="paymentStatus" id="payLater"
                                        onchange="togglePaymentInput()">
-                                <label class="form-check-label fw-medium" for="payLater">Thanh toán sau</label>
+                                <label class="form-check-label fw-medium" for="payLater">Ghi nợ (Thanh toán sau)</label>
                             </div>
                         </div>
                     </div>
@@ -268,7 +266,7 @@
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                             <input type="text" class="form-control form-control-custom border-start-0 ps-0"
-                                   id="supplierSearchInput" placeholder="Tìm theo tên, SĐT, mã NCC...(F4)"
+                                   id="supplierSearchInput" placeholder="Tìm tên, SĐT... (F4)"
                                    autocomplete="off">
                         </div>
                         <ul class="dropdown-menu w-100 shadow-sm border custom-dropdown-list mt-1 p-0 position-absolute"
@@ -277,7 +275,7 @@
 
                     <div id="supplierSelectedWrapper" class="selected-supplier-box d-none">
                         <i class="bi bi-x btn-remove-supplier" onclick="clearSupplier()"></i>
-                        <input type="hidden" id="selectedSupplierCode" name="supplierCode">
+                        <input type="hidden" id="selectedSupplierCode">
                         <div class="d-flex align-items-center gap-3">
                             <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
                                  style="width: 42px; height: 42px;"><i class="bi bi-person fs-4"></i></div>
@@ -292,10 +290,23 @@
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-3">
-                    <label class="card-title-custom d-block">Chi nhánh nhập</label>
-                    <select id="branchName" class="form-select form-select-custom">
-                        <option value="Cửa hàng chính">Cửa hàng chính</option>
-                    </select>
+                    <label class="card-title-custom d-block">Chi nhánh & Phụ trách</label>
+                    <div class="mb-3">
+                        <label class="form-label-custom">Chi nhánh nhập hàng <span class="text-danger">*</span></label>
+                        <select id="branchId" class="form-select form-select-custom fw-bold text-primary">
+                            <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label-custom">Nhân viên phụ trách</label>
+                        <select id="assigneeId" class="form-select form-select-custom bg-light">
+                            <option th:each="u : ${users}"
+                                    th:value="${u.id}"
+                                    th:text="${u.fullName}"
+                                    th:selected="${currentUser != null && u.id == currentUser.id}">
+                            </option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -303,35 +314,20 @@
                 <div class="card-body p-3">
                     <div class="card-title-custom">Thông tin bổ sung</div>
                     <div class="mb-3">
-                        <label class="form-label-custom">Nhân viên phụ trách</label>
-                        <select id="assignee" class="form-select form-select-custom">
-                            <option th:each="u : ${users}"
-                                    th:value="${u.fullName}"
-                                    th:text="${u.fullName}"
-                                    th:selected="${currentUser != null && u.id == currentUser.id}">
-                            </option>
-                        </select>
+                        <label class="form-label-custom">Mã đơn nhập / Số hóa đơn NCC</label>
+                        <input type="text" id="referenceCode" class="form-control form-control-custom"
+                               placeholder="Ví dụ: HD-NCC-001">
                     </div>
                     <div class="mb-3">
                         <label class="form-label-custom">Ngày nhập dự kiến</label>
-                        <input type="date" class="form-control form-control-custom">
+                        <input type="date" id="expectedDate" class="form-control form-control-custom"
+                               th:value="${#calendars.format(#calendars.createNow(), 'yyyy-MM-dd')}">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label-custom">Ngày hóa đơn</label>
-                        <input type="date" class="form-control form-control-custom">
+                    <div class="mb-0">
+                        <label class="form-label-custom">Ghi chú đơn</label>
+                        <textarea class="form-control form-control-custom" id="orderNote" rows="3"
+                                  placeholder="Nội dung ghi chú cho đơn nhập..."></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label-custom">Mã đơn nhập</label>
-                        <input type="text" class="form-control form-control-custom" placeholder="Nhập mã đơn">
-                    </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-3">
-                    <label class="card-title-custom d-block">Ghi chú</label>
-                    <textarea class="form-control form-control-custom" id="orderNote" rows="3"
-                              placeholder="VD: Chỉ nhận hàng trong giờ hành chính"></textarea>
                 </div>
             </div>
         </div>
@@ -339,7 +335,7 @@
 
     <div class="d-flex justify-content-end mt-4 border-top pt-4">
         <button type="button" id="btnCreateOrderBottom" onclick="submitImportOrder()"
-                class="btn btn-light text-muted fw-bold shadow-sm px-5 py-2" disabled>Tạo đơn nhập hàng
+                class="btn btn-light text-muted fw-bold shadow-sm px-5 py-2" disabled>Lưu đơn nhập hàng
         </button>
     </div>
 
@@ -356,28 +352,24 @@
                             <div class="col-md-6">
                                 <label class="form-label-custom">Tên nhà cung cấp <span
                                         class="text-danger">*</span></label>
-                                <input type="text" id="modalSupName" name="name"
-                                       class="form-control form-control-custom" placeholder="Nhập tên nhà cung cấp"
-                                       required>
+                                <input type="text" name="name" class="form-control form-control-custom"
+                                       placeholder="Nhập tên..." required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label-custom">Mã nhà cung cấp</label>
-                                <input type="text" id="modalSupCode" name="code"
-                                       class="form-control form-control-custom" placeholder="Nhập mã nhà cung cấp">
+                                <input type="text" name="code" class="form-control form-control-custom"
+                                       placeholder="Tự sinh nếu rỗng">
                             </div>
                         </div>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label-custom">Số điện thoại</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white" style="border-color: #dce0e4;">🇻🇳</span>
-                                    <input type="text" id="modalSupPhone" name="phone"
-                                           class="form-control form-control-custom" placeholder="Nhập số điện thoại">
-                                </div>
+                                <input type="text" name="phone" class="form-control form-control-custom"
+                                       placeholder="09xx...">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label-custom">Quốc gia</label>
-                                <select id="modalSupCountry" name="country" class="form-select form-select-custom">
+                                <select name="country" class="form-select form-select-custom">
                                     <option value="Vietnam" selected>Vietnam</option>
                                     <option value="China">China</option>
                                 </select>
@@ -387,7 +379,8 @@
                 </div>
                 <div class="modal-footer bg-light border-top py-3">
                     <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary fw-bold px-4" onclick="saveSupplierFromModal()">Lưu
+                    <button type="button" class="btn btn-primary fw-bold px-4" onclick="saveSupplierFromModal()">Lưu &
+                        Chọn
                     </button>
                 </div>
             </div>
@@ -406,62 +399,30 @@
                         <div class="col-12">
                             <label class="form-label small fw-bold">Tên sản phẩm <span
                                     class="text-danger">*</span></label>
-                            <input type="text" id="qa_name" class="form-control shadow-none border"
-                                   placeholder="Ví dụ: Switch Akko CS...">
+                            <input type="text" id="qa_name" class="form-control shadow-none border">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Mã sản phẩm/SKU</label>
-                            <input type="text" id="qa_sku" class="form-control shadow-none border"
-                                   placeholder="Để trống để tự động sinh">
+                            <label class="form-label small fw-bold">Mã SKU</label>
+                            <input type="text" id="qa_sku" class="form-control shadow-none border">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Đơn vị tính <span
-                                    class="text-danger">*</span></label>
+                            <label class="form-label small fw-bold">Đơn vị <span class="text-danger">*</span></label>
                             <select id="qa_unit" class="form-select shadow-none border">
-                                <option value="">Chọn đơn vị</option>
                                 <option th:each="u : ${units}" th:value="${u}" th:text="${u}"></option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="row g-3 bg-white p-3 rounded border mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-primary">Giá nhập (Giá vốn)</label>
-                            <div class="input-group">
-                                <input type="number" id="qa_costPrice" class="form-control shadow-none text-end fw-bold"
-                                       value="0">
-                                <span class="input-group-text bg-light border-start-0">đ</span>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-success">Số lượng nhập</label>
-                            <input type="number" id="qa_importQty"
-                                   class="form-control shadow-none text-center fw-bold text-success" value="1">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Giá bán lẻ</label>
-                            <div class="input-group">
-                                <input type="number" id="qa_price" class="form-control shadow-none text-end" value="0">
-                                <span class="input-group-text bg-light border-start-0">đ</span>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="row g-3 bg-white p-3 rounded border">
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Danh mục</label>
-                            <select id="qa_category" class="form-select shadow-none border">
-                                <option value="">Chọn danh mục</option>
-                                <option th:each="cat : ${categories}" th:value="${cat.id}"
-                                        th:text="${cat.name}"></option>
-                            </select>
+                            <label class="form-label small fw-bold text-primary">Giá nhập (Vốn)</label>
+                            <input type="number" id="qa_costPrice" class="form-control shadow-none text-end fw-bold"
+                                   value="0">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-bold">Nhãn hiệu (Hãng)</label>
-                            <select id="qa_brand" class="form-select shadow-none border">
-                                <option value="">Chọn hãng</option>
-                                <option th:each="b : ${brands}" th:value="${b}" th:text="${b}"></option>
-                            </select>
+                            <label class="form-label small fw-bold text-success">Số lượng</label>
+                            <input type="number" id="qa_importQty" class="form-control shadow-none text-center fw-bold"
+                                   value="1">
                         </div>
                     </div>
                 </div>
@@ -475,15 +436,16 @@
         </div>
     </div>
 
-    <script>
+    <script th:inline="javascript">
         let cart = [];
-        let totalItemsAmount = 0; // Tổng tiền hàng chưa tính phí/giảm giá
-        let finalAmountToPay = 0; // Cần trả NCC
+        let totalItemsAmount = 0;
+        let finalAmountToPay = 0;
 
         document.addEventListener('DOMContentLoaded', function () {
             const productInput = document.getElementById('productSearchInput');
             const supplierInput = document.getElementById('supplierSearchInput');
 
+            // GIỮ NGUYÊN LOGIC TIMEOUT CỦA ANH
             let productTimeout;
             productInput.addEventListener('input', function (e) {
                 clearTimeout(productTimeout);
@@ -519,45 +481,22 @@
                 const suppliers = await res.json();
                 let html = `<li class="border-bottom p-2 dropdown-item-hover text-primary fw-medium" data-bs-toggle="modal" data-bs-target="#addSupplierModal"><i class="bi bi-plus-circle me-2"></i>Thêm mới nhà cung cấp</li>`;
 
-                if (suppliers.length === 0) html += `<li class="p-3 text-muted small text-center">Không có nhà cung cấp nào</li>`;
+                if (suppliers.length === 0) html += `<li class="p-3 text-muted small text-center">Không thấy NCC nào</li>`;
                 else {
                     suppliers.forEach(s => {
                         html += `
                             <li class="p-2 dropdown-item-hover border-bottom" onclick="selectSupplier('${s.code}', '${s.name}', '${s.phone || ''}')">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;"><i class="bi bi-person"></i></div>
-                                    <div><div class="fw-medium text-dark">${s.name}</div><div class="small text-muted">${s.phone || 'Không có SĐT'} | Mã: ${s.code}</div></div>
+                                    <div><div class="fw-medium text-dark">${s.name}</div><div class="small text-muted">${s.phone || 'N/A'} | Mã: ${s.code}</div></div>
                                 </div>
                             </li>`;
                     });
                 }
                 listEl.innerHTML = html;
-            } catch (error) {
-                listEl.innerHTML = `<li class="p-3 text-danger small text-center">Lỗi kết nối API NCC</li>`;
+            } catch (e) {
+                listEl.innerHTML = `<li class="p-3 text-danger small">Lỗi API NCC</li>`;
             }
-        }
-
-        async function saveSupplierFromModal() {
-            const form = document.getElementById('newSupplierForm');
-            const name = form.querySelector('[name="name"]').value;
-            if (!name) {
-                alert("Nhập tên NCC!");
-                return;
-            }
-
-            const payload = Object.fromEntries(new FormData(form).entries());
-            const res = await fetch('/api/v1/suppliers', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-                const s = await res.json();
-                bootstrap.Modal.getInstance(document.getElementById('addSupplierModal')).hide();
-                form.reset();
-                selectSupplier(s.code, s.name, s.phone);
-            } else alert("Lỗi lưu NCC");
         }
 
         function selectSupplier(code, name, phone) {
@@ -571,7 +510,22 @@
         function clearSupplier() {
             document.getElementById('supplierSelectedWrapper').classList.add('d-none');
             document.getElementById('supplierSearchWrapper').classList.remove('d-none');
-            document.getElementById('supplierSearchInput').value = '';
+            document.getElementById('selectedSupplierCode').value = '';
+        }
+
+        async function saveSupplierFromModal() {
+            const form = document.getElementById('newSupplierForm');
+            const payload = Object.fromEntries(new FormData(form).entries());
+            const res = await fetch('/api/v1/suppliers', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                const s = await res.json();
+                bootstrap.Modal.getInstance(document.getElementById('addSupplierModal')).hide();
+                selectSupplier(s.code, s.name, s.phone);
+            }
         }
 
         // ================= SẢN PHẨM & GIỎ HÀNG =================
@@ -582,285 +536,199 @@
                 return;
             }
             listEl.classList.add('show');
-            listEl.innerHTML = `<li class="p-3 text-muted small text-center">Đang tìm kiếm...</li>`;
+            listEl.innerHTML = `<li class="p-3 text-muted small text-center">Đang tìm...</li>`;
 
             try {
                 const res = await fetch(`/api/v1/products/variants/search?keyword=${keyword}`);
                 const variants = await res.json();
                 let html = '';
-
                 if (variants.length === 0) {
-                    html = `
-                        <li class="p-4 text-center">
-                            <i class="bi bi-box-seam fs-3 text-muted d-block mb-2"></i>
-                            <span class="text-muted small d-block mb-3">Không tìm thấy sản phẩm "${keyword}"</span>
-                            <button class="btn btn-outline-primary btn-sm fw-medium px-3" onclick="openQuickAddProductModal('${keyword}')">
-                                <i class="bi bi-plus-circle me-1"></i> Thêm nhanh sản phẩm này
-                            </button>
-                        </li>`;
+                    html = `<li class="p-4 text-center small text-muted">Không thấy SP. <button class="btn btn-link btn-sm" onclick="openQuickAdd('${keyword}')">Thêm nhanh?</button></li>`;
                 } else {
                     variants.forEach(v => {
-                        const pName = v.productName || "Sản phẩm";
-                        const vName = v.variantName && v.variantName !== 'Default' ? ` - ${v.variantName}` : '';
                         const vStr = encodeURIComponent(JSON.stringify(v));
                         html += `
                             <li class="p-2 border-bottom dropdown-item-hover" onclick="addToCart('${vStr}')">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="img-product"><i class="bi bi-box-seam text-muted"></i></div>
                                     <div>
-                                        <div class="fw-bold text-primary" style="font-size: 14px;">${pName + vName}</div>
-                                        <div class="text-muted" style="font-size: 12px;">SKU: ${v.sku} | Tồn: ${v.stockQuantity || 0}</div>
+                                        <div class="fw-bold text-primary" style="font-size: 14px;">${v.productName} ${v.variantName !== 'Mặc định' ? '- ' + v.variantName : ''}</div>
+                                        <div class="text-muted" style="font-size: 12px;">SKU: ${v.sku} | Vốn: ${v.costPrice.toLocaleString()}₫</div>
                                     </div>
                                 </div>
                             </li>`;
                     });
                 }
                 listEl.innerHTML = html;
-            } catch (error) {
-                listEl.innerHTML = `<li class="p-3 text-danger small text-center">Lỗi API Sản phẩm</li>`;
+            } catch (e) {
+                listEl.innerHTML = `<li class="p-3 text-danger small">Lỗi API SP</li>`;
             }
         }
 
-        function openQuickAddProductModal(keyword) {
+        function addToCart(vStr) {
+            const v = JSON.parse(decodeURIComponent(vStr));
+            const idx = cart.findIndex(i => i.sku === v.sku);
+            if (idx > -1) cart[idx].quantity += 1;
+            else cart.push({
+                sku: v.sku,
+                name: v.productName,
+                variantName: v.variantName,
+                importPrice: v.costPrice || 0,
+                quantity: 1,
+                warrantyMonths: 12 // Mặc định bảo hành 12 tháng
+            });
+            renderCart();
+            document.getElementById('productSearchInput').value = '';
             document.getElementById('productDropdownList').classList.remove('show');
-            document.getElementById("qa_name").value = keyword;
-            document.getElementById("qa_costPrice").value = 0;
-            document.getElementById("qa_price").value = 0;
-            document.getElementById("qa_importQty").value = 1;
+        }
+
+        function openQuickAdd(kw) {
+            document.getElementById('qa_name').value = kw;
             new bootstrap.Modal(document.getElementById('quickAddProductModal')).show();
         }
 
         async function submitQuickAddProduct() {
-            const name = document.getElementById("qa_name").value.trim();
-            const unit = document.getElementById("qa_unit").value;
-            const costPrice = parseFloat(document.getElementById("qa_costPrice").value) || 0;
-            const importQty = parseInt(document.getElementById("qa_importQty").value) || 1;
-
-            if (!name || !unit) {
-                alert("Vui lòng nhập Tên sản phẩm và Đơn vị tính!");
-                return;
-            }
-
             const payload = {
-                name: name,
-                sku: document.getElementById("qa_sku").value.trim(),
-                unit: unit,
-                categoryId: document.getElementById("qa_category").value,
-                brand: document.getElementById("qa_brand").value,
-                price: parseFloat(document.getElementById("qa_price").value) || 0,
-                description: "Tạo nhanh từ đơn nhập hàng",
+                name: document.getElementById('qa_name').value,
+                unit: document.getElementById('qa_unit').value,
+                sku: document.getElementById('qa_sku').value,
                 variants: [{
-                    variantName: "Mặc định",
-                    sku: document.getElementById("qa_sku").value.trim(),
-                    price: parseFloat(document.getElementById("qa_price").value) || 0,
-                    costPrice: costPrice,
-                    stockQuantity: 0
+                    variantName: 'Mặc định',
+                    sku: document.getElementById('qa_sku').value,
+                    costPrice: parseFloat(document.getElementById('qa_costPrice').value) || 0
                 }]
             };
-
-            try {
-                const res = await fetch('/api/v1/products', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
+            const res = await fetch('/api/v1/products', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                const p = await res.json();
+                bootstrap.Modal.getInstance(document.getElementById('quickAddProductModal')).hide();
+                cart.push({
+                    sku: p.variants[0].sku,
+                    name: p.name,
+                    importPrice: p.variants[0].costPrice,
+                    quantity: parseInt(document.getElementById('qa_importQty').value) || 1,
+                    warrantyMonths: 12
                 });
-                if (res.ok) {
-                    const savedProduct = await res.json();
-                    const newVariant = savedProduct.variants[0];
-                    bootstrap.Modal.getInstance(document.getElementById('quickAddProductModal')).hide();
-                    cart.push({
-                        sku: newVariant.sku,
-                        name: savedProduct.name,
-                        variantName: newVariant.variantName === "Mặc định" ? "" : newVariant.variantName,
-                        importPrice: costPrice,
-                        quantity: importQty
-                    });
-                    document.getElementById('productSearchInput').value = '';
-                    renderCart();
-                    alert("Đã tạo sản phẩm và thêm vào phiếu nhập!");
-                } else {
-                    const err = await res.json();
-                    alert("Lỗi tạo SP: " + (err.message || "Kiểm tra lại dữ liệu"));
-                }
-            } catch (e) {
-                alert("Lỗi kết nối Server!");
+                renderCart();
             }
         }
 
-        function addToCart(variantJsonStr) {
-            const v = JSON.parse(decodeURIComponent(variantJsonStr));
-            document.getElementById('productDropdownList').classList.remove('show');
-            document.getElementById('productSearchInput').value = '';
-
-            const idx = cart.findIndex(item => item.sku === v.sku);
-            if (idx > -1) cart[idx].quantity += 1;
-            else cart.push({
-                sku: v.sku,
-                name: v.productName || "Sản phẩm",
-                variantName: v.variantName,
-                importPrice: v.costPrice || 0,
-                quantity: 1
-            });
-            renderCart();
-        }
-
-        function updateCartItem(index, field, value) {
-            let num = parseFloat(value) || 0;
-            if (num < 0) num = 0;
-            cart[index][field] = num;
-            renderCart();
-        }
-
-        function removeCartItem(index) {
-            cart.splice(index, 1);
-            renderCart();
-        }
-
-        // ================= THANH TOÁN & RENDER GIỎ HÀNG =================
+        // ================= TÍNH TOÁN =================
         function formatMoney(amount) {
             return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
         }
 
         function renderCart() {
             const tbody = document.querySelector('#filledProductState tbody');
-            const states = ['emptyProductState', 'filledProductState', 'emptyPaymentState', 'filledPaymentState'];
-            const btns = ['btnCreateOrderTop', 'btnCreateOrderBottom'];
+            const isEmpty = cart.length === 0;
+            document.getElementById('emptyProductState').classList.toggle('d-none', !isEmpty);
+            document.getElementById('filledProductState').classList.toggle('d-none', isEmpty);
+            document.getElementById('emptyPaymentState').classList.toggle('d-none', !isEmpty);
+            document.getElementById('filledPaymentState').classList.toggle('d-none', isEmpty);
 
-            if (cart.length === 0) {
-                document.getElementById(states[0]).classList.remove('d-none');
-                document.getElementById(states[2]).classList.remove('d-none');
-                document.getElementById(states[1]).classList.add('d-none');
-                document.getElementById(states[3]).classList.add('d-none');
-                btns.forEach(id => {
-                    const b = document.getElementById(id);
-                    b.disabled = true;
-                    b.classList.replace('btn-primary', 'btn-light');
-                    b.classList.add('text-muted');
-                });
-                return;
-            }
-
-            document.getElementById(states[0]).classList.add('d-none');
-            document.getElementById(states[2]).classList.add('d-none');
-            document.getElementById(states[1]).classList.remove('d-none');
-            document.getElementById(states[3]).classList.remove('d-none');
-            btns.forEach(id => {
+            ['btnCreateOrderTop', 'btnCreateOrderBottom'].forEach(id => {
                 const b = document.getElementById(id);
-                b.disabled = false;
-                b.classList.replace('btn-light', 'btn-primary');
-                b.classList.remove('text-muted');
+                b.disabled = isEmpty;
+                b.classList.toggle('btn-primary', !isEmpty);
+                b.classList.toggle('btn-light', isEmpty);
+                b.classList.toggle('text-muted', isEmpty);
             });
 
-            let html = '', totalQty = 0;
+            let html = '';
             totalItemsAmount = 0;
-
+            let totalQty = 0;
             cart.forEach((item, index) => {
                 const lineTotal = item.quantity * item.importPrice;
                 totalItemsAmount += lineTotal;
                 totalQty += item.quantity;
-                html += `
-                    <tr>
-                        <td class="ps-3">
-                            <div class="fw-bold text-primary" style="font-size: 14px;">${item.name}</div>
-                            <div class="text-muted" style="font-size: 12px;">${item.sku}</div>
-                        </td>
-                        <td class="text-center"><input type="number" min="1" class="form-control form-control-custom text-center mx-auto" value="${item.quantity}" onchange="updateCartItem(${index}, 'quantity', this.value)" style="width: 80px;"></td>
-                        <td class="text-end"><input type="number" min="0" class="form-control form-control-custom text-end w-100" value="${item.importPrice}" onchange="updateCartItem(${index}, 'importPrice', this.value)"></td>
-                        <td class="text-end fw-bold text-dark">${formatMoney(lineTotal)}</td>
-                        <td class="text-center"><i class="bi bi-trash text-danger dropdown-item-hover p-2 rounded" onclick="removeCartItem(${index})"></i></td>
-                    </tr>`;
+                html += `<tr>
+                    <td class="ps-3"><div class="fw-bold">${item.name}</div><div class="small text-muted">${item.sku}</div></td>
+                    <td><input type="number" class="form-control form-control-sm text-center mx-auto" style="width:70px;" value="${item.quantity}" onchange="updateCart(${index}, 'quantity', this.value)"></td>
+                    <td><input type="number" class="form-control form-control-sm text-end" value="${item.importPrice}" onchange="updateCart(${index}, 'importPrice', this.value)"></td>
+                    <td><input type="number" class="form-control form-control-sm text-center mx-auto" style="width:65px;" value="${item.warrantyMonths}" onchange="updateCart(${index}, 'warrantyMonths', this.value)"></td>
+                    <td class="text-end fw-bold">${formatMoney(lineTotal)}</td>
+                    <td class="text-center"><i class="bi bi-trash text-danger cursor-pointer" onclick="removeItem(${index})"></i></td>
+                </tr>`;
             });
-
             tbody.innerHTML = html;
             document.getElementById('totalQtyLabel').innerText = `(${totalQty})`;
             document.getElementById('totalAmountLabel').innerText = formatMoney(totalItemsAmount);
-
             calculateFinalAmount();
         }
 
+        function updateCart(idx, field, val) {
+            cart[idx][field] = parseFloat(val) || 0;
+            renderCart();
+        }
+
+        function removeItem(idx) {
+            cart.splice(idx, 1);
+            renderCart();
+        }
+
         function calculateFinalAmount() {
-            const discount = parseFloat(document.getElementById('discountInput').value) || 0;
-            const fee = parseFloat(document.getElementById('shippingFeeInput').value) || 0;
-
-            finalAmountToPay = totalItemsAmount - discount + fee;
-            if (finalAmountToPay < 0) finalAmountToPay = 0;
-
+            const disc = parseFloat(document.getElementById('discountInput').value) || 0;
+            const ship = parseFloat(document.getElementById('shippingFeeInput').value) || 0;
+            finalAmountToPay = totalItemsAmount - disc + ship;
             document.getElementById('finalAmountLabel').innerText = formatMoney(finalAmountToPay);
-
-            if (document.getElementById('paid').checked) {
-                document.getElementById('paymentAmountInput').value = finalAmountToPay;
-            }
+            if (document.getElementById('paid').checked) document.getElementById('paymentAmountInput').value = finalAmountToPay;
         }
 
         function togglePaymentInput() {
-            const isPayLater = document.getElementById('payLater').checked;
-            const detailsDiv = document.getElementById('paymentDetailsDiv');
-            const amountInput = document.getElementById('paymentAmountInput');
-
-            if (isPayLater) {
-                detailsDiv.classList.add('opacity-50');
-                amountInput.disabled = true;
-                amountInput.value = 0;
-            } else {
-                detailsDiv.classList.remove('opacity-50');
-                amountInput.disabled = false;
-                amountInput.value = finalAmountToPay;
-            }
+            const isLater = document.getElementById('payLater').checked;
+            document.getElementById('paymentDetailsDiv').classList.toggle('opacity-50', isLater);
+            document.getElementById('paymentAmountInput').disabled = isLater;
+            document.getElementById('paymentAmountInput').value = isLater ? 0 : finalAmountToPay;
         }
 
-        // ================= SUBMIT API =================
+        // ================= SUBMIT ĐƠN =================
         async function submitImportOrder() {
-            const supCode = document.getElementById('selectedSupplierCode').value;
-            if (!supCode) {
+            const sCode = document.getElementById('selectedSupplierCode').value;
+            const branchSelect = document.getElementById('branchId');
+            const branchId = branchSelect.value;
+            const branchName = branchSelect.options[branchSelect.selectedIndex].text;
+            if (!sCode) {
                 alert("Vui lòng chọn Nhà cung cấp!");
                 return;
             }
 
-            let isPayLater = document.getElementById('payLater').checked;
-            let amountPaid = isPayLater ? 0 : (parseFloat(document.getElementById('paymentAmountInput').value) || 0);
-            let pStatus = 'UNPAID';
-
-            if (amountPaid > 0) {
-                if (amountPaid >= finalAmountToPay) pStatus = 'PAID';
-                else pStatus = 'PARTIAL';
-            }
-
             const payload = {
-                supplierCode: supCode,
-                branchName: document.getElementById('branchName').value,
-                note: document.getElementById('orderNote') ? document.getElementById('orderNote').value : "",
-
-                // Các trường tài chính mới bổ sung
+                supplierCode: sCode,
+                branchId: document.getElementById('branchId').value,
+                branchName: branchName,
+                assigneeId: document.getElementById('assigneeId').value,
+                referenceCode: document.getElementById('referenceCode').value,
+                expectedDate: document.getElementById('expectedDate').value,
+                note: document.getElementById('orderNote').value,
                 itemsAmount: totalItemsAmount,
                 discount: parseFloat(document.getElementById('discountInput').value) || 0,
                 shippingFee: parseFloat(document.getElementById('shippingFeeInput').value) || 0,
                 totalAmount: finalAmountToPay,
-                amountPaid: amountPaid,
-                paymentStatus: pStatus,
-                paymentMethod: isPayLater ? null : document.getElementById('paymentMethod').value,
-
-                // Lựa chọn tự động nhập kho
                 isImportStock: document.getElementById('importStock').checked,
-
-                items: cart.map(i => ({sku: i.sku, quantity: i.quantity, importPrice: i.importPrice}))
+                paymentStatus: document.getElementById('payLater').checked ? 'UNPAID' : 'PAID',
+                paymentMethod: document.getElementById('paymentMethod').value,
+                amountPaid: parseFloat(document.getElementById('paymentAmountInput').value) || 0,
+                items: cart.map(i => ({
+                    sku: i.sku,
+                    quantity: i.quantity,
+                    importPrice: i.importPrice,
+                    warrantyMonths: i.warrantyMonths
+                }))
             };
 
-            try {
-                const res = await fetch('/api/v1/receipt', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                if (res.ok) {
-                    alert("Tạo phiếu nhập thành công!");
-                    window.location.href = "/ui/imports";
-                } else {
-                    const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Kiểm tra lại dữ liệu"));
-                }
-            } catch (e) {
-                alert("Lỗi kết nối Server!");
-            }
+            const res = await fetch('/api/v1/receipt', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                alert("Tạo đơn thành công!");
+                window.location.href = "/ui/imports";
+            } else alert("Lỗi khi lưu đơn!");
         }
     </script>
 </div>

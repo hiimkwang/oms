@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .card-title-custom {
+            font-size: 15px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-label-custom {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        .form-control-custom, .form-select-custom {
+            font-size: 14px;
+            border-color: #dce0e4;
+            box-shadow: none;
+            height: 38px;
+        }
+
+        .search-group-custom {
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            transition: 0.2s;
+            background: #fff;
+        }
+
+        .search-group-custom:focus-within {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.1);
+        }
+
+        .search-group-custom .input-group-text, .search-group-custom .form-control {
+            border: none;
+            background: transparent;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+        }
+
+        .preview-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #eee;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .remove-img {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <div class="d-flex align-items-center gap-3">
+            <a th:href="@{/ui/cashbook}" class="btn btn-white border shadow-sm px-2"><i
+                    class="bi bi-arrow-left"></i></a>
+            <h3 class="fw-bold text-dark mb-0">Tạo phiếu chi</h3>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/ui/cashbook}" class="btn btn-white border fw-medium shadow-sm px-4">Hủy</a>
+            <button type="button" class="btn btn-danger fw-bold shadow-sm px-4" onclick="submitPayment()">Tạo phiếu
+                chi
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Thông tin chung</div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-danger">Nhóm đối tượng nhận*</label>
+                            <select id="targetGroup" class="form-select form-select-custom" onchange="clearTarget()">
+                                <option value="SUPPLIER">Nhà cung cấp</option>
+                                <option value="EMPLOYEE">Nhân viên</option>
+                                <option value="CUSTOMER">Khách hàng</option>
+                                <option value="OTHER">Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 position-relative">
+                            <label class="form-label-custom">Tìm đối tượng nhận</label>
+                            <div class="input-group search-group-custom">
+                                <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" id="targetSearchInput"
+                                       class="form-control form-control-custom shadow-none"
+                                       placeholder="Tên, mã hoặc SĐT..." oninput="handleSearch(this.value)">
+                            </div>
+                            <input type="hidden" id="targetId">
+                            <ul id="searchResultList" class="dropdown-menu w-100 shadow-sm border mt-1"
+                                style="max-height: 250px; overflow-y: auto;"></ul>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-danger">Lý do chi*</label>
+                            <select id="reason" class="form-select form-select-custom">
+                                <option value="Trả nợ nhà cung cấp">Trả nợ nhà cung cấp</option>
+                                <option value="Chi lương nhân viên">Chi lương nhân viên</option>
+                                <option value="Chi khác">Chi khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-danger">Hình thức chi*</label>
+                            <select id="paymentMethod" class="form-select form-select-custom">
+                                <option value="CASH">Tiền mặt</option>
+                                <option value="BANK">Tài khoản ngân hàng</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-danger">Giá trị chi*</label>
+                            <div class="input-group search-group-custom">
+                                <input type="number" id="amount"
+                                       class="form-control form-control-custom text-end fw-bold text-danger"
+                                       placeholder="0">
+                                <span class="input-group-text fw-bold">₫</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-danger">Diễn giải*</label>
+                            <input type="text" id="description" class="form-control form-control-custom"
+                                   placeholder="Nhập nội dung chi tiết...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Ảnh chứng từ</div>
+                    <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <i class="bi bi-camera fs-2 text-muted"></i>
+                        <div class="mt-2 small text-muted">Bấm hoặc kéo thả ảnh chứng từ vào đây</div>
+                        <input type="file" id="fileInput" class="d-none" multiple accept="image/*"
+                               onchange="handleFileUpload(this.files)">
+                    </div>
+                    <div id="imagePreviewContainer" class="preview-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Thông tin bổ sung</div>
+                    <div class="mb-3">
+                        <label class="form-label-custom text-danger">Chi nhánh chi*</label>
+                        <select id="branchId" class="form-select form-select-custom fw-bold">
+                            <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-custom text-danger">Ngày chi*</label>
+                        <input type="date" id="transactionDate" class="form-control form-control-custom"
+                               th:value="${#calendars.format(#calendars.createNow(), 'yyyy-MM-dd')}">
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label-custom">Mã tham chiếu</label>
+                        <input type="text" id="referenceCode" class="form-control form-control-custom"
+                               placeholder="Ví dụ: INV-12345">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        let uploadedImages = [];
+        let searchTimeout;
+
+        async function handleFileUpload(files) {
+            for (let file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const res = await fetch('/api/v1/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.url) {
+                            uploadedImages.push(data.url);
+                            renderPreviews();
+                        } else {
+                            alert(data.error || "Lỗi lưu file vào ổ cứng!");
+                        }
+                    } else {
+                        alert("Lỗi HTTP " + res.status + " khi upload ảnh!");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Lỗi kết nối khi upload ảnh!");
+                }
+            }
+        }
+
+        function renderPreviews() {
+            const container = document.getElementById('imagePreviewContainer');
+            container.innerHTML = uploadedImages.map((url, index) => `
+                <div class="preview-item">
+                    <img src="${url}">
+                    <button class="remove-img" onclick="removeImg(${index})"><i class="bi bi-x"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function removeImg(index) {
+            uploadedImages.splice(index, 1);
+            renderPreviews();
+        }
+
+        function clearTarget() {
+            document.getElementById('targetSearchInput').value = '';
+            document.getElementById('targetId').value = '';
+            document.getElementById('searchResultList').classList.remove('show');
+        }
+
+        function handleSearch(val) {
+            clearTimeout(searchTimeout);
+            if (val.length < 1) {
+                document.getElementById('searchResultList').classList.remove('show');
+                return;
+            }
+            searchTimeout = setTimeout(() => fetchTargets(val), 300);
+        }
+
+        async function fetchTargets(query) {
+            const group = document.getElementById('targetGroup').value;
+            const listEl = document.getElementById('searchResultList');
+
+            // Đảm bảo mapping đúng với Controller
+            let groupKey = group.toLowerCase(); // 'customer', 'supplier', 'employee'
+            let endpoint = `/api/v1/cashbook/search-${groupKey}?query=${query}`;
+
+            try {
+                const res = await fetch(endpoint);
+                if (!res.ok) throw new Error("Cổng search bị lỗi 404/500");
+
+                const data = await res.json();
+
+                // Kiểm tra data có phải mảng không trước khi map
+                if (Array.isArray(data) && data.length > 0) {
+                    listEl.innerHTML = data.map(item => {
+                        const name = item.fullName || item.name || 'N/A';
+                        const code = item.phone || item.code || item.username || '';
+                        return `<li class="dropdown-item cursor-pointer border-bottom py-2" onclick="selectTarget('${item.id}', '${name} (${code})')">
+                            <div class="fw-bold" style="font-size:13px">${name}</div><div class="small text-muted">${code}</div>
+                        </li>`;
+                    }).join('');
+                    listEl.classList.add('show');
+                } else {
+                    listEl.innerHTML = '<li class="p-2 text-muted small">Không tìm thấy</li>';
+                    listEl.classList.add('show');
+                }
+            } catch (e) {
+                console.error(e);
+                listEl.innerHTML = '<li class="p-2 text-danger small">Lỗi kết nối Server</li>';
+            }
+        }
+
+        function selectTarget(id, text) {
+            document.getElementById('targetId').value = id;
+            document.getElementById('targetSearchInput').value = text;
+            document.getElementById('searchResultList').classList.remove('show');
+        }
+
+        async function submitPayment() {
+            const amount = document.getElementById('amount').value;
+            const dateVal = document.getElementById('transactionDate').value;
+            if (!amount || amount <= 0) {
+                alert("Vui lòng nhập số tiền!");
+                return;
+            }
+
+            const payload = {
+                type: 'PAYMENT',
+                paymentMethod: document.getElementById('paymentMethod').value,
+                targetGroup: document.getElementById('targetGroup').value,
+                targetId: document.getElementById('targetId').value,
+                reason: document.getElementById('reason').value,
+                amount: parseFloat(amount),
+                description: document.getElementById('description').value,
+                branchId: document.getElementById('branchId').value,
+                transactionDate: dateVal + "T00:00:00", // Fix ISO LocalDateTime
+                referenceCode: document.getElementById('referenceCode').value,
+                imageUrls: uploadedImages
+            };
+
+            const res = await fetch('/api/v1/cashbook', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("Tạo phiếu chi thành công!");
+                window.location.href = "/ui/cashbook";
+            } else {
+                alert("Lỗi lưu phiếu chi! Hãy kiểm tra lại các trường bắt buộc.");
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('targetSearchInput').contains(e.target)) {
+                document.getElementById('searchResultList').classList.remove('show');
+            }
+        });
+    </script>
+</div>
+</body>
+</html>

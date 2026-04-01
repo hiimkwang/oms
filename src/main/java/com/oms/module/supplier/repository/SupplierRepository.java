@@ -36,4 +36,5 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             "(s.status = 'ACTIVE')")
         // Hoặc bỏ cái status đi nếu muốn hiện cả ông đã bị "xóa mềm"
     List<Supplier> findSuppliersCustom(@Param("keyword") String keyword, @Param("assignee") String assignee);
+    List<Supplier> findByNameContainingIgnoreCaseOrCodeContaining(String name, String code);
 }

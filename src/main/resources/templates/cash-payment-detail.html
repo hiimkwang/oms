@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .readonly-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .card-title-custom {
+            font-size: 15px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-label-custom {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        .form-control-custom {
+            font-size: 14px;
+            border-color: #dce0e4;
+            box-shadow: none;
+            height: 38px;
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+        }
+
+        .preview-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #eee;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .remove-img {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <div class="d-flex align-items-center gap-3">
+            <a th:href="@{/ui/cashbook}" class="btn btn-white border shadow-sm px-2"><i
+                    class="bi bi-arrow-left"></i></a>
+            <h3 class="fw-bold text-dark mb-0">Chi tiết phiếu chi: <span class="text-danger"
+                                                                         th:text="${transaction.code}"></span></h3>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-danger fw-bold shadow-sm px-3" onclick="deleteTransaction()"><i
+                    class="bi bi-trash me-1"></i> Xóa phiếu
+            </button>
+            <button type="button" class="btn btn-danger fw-bold shadow-sm px-4" onclick="updateTransaction()">Lưu cập
+                nhật
+            </button>
+        </div>
+    </div>
+
+    <input type="hidden" id="txId" th:value="${transaction.id}">
+
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="card-title-custom d-flex justify-content-between">
+                        <span>Thông tin chung</span>
+                        <span class="badge bg-danger text-white py-2 px-3"
+                              th:text="${transaction.paymentMethod.name() == 'CASH' ? 'Tiền mặt' : 'Chuyển khoản'}"></span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Đối tượng nhận</label>
+                            <div class="readonly-box" th:text="${transaction.targetName}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Lý do chi</label>
+                            <div class="readonly-box" th:text="${transaction.reason}"></div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Giá trị chi</label>
+                            <div class="readonly-box text-danger fs-5"
+                                 th:text="${#numbers.formatDecimal(transaction.amount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-danger">Diễn giải (Được phép sửa)*</label>
+                            <input type="text" id="description" class="form-control form-control-custom border-danger"
+                                   th:value="${transaction.description}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Ảnh chứng từ (Được phép cập nhật)</div>
+                    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                        <i class="bi bi-camera fs-3 text-muted"></i>
+                        <div class="mt-2 small text-muted">Bấm vào đây để tải thêm ảnh</div>
+                        <input type="file" id="fileInput" class="d-none" multiple accept="image/*"
+                               onchange="handleFileUpload(this.files)">
+                    </div>
+                    <div id="imagePreviewContainer" class="preview-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Thông tin hệ thống</div>
+                    <div class="mb-3">
+                        <label class="form-label-custom">Ngày ghi nhận</label>
+                        <div class="readonly-box"
+                             th:text="${#temporals.format(transaction.transactionDate, 'dd/MM/yyyy HH:mm')}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-custom">Người lập phiếu</label>
+                        <div class="readonly-box" th:text="${transaction.creatorName}"></div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label-custom">Mã tham chiếu</label>
+                        <div class="readonly-box" th:text="${transaction.referenceCode ?: 'Không có'}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        // Lấy danh sách ảnh cũ từ Backend (Thymeleaf render ra JSON string, mặc định là mảng rỗng nếu null)
+        let rawAttachments = /*[[${transaction.attachments}]]*/ '[]';
+        let uploadedImages = [];
+        try {
+            uploadedImages = rawAttachments ? JSON.parse(rawAttachments) : [];
+        } catch (e) {
+            console.error("Lỗi parse ảnh cũ");
+        }
+
+        // Render ảnh ngay khi load trang
+        renderPreviews();
+
+        async function handleFileUpload(files) {
+            for (let file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const res = await fetch('/api/v1/upload', {method: 'POST', body: formData});
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.url) {
+                            uploadedImages.push(data.url);
+                            renderPreviews();
+                        }
+                    }
+                } catch (e) {
+                    alert("Lỗi upload ảnh!");
+                }
+            }
+        }
+
+        function renderPreviews() {
+            const container = document.getElementById('imagePreviewContainer');
+            container.innerHTML = uploadedImages.map((url, index) => `
+                <div class="preview-item">
+                    <a href="${url}" target="_blank" title="Xem ảnh gốc"><img src="${url}"></a>
+                    <button class="remove-img" onclick="removeImg(${index})"><i class="bi bi-x"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function removeImg(index) {
+            uploadedImages.splice(index, 1);
+            renderPreviews();
+        }
+
+        // --- GỌI API CẬP NHẬT ---
+        async function updateTransaction() {
+            const id = document.getElementById('txId').value;
+            const payload = {
+                description: document.getElementById('description').value,
+                attachments: JSON.stringify(uploadedImages) // Ép mảng thành chuỗi JSON
+            };
+
+            const res = await fetch(`/api/v1/cashbook/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("Cập nhật thành công!");
+                window.location.reload();
+            } else {
+                alert("Lỗi khi cập nhật phiếu!");
+            }
+        }
+
+        // --- GỌI API XÓA ---
+        async function deleteTransaction() {
+            const id = document.getElementById('txId').value;
+            if (confirm("Hành động này không thể hoàn tác. Tiền tồn quỹ sẽ bị thay đổi. Bạn có chắc chắn muốn XÓA phiếu này không?")) {
+                const res = await fetch(`/api/v1/cashbook/${id}`, {method: 'DELETE'});
+                if (res.ok) {
+                    alert("Đã xóa phiếu!");
+                    window.location.href = "/ui/cashbook";
+                } else {
+                    alert("Lỗi khi xóa phiếu!");
+                }
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

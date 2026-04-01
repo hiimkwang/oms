@@ -63,9 +63,17 @@
             cursor: not-allowed;
             font-weight: 500;
         }
+
+        .text-success-custom {
+            color: #008a47 !important;
+        }
+
+        .text-danger-custom {
+            color: #dc2626 !important;
+        }
     </style>
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-4 pt-2">
         <div class="d-flex align-items-center gap-3">
             <a th:href="@{/ui/suppliers}" class="btn btn-white border shadow-sm px-2"><i
                     class="bi bi-arrow-left"></i></a>
@@ -74,7 +82,6 @@
                   th:text="${supplier.status.name() == 'ACTIVE' ? 'Đang hoạt động' : 'Ngừng hoạt động'}"></span>
         </div>
         <div class="d-flex gap-2">
-
             <button th:if="${supplier.status.name() == 'ACTIVE'}" type="button"
                     class="btn btn-white border border-danger text-danger fw-medium shadow-sm px-3"
                     onclick="toggleStatus('INACTIVE')">
@@ -96,7 +103,6 @@
         </div>
     </div>
 
-    <input type="hidden" id="supplierId" th:value="${supplier.id}">
     <input type="hidden" id="supplierCode" th:value="${supplier.code}">
 
     <div class="row g-4">
@@ -107,17 +113,22 @@
                         <div class="fw-bold text-dark" style="font-size: 15px;">Mã nhà cung cấp: <span
                                 th:text="${supplier.code}">---</span></div>
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-white border text-dark dropdown-toggle fw-medium"
+                            <button class="btn btn-sm btn-white border text-dark dropdown-toggle fw-bold"
                                     type="button" id="timeFilterBtn" data-bs-toggle="dropdown">
                                 Tháng này
                             </button>
-                            <ul class="dropdown-menu shadow">
+                            <ul class="dropdown-menu shadow border-0 mt-2">
                                 <li><a class="dropdown-item small" href="javascript:void(0)"
                                        onclick="changePeriod('thisMonth')">Tháng này</a></li>
                                 <li><a class="dropdown-item small" href="javascript:void(0)"
                                        onclick="changePeriod('lastMonth')">Tháng trước</a></li>
                                 <li><a class="dropdown-item small" href="javascript:void(0)"
                                        onclick="changePeriod('thisYear')">Năm nay</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item small fw-bold text-primary" href="javascript:void(0)"
+                                       onclick="changePeriod('allTime')">Tất cả thời gian</a></li>
                             </ul>
                         </div>
                     </div>
@@ -126,21 +137,21 @@
                         <div class="col-md-3 border-end">
                             <div class="text-label">Đơn nhập đã tạo</div>
                             <div class="stat-value-blue" id="stat-count">0 đơn</div>
-                            <div class="stat-value-gray" id="stat-total">0đ</div>
+                            <div class="stat-value-gray" id="stat-total">0₫</div>
                         </div>
                         <div class="col-md-3 border-end">
                             <div class="text-label">Nợ cần trả</div>
-                            <div class="stat-value-blue text-danger" id="stat-debt">0đ</div>
+                            <div class="stat-value-blue text-danger" id="stat-debt">0₫</div>
                             <div class="stat-value-gray">Tiền hàng chưa trả</div>
                         </div>
                         <div class="col-md-3 border-end">
                             <div class="text-label">Đơn trả đã tạo</div>
                             <div class="stat-value-blue">0 đơn</div>
-                            <div class="stat-value-gray">0đ</div>
+                            <div class="stat-value-gray">0₫</div>
                         </div>
                         <div class="col-md-3">
                             <div class="text-label">Hoàn tiền</div>
-                            <div class="stat-value-blue text-success">0đ</div>
+                            <div class="stat-value-blue text-success-custom">0₫</div>
                             <div class="stat-value-gray">Tiền NCC nợ mình</div>
                         </div>
                     </div>
@@ -191,13 +202,14 @@
                                 <th>Ngày tạo</th>
                                 <th>Trạng thái đơn</th>
                                 <th>Thanh toán</th>
-                                <th class="text-end">Tổng tiền</th>
+                                <th class="text-end pe-3">Tổng tiền</th>
                             </tr>
                             </thead>
                             <tbody></tbody>
                         </table>
                         <div id="emptyHistory" class="text-center py-4 d-none">
-                            <p class="text-muted small mb-0">Không có dữ liệu.</p>
+                            <i class="bi bi-clipboard-x fs-2 text-muted d-block mb-2"></i>
+                            <p class="text-muted small mb-0">Không có dữ liệu trong khoảng thời gian này.</p>
                         </div>
                     </div>
                 </div>
@@ -209,19 +221,23 @@
                 <div class="card-body p-4">
                     <div class="card-title-custom">Địa chỉ</div>
                     <label class="text-label">Quốc gia</label>
-                    <input type="text" id="country" class="form-control form-control-custom editable-field"
-                           th:value="${supplier.country}" disabled>
+                    <select id="country" class="form-select form-select-custom editable-field" disabled>
+                        <option value="Việt Nam" th:selected="${supplier.country == 'Việt Nam'}">Việt Nam</option>
+                        <option value="Trung Quốc" th:selected="${supplier.country == 'Trung Quốc'}">Trung Quốc</option>
+                        <option value="Mỹ" th:selected="${supplier.country == 'Mỹ'}">Mỹ</option>
+                        <option value="Khác" th:selected="${supplier.country == 'Khác'}">Khác</option>
+                    </select>
+
                     <label class="text-label">Tỉnh / Thành phố</label>
                     <input type="text" id="province" class="form-control form-control-custom editable-field"
                            th:value="${supplier.province}" disabled>
-                    <label class="text-label">Quận / Huyện</label>
-                    <input type="text" id="district" class="form-control form-control-custom editable-field"
-                           th:value="${supplier.district}" disabled>
+
                     <label class="text-label">Phường / Xã</label>
                     <input type="text" id="ward" class="form-control form-control-custom editable-field"
                            th:value="${supplier.ward}" disabled>
+
                     <label class="text-label">Địa chỉ chi tiết</label>
-                    <textarea id="addressDetail" class="form-control form-control-custom editable-field" rows="2"
+                    <textarea id="addressDetail" class="form-control form-control-custom editable-field" rows="3"
                               th:text="${supplier.addressDetail}" disabled></textarea>
                 </div>
             </div>
@@ -229,25 +245,29 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <div class="card-title-custom">Nhân viên phụ trách</div>
+                    <label class="text-label">Người chịu trách nhiệm</label>
                     <select id="assignee" class="form-select form-select-custom editable-field" disabled>
-                        <option value="QUANG BUI" th:selected="${supplier.assignee == 'QUANG BUI'}">QUANG BUI</option>
-                        <option value="ADMIN" th:selected="${supplier.assignee == 'ADMIN'}">ADMIN</option>
-                        <option value="" th:selected="${supplier.assignee == null}">Chưa phân công</option>
+                        <option value="">Chưa phân công</option>
+                        <option th:each="u : ${users}"
+                                th:value="${u.fullName}"
+                                th:text="${u.fullName}"
+                                th:selected="${supplier.assignee == u.fullName}">
+                        </option>
                     </select>
                 </div>
             </div>
 
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
-                    <div class="card-title-custom">Tag</div>
+                    <div class="card-title-custom">Thẻ (Tags)</div>
                     <input type="text" id="tags" class="form-control form-control-custom editable-field"
-                           th:value="${supplier.tags}" disabled>
+                           th:value="${supplier.tags}" placeholder="Gắn tag để phân loại..." disabled>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
+    <script th:inline="javascript">
         const formatMoney = (v) => new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(v || 0);
         const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN');
 
@@ -255,7 +275,6 @@
             changePeriod('thisMonth');
         });
 
-        // 1. CHỈ 1 NÚT EDIT DUY NHẤT
         function enableEditMode() {
             document.querySelectorAll('.editable-field').forEach(el => el.removeAttribute('disabled'));
             document.getElementById('btnSaveSupplier').classList.remove('d-none');
@@ -263,52 +282,48 @@
             document.getElementById('name').focus();
         }
 
-        // 2. LOGIC THAY ĐỔI TRẠNG THÁI (KHOÁ/MỞ KHOÁ)
         async function toggleStatus(newStatus) {
             const actionText = newStatus === 'ACTIVE' ? "mở hoạt động lại" : "ngừng hoạt động";
             if (!confirm(`Xác nhận ${actionText} nhà cung cấp này?`)) return;
 
-            // ĐÃ FIX: Lấy supplierCode thay vì supplierId
             const code = document.getElementById('supplierCode').value;
-
             try {
-                // ĐÃ FIX: Truyền code vào URL thay vì ID
-                const res = await fetch(`/api/v1/suppliers/${code}/status?status=${newStatus}`, {
-                    method: 'PUT'
-                });
-
-                if (res.ok) {
-                    location.reload();
-                } else {
-                    alert("Lỗi khi thay đổi trạng thái!");
-                }
+                const res = await fetch(`/api/v1/suppliers/${code}/status?status=${newStatus}`, {method: 'PUT'});
+                if (res.ok) location.reload();
+                else alert("Lỗi khi thay đổi trạng thái!");
             } catch (e) {
                 alert("Lỗi kết nối Server!");
             }
         }
 
-        // 3. LOGIC STATS VÀ UPDATE GIỮ NGUYÊN BẢN CHUẨN
         async function changePeriod(period) {
             const now = new Date();
-            let start, end;
+            let start = '', end = '';
+
             if (period === 'thisMonth') {
-                start = new Date(now.getFullYear(), now.getMonth(), 1);
-                end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+                start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
                 document.getElementById('timeFilterBtn').innerText = "Tháng này";
             } else if (period === 'lastMonth') {
-                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+                end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
                 document.getElementById('timeFilterBtn').innerText = "Tháng trước";
             } else if (period === 'thisYear') {
-                start = new Date(now.getFullYear(), 0, 1);
-                end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+                start = new Date(now.getFullYear(), 0, 1).toISOString();
+                end = new Date(now.getFullYear(), 11, 31, 23, 59, 59).toISOString();
                 document.getElementById('timeFilterBtn').innerText = "Năm nay";
+            } else if (period === 'allTime') {
+                // Gửi chuỗi rỗng để Backend hiểu là không giới hạn ngày
+                start = '';
+                end = '';
+                document.getElementById('timeFilterBtn').innerText = "Tất cả thời gian";
             }
 
             const code = document.getElementById('supplierCode').value;
             try {
-                const res = await fetch(`/api/v1/suppliers/${code}/stats?start=${start.toISOString()}&end=${end.toISOString()}`);
+                const res = await fetch(`/api/v1/suppliers/${code}/stats?start=${start}&end=${end}`);
                 const data = await res.json();
+
                 document.getElementById('stat-count').innerText = `${data.totalOrders} đơn`;
                 document.getElementById('stat-total').innerText = formatMoney(data.totalAmount);
                 document.getElementById('stat-debt').innerText = formatMoney(data.totalDebt);
@@ -322,7 +337,7 @@
                             <td>${formatDate(h.createdAt)}</td>
                             <td><span class="badge ${h.status === 'COMPLETED' ? 'bg-success' : 'bg-warning text-dark'}">${h.status}</span></td>
                             <td><span class="text-${h.paymentStatus === 'PAID' ? 'success' : 'danger'} small fw-bold">${h.paymentStatus}</span></td>
-                            <td class="text-end fw-bold">${formatMoney(h.totalAmount)}</td>
+                            <td class="text-end fw-bold pe-3">${formatMoney(h.totalAmount)}</td>
                         </tr>`).join('');
                 } else {
                     tbody.innerHTML = "";
@@ -334,7 +349,6 @@
         }
 
         async function updateSupplier() {
-            // ĐÃ FIX: Lấy supplierCode thay vì supplierId
             const code = document.getElementById('supplierCode').value;
             const payload = {
                 name: document.getElementById('name').value.trim(),
@@ -342,16 +356,14 @@
                 email: document.getElementById('email').value.trim(),
                 taxCode: document.getElementById('taxCode').value.trim(),
                 website: document.getElementById('website').value.trim(),
-                country: document.getElementById('country').value.trim(),
+                country: document.getElementById('country').value,
                 province: document.getElementById('province').value.trim(),
-                district: document.getElementById('district').value.trim(),
                 ward: document.getElementById('ward').value.trim(),
                 addressDetail: document.getElementById('addressDetail').value.trim(),
                 assignee: document.getElementById('assignee').value,
                 tags: document.getElementById('tags').value.trim()
             };
 
-            // ĐÃ FIX: Truyền code vào URL
             const res = await fetch(`/api/v1/suppliers/${code}`, {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
@@ -359,10 +371,10 @@
             });
 
             if (res.ok) {
-                alert("Đã lưu thay đổi!");
+                alert("Đã cập nhật thông tin nhà cung cấp thành công!");
                 location.reload();
             } else {
-                alert("Lỗi cập nhật!");
+                alert("Lỗi khi lưu thay đổi!");
             }
         }
     </script>
