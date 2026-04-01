@@ -203,7 +203,9 @@
                                       th:text="${cat.name != null ? cat.name : cat.dataValue}"></span>
                             </div>
                         </td>
-                        <td class="text-center fw-medium text-dark">0</td>
+                        <td class="text-center fw-medium text-dark" th:text="${cat.productCount != null ? cat.productCount : 0}">
+                            0
+                        </td>
                         <td class="text-end text-muted pe-4">
                             <span th:text="${cat.createdAt != null ? #temporals.format(cat.createdAt, 'dd/MM/yyyy') : '---'}"></span>
                         </td>

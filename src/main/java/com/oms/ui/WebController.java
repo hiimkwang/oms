@@ -4,12 +4,15 @@ import com.oms.module.account.entity.User;
 import com.oms.module.account.repository.UserRepository;
 import com.oms.module.category.service.CategoryService; // Thêm import này
 import com.oms.module.customer.service.CustomerService;
+import com.oms.module.inventory.dto.InventoryDTO;
+import com.oms.module.inventory.service.InventoryService;
 import com.oms.module.product.repository.ProductVariantRepository;
 import com.oms.module.product.service.ProductService;
 import com.oms.module.receipt.entity.Receipt;
 import com.oms.module.receipt.service.ReceiptService;
 import com.oms.module.report.dto.ProfitReportResponse;
 import com.oms.module.report.service.ReportService;
+import com.oms.module.setting.entity.Branch;
 import com.oms.module.setting.repository.BranchRepository;
 import com.oms.module.setting.repository.SalesChannelRepository;
 import com.oms.module.setting.service.MasterDataService;
@@ -35,6 +38,7 @@ public class WebController {
     private final MasterDataService masterDataService;
     private final SupplierService supplierService;
     private final ReceiptService receiptService;
+    private final InventoryService inventoryService;
 
     // 1. INJECT THÊM CATEGORY SERVICE VÀO ĐÂY
     private final CategoryService categoryService;
@@ -195,6 +199,8 @@ public class WebController {
     @GetMapping("/ui/orders/detail/{orderCode}")
     public String orderDetailPage(@PathVariable String orderCode, Model model) {
         model.addAttribute("orderCode", orderCode);
+        model.addAttribute("channels", channelRepository.findAll());
+        model.addAttribute("branches", branchRepository.findAll());
         return "order-detail";
     }
 
@@ -206,6 +212,7 @@ public class WebController {
         model.addAttribute("categories", categoryService.getAll());
         model.addAttribute("brands", masterDataService.getValuesByType("BRAND"));
         model.addAttribute("units", masterDataService.getValuesByType("UNIT"));
+        model.addAttribute("branches", branchRepository.findAll());
         return "product-create";
     }
 
@@ -257,7 +264,8 @@ public class WebController {
     }
 
     @GetMapping("/ui/inventory")
-    public String inventoryPage(
+    public String showInventoryPage(
+            @RequestParam(required = false) Long branchId, // Thêm tham số chọn chi nhánh
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String stockStatus,
             @RequestParam(required = false) Integer minStock,
@@ -265,8 +273,25 @@ public class WebController {
             @RequestParam(required = false) String dateRange,
             Model model) {
 
-        model.addAttribute("variants", productService.getFilteredInventory(keyword, stockStatus, minStock, maxStock, dateRange));
+        // 1. Lấy danh sách tất cả Chi nhánh để đưa vào ComboBox chọn Kho
+        List<Branch> branches = branchRepository.findAll();
+        model.addAttribute("branches", branches);
 
+        // 2. Xác định chi nhánh đang được chọn (Mặc định lấy chi nhánh đầu tiên nếu chưa chọn)
+        Long selectedBranchId = branchId;
+        if (selectedBranchId == null && !branches.isEmpty()) {
+            selectedBranchId = branches.get(0).getId();
+        }
+        model.addAttribute("selectedBranchId", selectedBranchId);
+
+        // 3. Gọi Service để lấy dữ liệu Tồn kho dựa trên branchId
+        // LƯU Ý: Anh cần viết thêm hàm trong Service để map dữ liệu Inventory với Variant
+        List<InventoryDTO> inventoryList = inventoryService.getInventoryList(
+                selectedBranchId, keyword, stockStatus, minStock, maxStock, dateRange);
+
+        model.addAttribute("inventories", inventoryList);
+
+        // Giữ nguyên các tham số filter cũ
         model.addAttribute("keyword", keyword);
         model.addAttribute("stockStatus", stockStatus);
         model.addAttribute("minStock", minStock);
@@ -275,7 +300,6 @@ public class WebController {
 
         return "inventory";
     }
-
     // Mở trang Danh sách nhà cung cấp
     @GetMapping("/ui/suppliers")
     public String suppliersPage(@RequestParam(required = false) String keyword, Model model) {

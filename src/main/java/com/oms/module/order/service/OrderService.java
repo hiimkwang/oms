@@ -127,7 +127,14 @@ public class OrderService {
         // Xóa các line sản phẩm cũ và đắp line mới vào
         order.getDetails().clear();
         buildOrderDetailsAndCalculateTotal(order, request.getDetails());
-
+        if ("Hoàn thành".equals(request.getStatus()) && !"Hoàn thành".equals(order.getStatus())) {
+            for (OrderDetail detail : order.getDetails()) {
+                if (detail.getWarrantyMonths() != null && detail.getWarrantyMonths() > 0) {
+                    detail.setWarrantyStartDate(LocalDateTime.now());
+                    detail.setWarrantyEndDate(LocalDateTime.now().plusMonths(detail.getWarrantyMonths()));
+                }
+            }
+        }
         return orderRepository.save(order);
     }
 
@@ -175,6 +182,8 @@ public class OrderService {
                     .totalPrice(lineTotal)
                     .note(detailReq.getNote()) // Lưu ghi chú line (đổi size, bọc quà...)
                     .isCustom(detailReq.getIsCustom() != null ? detailReq.getIsCustom() : false)
+                    .serialNumber(detailReq.getSerialNumber())
+                    .warrantyMonths(detailReq.getWarrantyMonths())
                     .build();
 
             order.getDetails().add(orderDetail);

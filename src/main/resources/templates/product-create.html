@@ -211,25 +211,28 @@
             </div>
 
             <div class="card p-4 mb-4 border-0 shadow-sm">
-                <div class="card-title-custom">Thông tin kho</div>
+                <div class="card-title-custom">Thông tin lưu kho ban đầu</div>
                 <div class="mb-4">
-                    <label class="form-label">Lưu kho tại</label>
-                    <select class="form-select oms-input py-2">
-                        <option>Cửa hàng chính</option>
+                    <label class="form-label">Chi nhánh / Kho nhập hàng <span class="text-danger">*</span></label>
+                    <select id="branchId" class="form-select oms-input py-2" onchange="updateBranchDisplay()">
+                        <option value="">-- Chọn chi nhánh lưu kho --</option>
+                        <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
                     </select>
                 </div>
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="manageStock" checked>
                     <label class="form-check-label text-dark" for="manageStock">Quản lý số lượng tồn kho</label>
                 </div>
-                <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-3">
+                <div id="singleProductStockArea"
+                     class="d-flex justify-content-between align-items-center border-top pt-3 mt-3">
                     <div>
-                        <div class="fw-medium text-dark">Cửa hàng chính</div>
-                        <a href="#" class="text-decoration-none small">Vị trí lưu kho</a>
+                        <div class="fw-bold text-primary" id="displaySelectedBranch">Chưa chọn kho</div>
+                        <div class="small text-muted mt-1">Tồn kho ban đầu cho Sản phẩm gốc</div>
                     </div>
                     <div style="width: 150px;">
-                        <label class="form-label mb-1">Tồn kho ban đầu</label>
-                        <input type="number" id="stockQuantity" class="form-control oms-input text-end" value="0">
+                        <label class="form-label mb-1">Số lượng</label>
+                        <input type="number" id="stockQuantity" class="form-control oms-input text-end fw-bold"
+                               value="0">
                     </div>
                 </div>
             </div>
@@ -249,7 +252,6 @@
 
                     <img id="mainImagePreview" src="" class="img-fluid rounded d-none"
                          style="max-height: 140px; object-fit: contain;">
-
                     <input type="file" id="mainImageInput" class="d-none" accept="image/*"
                            onchange="uploadMainImage(this)">
                 </div>
@@ -283,7 +285,6 @@
 
     <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function () {
-            // 1. Config Quick Add cho Hãng và Đơn vị tính (Dùng Master Data)
             const masterDataConfig = {
                 create: function (input, callback) {
                     let dataType = 'BRAND';
@@ -304,7 +305,6 @@
                 }
             };
 
-            // 2. Config Quick Add cho Danh mục (Dùng API Category mới)
             const categoryConfig = {
                 create: function (input, callback) {
                     const formData = new FormData();
@@ -315,7 +315,7 @@
                         method: 'POST',
                         body: formData
                     }).then(res => res.ok ? res.json() : Promise.reject())
-                        .then(data => callback({value: data.id, text: data.name})) // Trả về ID và Name
+                        .then(data => callback({value: data.id, text: data.name}))
                         .catch(() => callback(false));
                 },
                 render: {
@@ -332,6 +332,17 @@
 
             initAttributeTags();
         });
+
+        // Hàm tiện ích: Cập nhật tên kho khi chọn
+        function updateBranchDisplay() {
+            const select = document.getElementById("branchId");
+            const displayName = document.getElementById("displaySelectedBranch");
+            if (select.value) {
+                displayName.innerText = select.options[select.selectedIndex].text;
+            } else {
+                displayName.innerText = 'Chưa chọn kho';
+            }
+        }
 
         document.addEventListener('input', function (e) {
             if (e.target.classList.contains('attr-name-input')) {
@@ -393,6 +404,10 @@
             const container = document.getElementById('variantTableContainer');
             const thead = document.getElementById('variantTableHead');
             const tbody = document.getElementById('variantTableBody');
+            const isManaged = document.getElementById('manageStock').checked;
+
+            // Lấy khối HTML chứa Tồn kho của sản phẩm gốc
+            const singleProductStockArea = document.getElementById('singleProductStockArea');
 
             let validAttributes = [];
             document.querySelectorAll('.attr-row').forEach(row => {
@@ -408,11 +423,21 @@
                 }
             });
 
+            // 1. NẾU KHÔNG CÓ BIẾN THỂ NÀO
             if (validAttributes.length === 0) {
-                container.classList.add('d-none');
+                container.classList.add('d-none'); // Ẩn bảng biến thể
+                if (singleProductStockArea) {
+                    singleProductStockArea.classList.remove('d-none'); // HIỆN LẠI ô nhập tồn kho gốc
+                }
                 return;
             }
 
+            // 2. NẾU CÓ BIẾN THỂ
+            if (singleProductStockArea) {
+                singleProductStockArea.classList.add('d-none'); // ẨN NGAY ô nhập tồn kho gốc
+            }
+
+            // (Phần dưới này giữ nguyên để sinh bảng HTML...)
             let headerHtml = '<tr>';
             validAttributes.forEach(attr => {
                 headerHtml += `<th class="text-start ps-3">${attr.name}</th>`;
@@ -421,7 +446,7 @@
                 <th width="80">Ảnh</th>
                 <th width="130">Giá bán</th>
                 <th width="130">Giá nhập (Vốn)</th>
-                <th width="100">Tồn kho</th>
+                <th width="100">Tồn kho ban đầu</th>
                 <th width="160">Mã SKU</th>
             </tr>`;
             thead.innerHTML = headerHtml;
@@ -474,7 +499,7 @@
                     </td>
                     <td><input type="number" class="form-control form-control-sm text-end oms-input var-price" value="${basePrice}"></td>
                     <td><input type="number" class="form-control form-control-sm text-end oms-input var-cost" value="0" placeholder="Giá nhập"></td>
-                    <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock" value="0" ${!isManaged ? 'disabled' : ''}></td>
                     <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium" value="${variantSku}" readonly></td>
                 </tr>`;
                 bodyHtml += rowHtml;
@@ -484,17 +509,11 @@
             container.classList.remove('d-none');
         }
 
-        document.addEventListener('click', function (e) {
-            if (e.target.classList.contains('btn-remove-attr')) {
-                e.target.closest('.attr-row').remove();
-                generateVariantTable();
-            }
-        });
-
         function saveProduct() {
             const nameVal = document.getElementById("name").value.trim();
             const skuVal = document.getElementById("sku").value.trim();
             const unitVal = document.getElementById("unit").value.trim();
+            const branchIdVal = document.getElementById("branchId").value; // Lấy ID kho
 
             if (!nameVal) {
                 alert("Vui lòng nhập Tên sản phẩm!");
@@ -505,16 +524,22 @@
                 alert("Vui lòng nhập Đơn vị tính (VD: Chiếc, Bộ)!");
                 return;
             }
+            if (!branchIdVal) {
+                alert("Vui lòng chọn Chi nhánh / Kho để nhập tồn kho ban đầu!");
+                document.getElementById("branchId").focus();
+                return;
+            }
 
             const payload = {
                 sku: skuVal,
                 name: nameVal,
                 imageUrl: document.getElementById("imageUrl").value.trim(),
-                categoryId: document.getElementById("category").value, // Lấy ID của Category mới
-                brand: document.getElementById("brand").value, // Brand lấy chuỗi text bình thường
+                categoryId: document.getElementById("category").value,
+                brand: document.getElementById("brand").value,
                 unit: unitVal,
                 price: parseFloat(document.getElementById("price").value) || 0,
                 stockQuantity: parseInt(document.getElementById("stockQuantity").value) || 0,
+                branchId: parseInt(branchIdVal), // Truyền ID Kho xuống Backend
                 minStockLevel: 0,
                 description: document.getElementById("description").value,
                 variants: []
@@ -563,44 +588,37 @@
             return data.url;
         }
 
-        // Upload ảnh SP mẹ
         async function uploadMainImage(inputEl) {
             if (!inputEl.files || inputEl.files.length === 0) return;
             try {
                 const url = await uploadFileToAPI(inputEl.files[0]);
-
                 document.getElementById('imageUrl').value = url;
-
                 const previewEl = document.getElementById('mainImagePreview');
                 const placeholder = document.getElementById('mainImagePlaceholder');
 
                 previewEl.src = url;
-                previewEl.classList.remove('d-none'); // Hiện ảnh
-                placeholder.classList.add('d-none');  // Ẩn icon upload đi
+                previewEl.classList.remove('d-none');
+                placeholder.classList.add('d-none');
             } catch (err) {
                 alert(err.message);
             }
         }
 
-        // Upload ảnh cho biến thể con
         async function uploadVariantImage(inputEl) {
             if (!inputEl.files || inputEl.files.length === 0) return;
             try {
                 const url = await uploadFileToAPI(inputEl.files[0]);
-
-                // Tìm vùng cha bọc nút bấm hiện tại
                 const labelWrapper = inputEl.closest('label');
                 const td = inputEl.closest('td');
 
-                // Gán link url vào biến ẩn để hàm saveProduct lấy được
                 td.querySelector('.var-image').value = url;
 
                 const previewEl = labelWrapper.querySelector('.variant-img-preview');
                 const placeholder = labelWrapper.querySelector('.variant-img-placeholder');
 
                 previewEl.src = url;
-                previewEl.classList.remove('d-none'); // Hiện ảnh vuông nhỏ
-                placeholder.classList.add('d-none');  // Ẩn icon camera đi
+                previewEl.classList.remove('d-none');
+                placeholder.classList.add('d-none');
             } catch (err) {
                 alert(err.message);
             }

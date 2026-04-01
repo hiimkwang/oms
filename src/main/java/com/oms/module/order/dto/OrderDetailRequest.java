@@ -24,4 +24,6 @@ public class OrderDetailRequest {
 
     private String note;
     private Boolean isCustom;
+    private String serialNumber;
+    private Integer warrantyMonths;
 }

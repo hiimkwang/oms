@@ -1,14 +1,17 @@
 package com.oms.module.category.entity;
 
+import com.oms.module.product.entity.Product;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "categories")
@@ -34,4 +37,7 @@ public class Category {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Formula("(SELECT COUNT(p.id) FROM products p WHERE p.category_id = id)")
+    private Integer productCount;
 }

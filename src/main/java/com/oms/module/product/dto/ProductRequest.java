@@ -16,7 +16,8 @@ public class ProductRequest {
     private Long categoryId;
     private String brand;
     private String conditionStatus;
-
+    private Boolean manageStock;
+    private Long branchId;
     @NotBlank(message = "Đơn vị tính không được để trống")
     private String unit;
 

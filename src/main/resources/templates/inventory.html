@@ -157,8 +157,32 @@
     </style>
 
     <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
-        <h4 class="fw-bold mb-0 text-dark">Quản lý kho <span
-                class="fw-normal text-muted fs-6 ms-2">| Cửa hàng chính</span></h4>
+        <div class="d-flex align-items-center gap-3">
+            <h4 class="fw-bold mb-0 text-dark">Quản lý kho</h4>
+            <span class="text-muted fs-5">|</span>
+
+            <div class="dropdown">
+                <button class="btn filter-btn shadow-sm fw-bold dropdown-toggle justify-content-between px-3"
+                        type="button" data-bs-toggle="dropdown" style="min-width: 180px; color: #1e293b;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-shop text-primary"></i> <span th:each="b : ${branches}"
+                                                                      th:if="${b.id == selectedBranchId}"
+                                                                      th:text="${b.name}">Chọn chi nhánh</span>
+                    </div>
+                </button>
+                <ul class="dropdown-menu shadow mt-1 border-0 p-2" style="width: 220px; border-radius: 8px;">
+                    <li><h6 class="dropdown-header text-muted small fw-bold">CHỌN CHI NHÁNH</h6></li>
+                    <li th:each="b : ${branches}">
+                        <a class="dropdown-item d-flex justify-content-between align-items-center py-2 rounded mb-1 cursor-pointer"
+                           th:onclick="'changeBranch(' + ${b.id} + ')'"
+                           th:classappend="${b.id == selectedBranchId} ? 'bg-primary bg-opacity-10 text-primary fw-bold' : 'text-dark'"
+                           style="font-size: 13px;"> <span th:text="${b.name}"></span>
+                            <i class="bi bi-check2 fs-5" th:if="${b.id == selectedBranchId}"></i>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
         <div class="d-flex gap-2">
             <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-list-ul me-2"></i>Lô - HSD</button>
             <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
@@ -172,22 +196,24 @@
             <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3">
                 <li class="nav-item">
                     <a class="nav-link" th:classappend="${stockStatus == null or stockStatus == ''} ? 'active' : ''"
-                       th:href="@{/ui/inventory(keyword=${keyword}, dateRange=${dateRange})}">Tất cả</a>
+                       th:href="@{/ui/inventory(branchId=${selectedBranchId}, keyword=${keyword}, dateRange=${dateRange})}">Tất
+                        cả</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" th:classappend="${stockStatus == 'in_stock'} ? 'active' : ''"
-                       th:href="@{/ui/inventory(stockStatus='in_stock', keyword=${keyword}, dateRange=${dateRange})}">Còn
+                       th:href="@{/ui/inventory(branchId=${selectedBranchId}, stockStatus='in_stock', keyword=${keyword}, dateRange=${dateRange})}">Còn
                         hàng</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" th:classappend="${stockStatus == 'out_of_stock'} ? 'active' : ''"
-                       th:href="@{/ui/inventory(stockStatus='out_of_stock', keyword=${keyword}, dateRange=${dateRange})}">Hết
+                       th:href="@{/ui/inventory(branchId=${selectedBranchId}, stockStatus='out_of_stock', keyword=${keyword}, dateRange=${dateRange})}">Hết
                         hàng</a>
                 </li>
             </ul>
         </div>
 
         <form id="filterForm" method="GET" th:action="@{/ui/inventory}" class="m-0">
+            <input type="hidden" name="branchId" id="branchIdInput" th:value="${selectedBranchId}">
             <input type="hidden" name="stockStatus" th:value="${stockStatus}">
             <input type="hidden" name="dateRange" id="dateRangeInput" th:value="${dateRange}">
 
@@ -295,60 +321,68 @@
                     <th class="col-barcode">Barcode</th>
                     <th class="col-unit">Đơn vị</th>
                     <th class="col-lot">Lô - HSD</th>
-                    <th class="col-stock text-primary">Tồn kho</th>
-                    <th class="col-available text-success">Có thể bán</th>
-                    <th class="col-not-available text-muted">Không thể bán</th>
+                    <th class="col-stock text-primary" title="Số lượng thực tế nằm trong kho">Tồn kho thực tế</th>
+                    <th class="col-available text-success" title="Số lượng có thể lấy bán">Có thể bán</th>
+                    <th class="col-not-available text-muted">Hàng lỗi/Chuyển</th>
                     <th class="col-transaction text-muted">Đang giao dịch</th>
                     <th class="col-inbound text-muted">Đang về kho</th>
                     <th class="col-price-cost">Giá vốn</th>
                     <th class="col-price-sell text-primary">Giá bán</th>
-                    <th class="col-created text-end pe-4">Ngày tạo</th>
+                    <th class="col-created text-end pe-4">Ngày tạo SP</th>
                 </tr>
                 </thead>
                 <tbody>
-                <th:block th:each="v : ${variants}">
+                <th:block th:each="v : ${inventories}">
                     <tr>
                         <td class="ps-4 sticky-col-1"></td>
                         <td class="col-product text-start sticky-col-2">
                             <div class="d-flex align-items-center gap-3 py-1">
-                                <img th:if="${(v.imageUrl != null and v.imageUrl != '') or (v.product.imageUrl != null and v.product.imageUrl != '')}"
-                                     th:src="${v.imageUrl != null and v.imageUrl != '' ? v.imageUrl : v.product.imageUrl}"
+                                <img th:if="${v.imageUrl != null and v.imageUrl != ''}" th:src="${v.imageUrl}"
                                      class="product-img shadow-sm">
-                                <div th:unless="${(v.imageUrl != null and v.imageUrl != '') or (v.product.imageUrl != null and v.product.imageUrl != '')}"
+                                <div th:unless="${v.imageUrl != null and v.imageUrl != ''}"
                                      class="img-placeholder shadow-sm"><i class="bi bi-image"></i></div>
                                 <div class="lh-sm">
-                                    <a th:href="@{/ui/products/{sku}(sku=${v.product.sku})}"
+                                    <a th:href="@{/ui/products/{sku}(sku=${v.sku})}"
                                        class="fw-bold text-primary text-decoration-none d-block mb-1"
-                                       th:text="${v.product.name}"></a>
+                                       th:text="${v.productName}"></a>
                                     <small class="text-muted" th:text="${v.variantName}"></small>
                                 </div>
                             </div>
                         </td>
                         <td class="col-sku" th:text="${v.sku}"></td>
                         <td class="col-barcode text-muted small">---</td>
-                        <td class="col-unit" th:text="${v.product.unit}"></td>
+                        <td class="col-unit" th:text="${v.unit}"></td>
                         <td class="col-lot text-muted small">Không</td>
-                        <td class="col-stock fw-bold" th:text="${v.stockQuantity}"></td>
-                        <td class="col-available fw-bold text-success" th:text="${v.stockQuantity}"></td>
+
+                        <td class="col-stock fw-bold fs-6" th:text="${v.stock}"></td>
+                        <td class="col-available fw-bold text-success fs-6" th:text="${v.availableStock}"></td>
                         <td class="col-not-available text-muted">0</td>
-                        <td class="col-transaction text-muted">0</td>
+                        <td class="col-transaction text-muted fw-medium"
+                            th:text="${v.stock != null and v.availableStock != null ? (v.stock - v.availableStock) : 0}"></td>
                         <td class="col-inbound text-muted">0</td>
+
                         <td class="col-price-cost"
-                            th:text="${v['costPrice'] != null ? #numbers.formatDecimal(v['costPrice'], 0, 'COMMA', 0, 'POINT') : '0'}"></td>
+                            th:text="${v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') : '0'}"></td>
                         <td class="col-price-sell fw-bold text-primary"
-                            th:text="${v['price'] != null ? #numbers.formatDecimal(v['price'], 0, 'COMMA', 0, 'POINT') : '0'}"></td>
+                            th:text="${v.price != null ? #numbers.formatDecimal(v.price, 0, 'COMMA', 0, 'POINT') : '0'}"></td>
                         <td class="col-created text-end text-muted pe-4"
-                            th:text="${v.product.createdAt != null ? #temporals.format(v.product.createdAt, 'dd/MM/yyyy') : '---'}"></td>
+                            th:text="${v.createdAt != null ? #temporals.format(v.createdAt, 'dd/MM/yyyy') : '---'}"></td>
                     </tr>
                 </th:block>
+                <tr th:if="${#lists.isEmpty(inventories)}">
+                    <td colspan="14" class="text-center py-5 text-muted">
+                        <i class="bi bi-box-seam fs-2 d-block mb-2"></i>Không có dữ liệu tồn kho tại chi nhánh này.
+                    </td>
+                </tr>
                 </tbody>
             </table>
         </div>
 
         <div class="p-3 bg-white border-top text-muted small d-flex justify-content-between align-items-center">
-            <span th:if="${not #lists.isEmpty(variants)}"
-                  th:text="'Hiển thị 1 - ' + ${#lists.size(variants)} + ' trên tổng số ' + ${#lists.size(variants)}"></span>
-            <nav th:if="${not #lists.isEmpty(variants)}">
+            <span th:if="${not #lists.isEmpty(inventories)}"
+                  th:text="'Hiển thị 1 - ' + ${#lists.size(inventories)} + ' trên tổng số ' + ${#lists.size(inventories)}"></span>
+            <span th:if="${#lists.isEmpty(inventories)}">Hiển thị 0</span>
+            <nav th:if="${not #lists.isEmpty(inventories)}">
                 <ul class="pagination pagination-sm mb-0">
                     <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>
                     </li>
@@ -407,14 +441,14 @@
             {id: 'col-barcode', label: 'Barcode', visible: true, canHide: true},
             {id: 'col-unit', label: 'Đơn vị tính', visible: true, canHide: true},
             {id: 'col-lot', label: 'Quản lý lô - HSD', visible: true, canHide: true},
-            {id: 'col-stock', label: 'Tồn kho', visible: true, canHide: true},
+            {id: 'col-stock', label: 'Tồn kho thực tế', visible: true, canHide: true},
             {id: 'col-available', label: 'Có thể bán', visible: true, canHide: true},
-            {id: 'col-not-available', label: 'Không bán được', visible: true, canHide: true},
+            {id: 'col-not-available', label: 'Hàng lỗi/Chuyển', visible: true, canHide: true},
             {id: 'col-transaction', label: 'Đang giao dịch', visible: true, canHide: true},
             {id: 'col-inbound', label: 'Đang về kho', visible: true, canHide: true},
             {id: 'col-price-cost', label: 'Giá vốn', visible: true, canHide: true},
             {id: 'col-price-sell', label: 'Giá bán', visible: true, canHide: true},
-            {id: 'col-created', label: 'Ngày tạo', visible: true, canHide: true}
+            {id: 'col-created', label: 'Ngày tạo SP', visible: true, canHide: true}
         ];
 
         let config = JSON.parse(localStorage.getItem('inventory_column_config')) || [...DEFAULT_COLUMNS];
@@ -512,6 +546,11 @@
         function clearStockFilter() {
             document.querySelector('input[name="minStock"]').value = '';
             document.querySelector('input[name="maxStock"]').value = '';
+            document.getElementById('filterForm').submit();
+        }
+
+        function changeBranch(branchId) {
+            document.getElementById('branchIdInput').value = branchId;
             document.getElementById('filterForm').submit();
         }
     </script>

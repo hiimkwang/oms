@@ -174,14 +174,16 @@
             <div class="card p-4 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="card-title-custom mb-0">Phân loại & Thuộc tính</div>
-                    <small class="text-danger">Lưu ý: Thay đổi thuộc tính sẽ tạo lại bảng biến thể mới!</small>
+                    <small class="text-danger fw-medium bg-danger bg-opacity-10 px-2 py-1 rounded"><i
+                            class="bi bi-exclamation-triangle me-1"></i>Thay đổi thuộc tính sẽ xóa bảng biến thể cũ và
+                        yêu cầu nhập lại!</small>
                 </div>
 
                 <div id="attributesContainer">
                     <div class="row g-2 mb-3 align-items-start attr-row">
                         <div class="col-md-3">
                             <label class="form-label">Tên thuộc tính</label>
-                            <input type="text" class="form-control oms-input attr-name-input" value="Kích thước"
+                            <input type="text" class="form-control oms-input attr-name-input"
                                    placeholder="VD: Kích thước...">
                         </div>
                         <div class="col-md-8">
@@ -201,7 +203,7 @@
                 </div>
 
                 <div class="mt-4 pt-4 border-top" id="variantTableContainer"
-                     th:classappend="${#lists.isEmpty(product.variants)} ? 'd-none' : ''">
+                     th:classappend="${#lists.isEmpty(product.variants) or (#lists.size(product.variants) == 1 and product.variants[0].variantName == 'Mặc định')} ? 'd-none' : ''">
                     <h6 class="fw-bold mb-3 text-dark">Cấu hình biến thể chi tiết (Đã lưu)</h6>
                     <div class="table-responsive">
                         <table class="table table-bordered align-middle text-center mb-0">
@@ -211,12 +213,13 @@
                                 <th width="80">Ảnh</th>
                                 <th width="130">Giá bán</th>
                                 <th width="130">Giá nhập (Vốn)</th>
-                                <th width="100">Tồn kho</th>
+                                <th width="100">Tồn kho <i class="bi bi-lock text-muted ms-1"
+                                                           title="Không sửa được tồn kho"></i></th>
                                 <th width="160">Mã SKU</th>
                             </tr>
                             </thead>
                             <tbody id="variantTableBody">
-                            <tr th:each="v : ${product.variants}">
+                            <tr th:each="v : ${product.variants}" th:if="${v.variantName != 'Mặc định'}">
                                 <td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part"
                                     th:text="${v.variantName}"></td>
                                 <td>
@@ -245,10 +248,12 @@
                                            class="form-control form-control-sm text-end oms-input var-cost"
                                            th:value="${v.costPrice}"></td>
                                 <td><input type="number"
-                                           class="form-control form-control-sm text-center oms-input var-stock"
-                                           th:value="${v.stockQuantity}"></td>
+                                           class="form-control form-control-sm text-center oms-input var-stock bg-light"
+                                           th:value="${v.stockQuantity}"
+                                           th:disabled="${product.manageStock != null and product.manageStock}"
+                                           title="Vui lòng dùng chức năng Điều chỉnh kho"></td>
                                 <td><input type="text"
-                                           class="form-control form-control-sm oms-input var-sku text-primary fw-medium"
+                                           class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light"
                                            th:value="${v.sku}" readonly></td>
                             </tr>
                             </tbody>
@@ -258,26 +263,31 @@
             </div>
 
             <div class="card p-4 mb-4 border-0 shadow-sm">
-                <div class="card-title-custom">Thông tin kho</div>
-                <div class="mb-4">
-                    <label class="form-label">Lưu kho tại</label>
-                    <select class="form-select oms-input py-2">
-                        <option>Cửa hàng chính</option>
-                    </select>
+                <div class="card-title-custom">Thông tin quản lý kho</div>
+
+                <div class="form-check mb-4 border-bottom pb-3">
+                    <input class="form-check-input" type="checkbox" id="manageStock"
+                           th:checked="${product.manageStock == null or product.manageStock}"
+                           onchange="toggleStockManagement()">
+                    <label class="form-check-label text-dark fw-medium" for="manageStock">Quản lý số lượng tồn
+                        kho</label>
+                    <div class="text-muted small mt-1">Bỏ tích nếu là sản phẩm dịch vụ hoặc không cần theo dõi số
+                        lượng.
+                    </div>
                 </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="manageStock" checked>
-                    <label class="form-check-label text-dark" for="manageStock">Quản lý số lượng tồn kho</label>
-                </div>
-                <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-3">
+
+                <div id="singleProductStockArea" class="d-flex justify-content-between align-items-center pt-2"
+                     th:classappend="${not #lists.isEmpty(product.variants) and product.variants[0].variantName != 'Mặc định'} ? 'd-none' : ''">
                     <div>
-                        <div class="fw-medium text-dark">Cửa hàng chính</div>
-                        <a href="#" class="text-decoration-none small">Vị trí lưu kho</a>
+                        <div class="fw-bold text-dark">Tổng tồn kho (Sản phẩm gốc)</div>
+                        <div class="small text-warning mt-1"><i class="bi bi-info-circle me-1"></i>Chỉ sửa tồn kho qua
+                            chức năng Kiểm kho.
+                        </div>
                     </div>
                     <div style="width: 150px;">
-                        <label class="form-label mb-1">Tồn kho (Sản phẩm đơn)</label>
-                        <input type="number" id="stockQuantity" class="form-control oms-input text-end"
-                               th:value="${product.stockQuantity}">
+                        <input type="number" id="stockQuantity" class="form-control oms-input text-end fw-bold bg-light"
+                               th:value="${product.stockQuantity}"
+                               th:disabled="${product.manageStock != null and product.manageStock}">
                     </div>
                 </div>
             </div>
@@ -289,17 +299,14 @@
                 <div class="text-center bg-light border-dashed rounded p-3 text-muted position-relative"
                      style="border: 2px dashed #cbd5e1; cursor: pointer; min-height: 160px; display: flex; align-items: center; justify-content: center;"
                      onclick="document.getElementById('mainImageInput').click()">
-
                     <div id="mainImagePlaceholder"
                          th:classappend="${product != null and product.imageUrl != null and product.imageUrl != '' ? 'd-none' : ''}">
                         <i class="bi bi-cloud-arrow-up fs-2"></i>
                         <p class="mt-2 mb-0 fw-medium small">Click để tải ảnh lên</p>
                     </div>
-
                     <img id="mainImagePreview" th:src="${product != null ? product.imageUrl : ''}"
                          class="img-fluid rounded" style="max-height: 140px; object-fit: contain;"
                          th:classappend="${product == null or product.imageUrl == null or product.imageUrl == '' ? 'd-none' : ''}">
-
                     <input type="file" id="mainImageInput" class="d-none" accept="image/*"
                            onchange="uploadMainImage(this)">
                 </div>
@@ -311,11 +318,8 @@
                     <label class="form-label">Danh mục</label>
                     <select id="category" class="form-control">
                         <option value="">Chọn danh mục</option>
-                        <option th:each="cat : ${categories}"
-                                th:value="${cat.id}"
-                                th:text="${cat.name}"
-                                th:selected="${product.category != null and product.category.id == cat.id}">
-                        </option>
+                        <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"
+                                th:selected="${product.category != null and product.category.id == cat.id}"></option>
                     </select>
                 </div>
                 <div class="mb-3">
@@ -343,7 +347,6 @@
                     let dataType = 'CATEGORY';
                     if (this.input.id === 'brand') dataType = 'BRAND';
                     if (this.input.id === 'unit') dataType = 'UNIT';
-
                     fetch('/api/v1/settings/master-data/quick-add', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
@@ -365,12 +368,28 @@
             new TomSelect('#tags', {create: true, plugins: ['remove_button']});
 
             initAttributeTags();
+            toggleStockManagement(); // Khởi tạo trạng thái form kho ban đầu
         });
 
-        document.addEventListener('input', function (e) {
-            if (e.target.classList.contains('attr-name-input')) {
-                generateVariantTable();
+        // Ẩn/Hiện ô kho khi gạt công tắc Manage Stock
+        function toggleStockManagement() {
+            const isManaged = document.getElementById('manageStock').checked;
+            const singleStockInput = document.getElementById('stockQuantity');
+            const variantStockInputs = document.querySelectorAll('.var-stock');
+
+            // Nếu bật Quản lý kho -> Disabled (Chỉ đọc) để tránh nhân viên sửa bậy. Nếu Tắt -> Enabled để set về 0 hoặc tự nhập.
+            singleStockInput.disabled = isManaged;
+            variantStockInputs.forEach(input => input.disabled = isManaged);
+
+            // Nếu người dùng cố tình tắt quản lý kho, ta ép số liệu về 0
+            if (!isManaged) {
+                singleStockInput.value = 0;
+                variantStockInputs.forEach(input => input.value = 0);
             }
+        }
+
+        document.addEventListener('input', function (e) {
+            if (e.target.classList.contains('attr-name-input')) generateVariantTable();
         });
 
         function initAttributeTags() {
@@ -393,35 +412,19 @@
             const container = document.getElementById('attributesContainer');
             const newRow = document.createElement('div');
             newRow.className = 'row g-2 mb-3 align-items-start attr-row';
-
             newRow.innerHTML = `
-                <div class="col-md-3">
-                    <input type="text" class="form-control oms-input attr-name-input" placeholder="Tên thuộc tính (VD: Switch)">
-                </div>
-                <div class="col-md-8">
-                    <input type="text" class="tag-input" placeholder="Nhập giá trị và ấn enter">
-                </div>
-                <div class="col-md-1 d-flex justify-content-center pt-2 mt-1">
-                    <i class="bi bi-trash fs-5 btn-remove-attr"></i>
-                </div>
+                <div class="col-md-3"><input type="text" class="form-control oms-input attr-name-input" placeholder="Tên thuộc tính (VD: Switch)"></div>
+                <div class="col-md-8"><input type="text" class="tag-input" placeholder="Nhập giá trị và ấn enter"></div>
+                <div class="col-md-1 d-flex justify-content-center pt-2 mt-1"><i class="bi bi-trash fs-5 btn-remove-attr"></i></div>
             `;
             container.appendChild(newRow);
-
-            // Bắt chính xác cái ô Input vừa được đẻ ra (là phần tử cuối cùng)
             const allTagInputs = container.querySelectorAll('.tag-input');
-            const newestInput = allTagInputs[allTagInputs.length - 1];
-
-            // Gắn TomSelect trực tiếp vào Element (Không cần xài ID nữa)
-            new TomSelect(newestInput, {
-                create: true,
-                plugins: ['remove_button'],
-                delimiter: ',',
-                placeholder: "Nhập giá trị và ấn enter",
+            new TomSelect(allTagInputs[allTagInputs.length - 1], {
+                create: true, plugins: ['remove_button'], delimiter: ',', placeholder: "Nhập giá trị và ấn enter",
                 onChange: function () {
                     generateVariantTable();
                 }
             });
-
             generateVariantTable();
         }
 
@@ -429,35 +432,36 @@
             const container = document.getElementById('variantTableContainer');
             const thead = document.getElementById('variantTableHead');
             const tbody = document.getElementById('variantTableBody');
+            const singleProductStockArea = document.getElementById('singleProductStockArea');
+            const isManaged = document.getElementById('manageStock').checked;
 
             let validAttributes = [];
             document.querySelectorAll('.attr-row').forEach(row => {
                 const nameInput = row.querySelector('.attr-name-input');
                 const attrName = nameInput ? nameInput.value.trim() : 'Thuộc tính';
                 const tagInput = row.querySelector('.tag-input');
-
                 if (tagInput && tagInput.tomselect) {
                     const values = tagInput.tomselect.getValue().split(',').filter(v => v.trim() !== '');
-                    if (values.length > 0) {
-                        validAttributes.push({name: attrName || 'Phân loại', values: values});
-                    }
+                    if (values.length > 0) validAttributes.push({name: attrName || 'Phân loại', values: values});
                 }
             });
 
             if (validAttributes.length === 0) {
-                tbody.innerHTML = '';
+                tbody.innerHTML = ''; // Xóa hết ruột bên trong
+                container.classList.add('d-none');
+                singleProductStockArea.classList.remove('d-none'); // Hiện lại Tồn kho gốc
                 return;
             }
 
+            singleProductStockArea.classList.add('d-none'); // Ẩn Tồn kho gốc
+
             let headerHtml = '<tr>';
-            validAttributes.forEach(attr => {
-                headerHtml += `<th class="text-start ps-3">${attr.name}</th>`;
-            });
+            validAttributes.forEach(attr => headerHtml += `<th class="text-start ps-3">${attr.name}</th>`);
             headerHtml += `
                 <th width="80">Ảnh</th>
                 <th width="130">Giá bán</th>
                 <th width="130">Giá nhập (Vốn)</th>
-                <th width="100">Tồn kho</th>
+                <th width="100">Tồn kho <i class="bi bi-lock text-muted ms-1"></i></th>
                 <th width="160">Mã SKU</th>
             </tr>`;
             thead.innerHTML = headerHtml;
@@ -470,8 +474,7 @@
                     for (let j = 0, l = args[i].length; j < l; j++) {
                         let a = arr.slice(0);
                         a.push(args[i][j]);
-                        if (i === max) r.push(a);
-                        else helper(a, i + 1);
+                        if (i === max) r.push(a); else helper(a, i + 1);
                     }
                 }
 
@@ -482,7 +485,6 @@
             const combos = cartesian(allValues);
             const basePrice = document.getElementById('price').value || 0;
             const baseSku = document.getElementById('sku').value.trim() || 'AUTO';
-
             let bodyHtml = '';
 
             combos.forEach((combo, index) => {
@@ -491,9 +493,7 @@
                 const variantSku = baseSku === 'AUTO' ? `AUTO-${variantSuffix}` : `${baseSku}-${variantSuffix}`;
 
                 let rowHtml = '<tr>';
-                combo.forEach(val => {
-                    rowHtml += `<td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part">${val}</td>`;
-                });
+                combo.forEach(val => rowHtml += `<td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part">${val}</td>`);
 
                 rowHtml += `
                    <td>
@@ -510,8 +510,8 @@
                     </td>
                     <td><input type="number" class="form-control form-control-sm text-end oms-input var-price" value="${basePrice}"></td>
                     <td><input type="number" class="form-control form-control-sm text-end oms-input var-cost" value="0" placeholder="Giá nhập"></td>
-                    <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock" value="0"></td>
-                    <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium" value="${variantSku}" readonly></td>
+                    <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock bg-light" value="0" ${isManaged ? 'disabled' : ''} title="Sửa bằng tính năng Kiểm kho"></td>
+                    <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light" value="${variantSku}" readonly></td>
                 </tr>`;
                 bodyHtml += rowHtml;
             });
@@ -531,27 +531,24 @@
             const nameVal = document.getElementById("name").value.trim();
             const skuVal = document.getElementById("sku").value.trim();
             const unitVal = document.getElementById("unit").value.trim();
+            const isManaged = document.getElementById("manageStock").checked;
 
-            if (!nameVal) {
-                alert("Vui lòng nhập Tên sản phẩm!");
-                document.getElementById("name").focus();
-                return;
-            }
+            if (!nameVal) return alert("Vui lòng nhập Tên sản phẩm!");
 
             const payload = {
                 sku: skuVal,
                 name: nameVal,
                 imageUrl: document.getElementById("imageUrl").value.trim(),
-
-                // SỬA Ở ĐÂY: Đổi 'category' thành 'categoryId'
                 categoryId: document.getElementById("category").value,
-
                 brand: document.getElementById("brand").value,
                 unit: unitVal,
                 price: parseFloat(document.getElementById("price").value) || 0,
-                stockQuantity: parseInt(document.getElementById("stockQuantity").value) || 0,
-                minStockLevel: 0,
                 description: document.getElementById("description").value,
+
+                // Thuộc tính Kho
+                manageStock: isManaged,
+                stockQuantity: parseInt(document.getElementById("stockQuantity").value) || 0,
+
                 variants: []
             };
 
@@ -584,16 +581,12 @@
             }).catch(err => alert("Lỗi kết nối: " + err));
         }
 
-        // ================= XỬ LÝ UPLOAD ẢNH =================
+        // Upload ảnh
         async function uploadFileToAPI(file) {
             const formData = new FormData();
             formData.append("file", file);
-
-            const response = await fetch('/api/v1/upload', {
-                method: 'POST',
-                body: formData
-            });
-            if (!response.ok) throw new Error("Upload thất bại, hãy check lại API Java!");
+            const response = await fetch('/api/v1/upload', {method: 'POST', body: formData});
+            if (!response.ok) throw new Error("Upload thất bại!");
             const data = await response.json();
             return data.url;
         }
@@ -602,15 +595,10 @@
             if (!inputEl.files || inputEl.files.length === 0) return;
             try {
                 const url = await uploadFileToAPI(inputEl.files[0]);
-
                 document.getElementById('imageUrl').value = url;
-
-                const previewEl = document.getElementById('mainImagePreview');
-                const placeholder = document.getElementById('mainImagePlaceholder');
-
-                previewEl.src = url;
-                previewEl.classList.remove('d-none');
-                placeholder.classList.add('d-none');
+                document.getElementById('mainImagePreview').src = url;
+                document.getElementById('mainImagePreview').classList.remove('d-none');
+                document.getElementById('mainImagePlaceholder').classList.add('d-none');
             } catch (err) {
                 alert(err.message);
             }
@@ -620,18 +608,11 @@
             if (!inputEl.files || inputEl.files.length === 0) return;
             try {
                 const url = await uploadFileToAPI(inputEl.files[0]);
-
                 const labelWrapper = inputEl.closest('label');
-                const td = inputEl.closest('td');
-
-                td.querySelector('.var-image').value = url;
-
-                const previewEl = labelWrapper.querySelector('.variant-img-preview');
-                const placeholder = labelWrapper.querySelector('.variant-img-placeholder');
-
-                previewEl.src = url;
-                previewEl.classList.remove('d-none');
-                placeholder.classList.add('d-none');
+                inputEl.closest('td').querySelector('.var-image').value = url;
+                labelWrapper.querySelector('.variant-img-preview').src = url;
+                labelWrapper.querySelector('.variant-img-preview').classList.remove('d-none');
+                labelWrapper.querySelector('.variant-img-placeholder').classList.add('d-none');
             } catch (err) {
                 alert(err.message);
             }

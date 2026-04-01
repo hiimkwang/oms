@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "order_details")
@@ -53,4 +54,17 @@ public class OrderDetail {
 
     @Column(name = "is_custom")
     private Boolean isCustom;
+
+    @Column(name = "serial_number")
+    private String serialNumber; // Lưu số Serial / IMEI
+
+    @Column(name = "warranty_months")
+    private Integer warrantyMonths; // Lưu số tháng bảo hành (VD: 12, 24)
+
+    @Column(name = "warranty_start_date")
+    private LocalDateTime warrantyStartDate; // Ngày kích hoạt bảo hành
+
+    @Column(name = "warranty_end_date")
+    private LocalDateTime warrantyEndDate; // Ngày hết hạn bảo hành
+
 }

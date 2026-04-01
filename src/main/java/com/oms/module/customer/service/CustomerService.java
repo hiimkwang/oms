@@ -30,15 +30,43 @@ public class CustomerService {
 
         return customers.stream().map(c -> {
             CustomerRequest req = new CustomerRequest();
-            // Đảm bảo không bị lỗi nếu DB đang có dữ liệu rác (null)
+
+            // --- 1. Thông tin cơ bản ---
             req.setCustomerCode(c.getCode() != null ? c.getCode() : "UNKNOWN");
+            req.setFirstName(c.getFirstName());
+            req.setLastName(c.getLastName());
             req.setFullName(c.getFullName() != null ? c.getFullName() : "Khách chưa có tên");
             req.setPhoneNumber(c.getPhone() != null ? c.getPhone() : "");
             req.setEmail(c.getEmail() != null ? c.getEmail() : "");
-            req.setCustomerGroup(c.getCustomerGroup() != null ? c.getCustomerGroup() : "Khách lẻ");
+            req.setDob(c.getDob());
+            req.setGender(c.getGender());
 
-            req.setOrderCount(0L);
-            req.setTotalSpent(0.0);
+            // --- 2. Phân loại & Ghi chú ---
+            req.setCustomerGroup(c.getCustomerGroup() != null ? c.getCustomerGroup() : "Khách lẻ");
+            req.setNote(c.getNote());
+            req.setTags(c.getTags());
+
+            // --- 3. Địa chỉ nhận hàng (Shipping) ---
+            // Tận dụng lấy luôn tên và SĐT khách ném vào ship luôn cho tiện
+            req.setShipFirstName(c.getFirstName());
+            req.setShipLastName(c.getLastName());
+            req.setShipPhone(c.getPhone());
+            req.setShipCompany(c.getShipCompany());
+            req.setShipCity(c.getShipCity());
+            req.setShipDistrict(c.getShipDistrict());
+            req.setShipAddressDetail(c.getShipAddressDetail());
+
+            // --- 4. Thông tin hóa đơn (VAT) - CÁI MÌNH ĐANG CẦN NHẤT ĐÂY ---
+            req.setHasInvoice(c.getHasInvoice() != null ? c.getHasInvoice() : false);
+            req.setTaxCode(c.getTaxCode());
+            req.setCompanyName(c.getCompanyName());
+            req.setCompanyAddress(c.getCompanyAddress());
+
+            // --- 5. Thông tin thống kê ---
+            // Xử lý ép kiểu từ Integer sang Long an toàn
+            req.setOrderCount(c.getOrderCount() != null ? c.getOrderCount().longValue() : 0L);
+            req.setTotalSpent(c.getTotalSpent() != null ? c.getTotalSpent() : 0.0);
+
             return req;
         }).collect(Collectors.toList());
     }
