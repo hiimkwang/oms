@@ -84,13 +84,69 @@ public class ReceiptService {
         ).collect(Collectors.toList());
 
         receipt.setDetails(details);
-
         Receipt savedReceipt = receiptRepository.save(receipt);
+
         logActivity(savedReceipt, "Tạo mới phiếu nhập hàng", currentWorker);
 
+        // NẾU CHƯA NHẬP KHO (PENDING): Ghi nhận hàng đang đi trên đường (Inbound)
+        if (!Boolean.TRUE.equals(request.getIsImportStock())) {
+            addInboundStock(savedReceipt, details);
+        }
+
+        // NẾU TẠO ĐƠN VÀ BẤM NHẬP KHO LUÔN
         if (Boolean.TRUE.equals(request.getIsImportStock())) {
             this.confirmImport(savedReceipt.getId());
         }
+
+        return savedReceipt;
+    }
+
+    @Transactional
+    public Receipt updateReceipt(String code, ReceiptRequest request) {
+        Receipt receipt = receiptRepository.findByCode(code)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu mã: " + code));
+
+        if ("COMPLETED".equals(receipt.getStatus()) || "COMPLETED".equals(receipt.getImportStatus())) {
+            throw new RuntimeException("Đã nhập kho hoặc hoàn thành không được sửa!");
+        }
+
+        Supplier supplier = supplierRepository.findByCode(request.getSupplierCode())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy NCC"));
+
+        // 1. TRƯỚC KHI SỬA: Xóa bỏ lượng Inbound cũ khỏi kho
+        removeInboundStock(receipt, receipt.getDetails());
+
+        receipt.setSupplier(supplier);
+        receipt.setBranchId(request.getBranchId());
+        receipt.setBranchName(request.getBranchName());
+        receipt.setNote(request.getNote());
+        receipt.setItemsAmount(request.getItemsAmount());
+        receipt.setDiscount(request.getDiscount());
+        receipt.setShippingFee(request.getShippingFee());
+        receipt.setTotalAmount(request.getTotalAmount());
+
+        BigDecimal paid = receipt.getAmountPaid() != null ? receipt.getAmountPaid() : BigDecimal.ZERO;
+        if (paid.compareTo(receipt.getTotalAmount()) >= 0) receipt.setPaymentStatus("PAID");
+        else if (paid.compareTo(BigDecimal.ZERO) > 0) receipt.setPaymentStatus("PARTIAL");
+        else receipt.setPaymentStatus("UNPAID");
+
+        receipt.getDetails().clear();
+        List<ReceiptDetail> newDetails = request.getItems().stream().map(item ->
+                ReceiptDetail.builder()
+                        .receipt(receipt)
+                        .sku(item.getSku())
+                        .quantity(item.getQuantity())
+                        .importPrice(item.getImportPrice())
+                        .warrantyMonths(item.getWarrantyMonths() != null ? item.getWarrantyMonths() : 0)
+                        .build()
+        ).collect(Collectors.toList());
+
+        receipt.getDetails().addAll(newDetails);
+        Receipt savedReceipt = receiptRepository.save(receipt);
+        logActivity(receipt, "Cập nhật thông tin phiếu nhập", getCurrentUserName());
+
+        // 2. SAU KHI SỬA: Cộng lượng Inbound mới (từ chi tiết đơn mới sửa) vào kho
+        addInboundStock(savedReceipt, newDetails);
 
         return savedReceipt;
     }
@@ -114,7 +170,8 @@ public class ReceiptService {
 
             updateMAC(variant, detail.getQuantity(), actualImportPrice);
 
-            updateBranchInventory(receipt.getBranchId(), variant.getId(), detail.getQuantity());
+            // CẬP NHẬT KHO: Trừ Inbound, Cộng Tồn thực tế & Có thể bán
+            updateBranchInventoryForImport(receipt.getBranchId(), variant.getId(), detail.getQuantity());
 
             variant.setStockQuantity(variant.getStockQuantity() + detail.getQuantity());
             variantRepository.save(variant);
@@ -127,19 +184,80 @@ public class ReceiptService {
         return receiptRepository.save(receipt);
     }
 
-    private void updateBranchInventory(Long branchId, Long variantId, Integer qty) {
-        Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variantId, branchId)
-                .orElse(Inventory.builder()
-                        .variantId(variantId)
-                        .branchId(branchId)
-                        .stock(0)
-                        .availableStock(0)
-                        .build());
+    @Transactional
+    public void cancelReceipt(Long id) {
+        Receipt receipt = receiptRepository.findById(id).orElseThrow();
+        if ("COMPLETED".equals(receipt.getImportStatus())) throw new RuntimeException("Không thể hủy đơn đã nhập kho");
 
+        receipt.setStatus("CANCELLED");
+
+        // HỦY ĐƠN THÌ PHẢI XÓA LƯỢNG INBOUND KHỎI KHO
+        removeInboundStock(receipt, receipt.getDetails());
+
+        receiptRepository.save(receipt);
+        logActivity(receipt, "Hủy phiếu nhập hàng", getCurrentUserName());
+    }
+
+    // =========================================================================
+    // CÁC HÀM XỬ LÝ LOGIC TỒN KHO GIAO DỊCH (INBOUND & ACTUAL STOCK)
+    // =========================================================================
+
+    // 1. Thêm lượng hàng đang về kho (Inbound)
+    private void addInboundStock(Receipt receipt, List<ReceiptDetail> details) {
+        if (receipt.getBranchId() == null) return;
+        for (ReceiptDetail detail : details) {
+            ProductVariant variant = variantRepository.findBySku(detail.getSku()).orElse(null);
+            if (variant == null) continue;
+
+            Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variant.getId(), receipt.getBranchId())
+                    .orElse(Inventory.builder().variantId(variant.getId()).branchId(receipt.getBranchId())
+                            .stock(0).availableStock(0).inboundStock(0).build());
+
+            int currentInbound = inv.getInboundStock() != null ? inv.getInboundStock() : 0;
+            inv.setInboundStock(currentInbound + detail.getQuantity());
+            inventoryRepository.save(inv);
+        }
+    }
+
+    // 2. Xóa lượng hàng đang về kho (Dùng khi Sửa đơn / Hủy đơn)
+    private void removeInboundStock(Receipt receipt, List<ReceiptDetail> details) {
+        if (receipt.getBranchId() == null) return;
+        for (ReceiptDetail detail : details) {
+            ProductVariant variant = variantRepository.findBySku(detail.getSku()).orElse(null);
+            if (variant == null) continue;
+
+            inventoryRepository.findByVariantIdAndBranchId(variant.getId(), receipt.getBranchId()).ifPresent(inv -> {
+                int currentInbound = inv.getInboundStock() != null ? inv.getInboundStock() : 0;
+                inv.setInboundStock(Math.max(0, currentInbound - detail.getQuantity()));
+                inventoryRepository.save(inv);
+            });
+        }
+    }
+
+    // 3. Chốt nhập kho (Trừ Inbound, Cộng Tồn thực tế & Có thể bán)
+    private void updateBranchInventoryForImport(Long branchId, Long variantId, Integer qty) {
+        if (branchId == null) return;
+
+        Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variantId, branchId)
+                .orElse(Inventory.builder().variantId(variantId).branchId(branchId)
+                        .stock(0).availableStock(0).inboundStock(0).build());
+
+        // Xóa khỏi cột "Đang về kho"
+        int currentInbound = inv.getInboundStock() != null ? inv.getInboundStock() : 0;
+        inv.setInboundStock(Math.max(0, currentInbound - qty));
+
+        // Cộng vào Tồn kho thực tế
         inv.setStock(inv.getStock() + qty);
+
+        // Cộng vào Có thể bán
         inv.setAvailableStock(inv.getAvailableStock() + qty);
+
         inventoryRepository.save(inv);
     }
+
+    // =========================================================================
+    // CÁC HÀM TIỆN ÍCH KHÁC (GIỮ NGUYÊN NHƯ CŨ)
+    // =========================================================================
 
     private void updateMAC(ProductVariant variant, int importQty, BigDecimal actualPrice) {
         int oldStock = variant.getStockQuantity();
@@ -148,18 +266,14 @@ public class ReceiptService {
         if (oldStock + importQty > 0) {
             BigDecimal totalOldValue = oldCost.multiply(new BigDecimal(Math.max(0, oldStock)));
             BigDecimal totalNewValue = actualPrice.multiply(new BigDecimal(importQty));
-
-            BigDecimal newCost = totalOldValue.add(totalNewValue)
-                    .divide(new BigDecimal(oldStock + importQty), 2, RoundingMode.HALF_UP);
-
+            BigDecimal newCost = totalOldValue.add(totalNewValue).divide(new BigDecimal(oldStock + importQty), 2, RoundingMode.HALF_UP);
             variant.setCostPrice(newCost);
         }
     }
 
     private BigDecimal calculateExtraCostRatio(Receipt receipt) {
-        if (receipt.getItemsAmount() == null || receipt.getItemsAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        if (receipt.getItemsAmount() == null || receipt.getItemsAmount().compareTo(BigDecimal.ZERO) <= 0)
             return BigDecimal.ZERO;
-        }
         BigDecimal fee = receipt.getShippingFee() != null ? receipt.getShippingFee() : BigDecimal.ZERO;
         BigDecimal discount = receipt.getDiscount() != null ? receipt.getDiscount() : BigDecimal.ZERO;
         return fee.subtract(discount).divide(receipt.getItemsAmount(), 4, RoundingMode.HALF_UP);
@@ -195,103 +309,28 @@ public class ReceiptService {
         }
     }
 
-    @Transactional
-    public void cancelReceipt(Long id) {
-        Receipt receipt = receiptRepository.findById(id).orElseThrow();
-        if ("COMPLETED".equals(receipt.getImportStatus())) throw new RuntimeException("Không thể hủy đơn đã nhập kho");
-        receipt.setStatus("CANCELLED");
-        receiptRepository.save(receipt);
-        logActivity(receipt, "Hủy phiếu nhập hàng", getCurrentUserName());
-    }
-
     public SupplierStatsResponse getSupplierStats(String code, LocalDateTime start, LocalDateTime end) {
         List<Receipt> receipts;
         BigDecimal totalDebt;
         long totalOrders;
         BigDecimal totalAmount;
 
-        // KIỂM TRA ĐIỀU KIỆN "TẤT CẢ THỜI GIAN"
         if (start == null || end == null) {
-            // Lấy toàn bộ từ trước đến nay
             receipts = receiptRepository.findBySupplierCodeOrderByCreatedAtDesc(code);
             totalDebt = receiptRepository.getTotalDebtAllTime(code);
-
-            // Tính toán tổng đơn và tổng tiền từ danh sách receipts
-            totalOrders = receipts.size();
-            totalAmount = receipts.stream()
-                    .map(r -> r.getTotalAmount() != null ? r.getTotalAmount() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
         } else {
-            // Lấy theo khoảng ngày (Logic cũ của anh)
             receipts = receiptRepository.findBySupplierCodeAndCreatedAtBetweenOrderByCreatedAtDesc(code, start, end);
             totalDebt = receiptRepository.getTotalDebt(code, start, end);
-
-            // ... (Logic đếm đơn/tổng tiền theo kỳ) ...
-            totalOrders = receipts.size(); // Hoặc dùng query count riêng
-            totalAmount = receipts.stream()
-                    .map(r -> r.getTotalAmount() != null ? r.getTotalAmount() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
 
-        // Map sang DTO trả về cho Frontend
+        totalOrders = receipts.size();
+        totalAmount = receipts.stream().map(r -> r.getTotalAmount() != null ? r.getTotalAmount() : BigDecimal.ZERO).reduce(BigDecimal.ZERO, BigDecimal::add);
+
         List<SupplierStatsResponse.ReceiptSummary> history = receipts.stream()
-                .map(r -> SupplierStatsResponse.ReceiptSummary.builder()
-                        .code(r.getCode())
-                        .createdAt(r.getCreatedAt())
-                        .status(r.getStatus())
-                        .paymentStatus(r.getPaymentStatus())
-                        .totalAmount(r.getTotalAmount())
-                        .build())
+                .map(r -> SupplierStatsResponse.ReceiptSummary.builder().code(r.getCode()).createdAt(r.getCreatedAt()).status(r.getStatus()).paymentStatus(r.getPaymentStatus()).totalAmount(r.getTotalAmount()).build())
                 .collect(Collectors.toList());
 
-        return SupplierStatsResponse.builder()
-                .totalOrders(totalOrders)
-                .totalAmount(totalAmount)
-                .totalDebt(totalDebt != null ? totalDebt : BigDecimal.ZERO)
-                .history(history)
-                .build();
-    }
-
-    @Transactional
-    public Receipt updateReceipt(String code, ReceiptRequest request) {
-        Receipt receipt = receiptRepository.findByCode(code)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu mã: " + code));
-
-        if ("COMPLETED".equals(receipt.getStatus()) || "COMPLETED".equals(receipt.getImportStatus())) {
-            throw new RuntimeException("Đã nhập kho hoặc hoàn thành không được sửa!");
-        }
-
-        Supplier supplier = supplierRepository.findByCode(request.getSupplierCode())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy NCC"));
-
-        receipt.setSupplier(supplier);
-        receipt.setBranchId(request.getBranchId()); // Cập nhật ID chi nhánh
-        receipt.setBranchName(request.getBranchName());
-        receipt.setNote(request.getNote());
-        receipt.setItemsAmount(request.getItemsAmount());
-        receipt.setDiscount(request.getDiscount());
-        receipt.setShippingFee(request.getShippingFee());
-        receipt.setTotalAmount(request.getTotalAmount());
-
-        BigDecimal paid = receipt.getAmountPaid() != null ? receipt.getAmountPaid() : BigDecimal.ZERO;
-        if (paid.compareTo(receipt.getTotalAmount()) >= 0) receipt.setPaymentStatus("PAID");
-        else if (paid.compareTo(BigDecimal.ZERO) > 0) receipt.setPaymentStatus("PARTIAL");
-        else receipt.setPaymentStatus("UNPAID");
-
-        receipt.getDetails().clear();
-        List<ReceiptDetail> newDetails = request.getItems().stream().map(item ->
-                ReceiptDetail.builder()
-                        .receipt(receipt)
-                        .sku(item.getSku())
-                        .quantity(item.getQuantity())
-                        .importPrice(item.getImportPrice())
-                        .warrantyMonths(item.getWarrantyMonths() != null ? item.getWarrantyMonths() : 0)
-                        .build()
-        ).collect(Collectors.toList());
-
-        receipt.getDetails().addAll(newDetails);
-        logActivity(receipt, "Cập nhật thông tin phiếu nhập", getCurrentUserName());
-        return receiptRepository.save(receipt);
+        return SupplierStatsResponse.builder().totalOrders(totalOrders).totalAmount(totalAmount).totalDebt(totalDebt != null ? totalDebt : BigDecimal.ZERO).history(history).build();
     }
 
     private void logActivity(Receipt receipt, String action, String creator) {

@@ -2,12 +2,16 @@ package com.oms.ui;
 
 import com.oms.module.account.entity.User;
 import com.oms.module.account.repository.UserRepository;
+import com.oms.module.cashbook.dto.CashbookSummary;
 import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.service.CashbookService;
 import com.oms.module.category.service.CategoryService; // Thêm import này
+import com.oms.module.customer.entity.Customer;
 import com.oms.module.customer.service.CustomerService;
 import com.oms.module.inventory.dto.InventoryDTO;
 import com.oms.module.inventory.service.InventoryService;
+import com.oms.module.order.entity.Order;
+import com.oms.module.order.service.OrderService;
 import com.oms.module.product.service.ProductService;
 import com.oms.module.receipt.entity.Receipt;
 import com.oms.module.receipt.service.ReceiptService;
@@ -18,6 +22,9 @@ import com.oms.module.setting.repository.BranchRepository;
 import com.oms.module.setting.repository.SalesChannelRepository;
 import com.oms.module.setting.service.MasterDataService;
 import com.oms.module.supplier.service.SupplierService;
+import com.oms.module.warranty.entity.WarrantyTicket;
+import com.oms.module.warranty.repository.WarrantyTicketRepository;
+import com.oms.module.warranty.service.WarrantyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +38,8 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,6 +55,7 @@ public class WebController {
     private final ReceiptService receiptService;
     private final InventoryService inventoryService;
 
+    private final OrderService orderService;
     // 1. INJECT THÊM CATEGORY SERVICE VÀO ĐÂY
     private final CategoryService categoryService;
 
@@ -54,26 +64,7 @@ public class WebController {
     private final BranchRepository branchRepository;
     private final SalesChannelRepository channelRepository;
     private final CashbookService cashbookService;
-
-    // Trang chủ - Bảng điều khiển (Dashboard)
-    @GetMapping("/")
-    public String dashboard(Model model) {
-        LocalDate now = LocalDate.now();
-        int currentMonth = now.getMonthValue();
-        int currentYear = now.getYear();
-
-        ProfitReportResponse report = reportService.getMonthlyProfitReport(currentMonth, currentYear);
-
-        model.addAttribute("report", report);
-        model.addAttribute("currentMonth", currentMonth);
-        model.addAttribute("currentYear", currentYear);
-
-        int totalProducts = productService.getAllProducts().size();
-        model.addAttribute("totalProducts", totalProducts);
-
-        return "dashboard";
-    }
-
+    private final WarrantyService warrantyService;
     @GetMapping("/login")
     public String login() {
         return "login";
@@ -164,7 +155,9 @@ public class WebController {
     @GetMapping("/ui/customers/{code}")
     public String editCustomerPage(@PathVariable String code, Model model) {
         model.addAttribute("customer", customerService.getCustomerByCode(code));
-        return "customer-edit"; // Chuyển sang view edit
+        List<Order> customerOrders = orderService.findTop10ByCustomer_CodeOrderByCreatedAtDescByCode(code);
+        model.addAttribute("orders", customerOrders);
+        return "customer-edit";
     }
 
     @GetMapping("/ui/customer-groups")
@@ -390,18 +383,56 @@ public class WebController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long branchId,
             @RequestParam(required = false) String type,
+            @RequestParam(required = false, defaultValue = "today") String preset,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
 
-        if (start == null) start = LocalDateTime.now().minusDays(30).withHour(0).withMinute(0).withSecond(0);
-        if (end == null) end = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59);
+        LocalDateTime now = LocalDateTime.now();
 
-        List<CashTransaction> filteredList = cashbookService.filterTransactions(keyword, branchId, type, start, end);
+        // 1. TÍNH TOÁN NGÀY THÁNG DỰA TRÊN PRESET (Fix lỗi MySQL làm tròn ngày)
+        if ("custom".equals(preset)) {
+            // Tùy chọn: Set cứng Nano về 0 để tránh MySQL tự làm tròn
+            if (start == null) start = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
+            if (end == null) end = now.withHour(23).withMinute(59).withSecond(59).withNano(0);
+        } else {
+            switch (preset) {
+                case "yesterday":
+                    start = now.minusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                    end = now.minusDays(1).withHour(23).withMinute(59).withSecond(59).withNano(0);
+                    break;
+                case "thisMonth":
+                    start = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                    end = now.with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(0);
+                    break;
+                case "lastMonth":
+                    start = now.minusMonths(1).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                    end = now.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(0);
+                    break;
+                case "thisYear":
+                    start = now.withDayOfYear(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+                    end = now.with(TemporalAdjusters.lastDayOfYear()).withHour(23).withMinute(59).withSecond(59).withNano(0);
+                    break;
+                case "today":
+                default:
+                    start = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
+                    end = now.withHour(23).withMinute(59).withSecond(59).withNano(0);
+                    break;
+            }
+        }
 
-        model.addAttribute("transactions", filteredList);
+        // 2. GỌI XUỐNG SERVICE
+        List<CashTransaction> filteredTransactions = cashbookService.filterTransactions(keyword, branchId, type, start, end);
+
+        // 3. ĐẨY DATA RA VIEW
+        model.addAttribute("transactions", filteredTransactions);
         model.addAttribute("summary", cashbookService.getSummary(start, end));
         model.addAttribute("branches", branchRepository.findAll());
 
+        CashbookSummary summaryData = cashbookService.getSummary(start, end, branchId);
+        model.addAttribute("summary", summaryData);
+
+        // 3. Đẩy danh sách chi nhánh ra Dropdown
+        model.addAttribute("branches", branchRepository.findAll());
         return "cashbook";
     }
 
@@ -425,5 +456,38 @@ public class WebController {
             return "cash-receipt-detail";
         }
         return "cash-payment-detail";
+    }
+
+    @GetMapping("/ui/warranties")
+    public String warrantyList(
+            Model model,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String type) {
+
+        List<WarrantyTicket> tickets = warrantyService.filterTickets(keyword, status, type);
+        model.addAttribute("tickets", tickets);
+        return "warranty/warranty-list";
+    }
+    @GetMapping("/ui/warranties/create")
+    public String createWarrantyForm(Model model) {
+        // Gửi danh sách chi nhánh xuống cho nhân viên chọn nơi nhận máy
+        model.addAttribute("branches", branchRepository.findAll());
+        return "warranty/warranty-create";
+    }
+
+    @GetMapping("/ui/warranties/detail/{id}")
+    public String warrantyDetail(@PathVariable Long id, Model model) {
+        model.addAttribute("ticket", warrantyService.getById(id));
+        model.addAttribute("branches", branchRepository.findAll());
+
+        WarrantyTicket ticket = warrantyService.getById(id);
+        if (ticket.getBranchId() != null) {
+            branchRepository.findById(ticket.getBranchId()).ifPresent(branch -> {
+                model.addAttribute("receivingBranchName", branch.getName());
+                model.addAttribute("receivingBranchAddress", branch.getAddress());
+            });
+        }
+        return "warranty/warranty-detail";
     }
 }

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .card-title-custom {
+            font-size: 15px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .form-label-custom {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        .form-control-custom, .form-select-custom {
+            font-size: 14px;
+            border-color: #dce0e4;
+            box-shadow: none;
+            height: 38px;
+        }
+
+        .form-control-custom:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.1);
+        }
+
+        /* Toggle Dịch vụ */
+        .service-type-toggle {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .type-item {
+            flex: 1;
+            border: 1px solid #dce0e4;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+            background: white;
+            position: relative;
+        }
+
+        .type-item i {
+            font-size: 20px;
+            color: #64748b;
+        }
+
+        .type-item input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .type-item.active-warranty {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+        }
+
+        .type-item.active-warranty i, .type-item.active-warranty .fw-bold {
+            color: #4f46e5;
+        }
+
+        .type-item.active-repair {
+            border-color: #ea580c;
+            background-color: #fff7ed;
+        }
+
+        .type-item.active-repair i, .type-item.active-repair .fw-bold {
+            color: #ea580c;
+        }
+
+        /* Khung thông báo bảo hành */
+        .warranty-alert {
+            font-size: 13px;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: none;
+            border: 1px solid transparent;
+        }
+
+        .alert-valid {
+            background-color: #d1e7dd;
+            color: #0f5132;
+            border-color: #badbcc;
+            display: block;
+        }
+
+        .alert-expired {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+            display: block;
+        }
+
+        .alert-notfound {
+            background-color: #e2e8f0;
+            color: #475569;
+            border-color: #cbd5e1;
+            display: block;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <div class="d-flex align-items-center gap-3">
+            <a th:href="@{/ui/warranties}" class="btn btn-white border shadow-sm px-2"><i class="bi bi-arrow-left"></i></a>
+            <h3 class="fw-bold text-dark mb-0">Tạo phiếu tiếp nhận</h3>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/ui/warranties}" class="btn btn-white border fw-medium shadow-sm text-dark px-4">Hủy</a>
+            <button type="button" class="btn btn-primary fw-bold shadow-sm px-4" onclick="submitTicket()">Lưu phiếu
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-8">
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Loại dịch vụ</div>
+                    <div class="service-type-toggle">
+                        <label class="type-item active-warranty" id="label-warranty">
+                            <input type="radio" name="ticketType" value="WARRANTY" checked
+                                   onchange="toggleServiceType()">
+                            <i class="bi bi-shield-check"></i>
+                            <div>
+                                <div class="fw-bold">Bảo hành</div>
+                                <div class="small text-muted" style="font-size: 12px;">Xử lý lỗi nhà sản xuất (Miễn
+                                    phí)
+                                </div>
+                            </div>
+                        </label>
+                        <label class="type-item" id="label-repair">
+                            <input type="radio" name="ticketType" value="REPAIR" onchange="toggleServiceType()">
+                            <i class="bi bi-tools"></i>
+                            <div>
+                                <div class="fw-bold">Sửa chữa dịch vụ</div>
+                                <div class="small text-muted" style="font-size: 12px;">Sửa máy hết bảo hành, rơi vỡ...
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div id="repairFeeContainer" class="d-none mt-3">
+                        <label class="form-label-custom text-danger">Phí sửa chữa dự kiến (Báo khách)</label>
+                        <div class="input-group" style="max-width: 300px;">
+                            <input type="number" id="repairCost"
+                                   class="form-control form-control-custom text-end fw-bold text-danger" placeholder="0"
+                                   value="0">
+                            <span class="input-group-text bg-white fw-bold">₫</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Tra cứu Sản phẩm & Tình trạng</div>
+
+                    <div class="mb-4">
+                        <label class="form-label-custom text-primary">Số Serial / IMEI (Quét mã vạch hoặc nhập)*</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-upc-scan"></i></span>
+                            <input type="text" id="serialNumber"
+                                   class="form-control form-control-custom text-uppercase fw-bold text-primary"
+                                   placeholder="Nhập Serial để kiểm tra bảo hành..."
+                                   onkeypress="if(event.key === 'Enter') checkSerial()">
+                            <button class="btn btn-primary fw-bold px-4" type="button" id="btnCheckSerial"
+                                    onclick="checkSerial()">Kiểm tra
+                            </button>
+                        </div>
+
+                        <div id="warrantyAlert" class="warranty-alert"></div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label-custom text-primary">Tên sản phẩm*</label>
+                            <input type="text" id="productName" class="form-control form-control-custom"
+                                   placeholder="Vd: Bàn phím cơ FL-Esports CMK87">
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label-custom text-primary">Mô tả lỗi / Tình trạng tiếp nhận*</label>
+                        <textarea id="issueDescription" class="form-control form-control-custom" rows="3"
+                                  style="height: auto;"
+                                  placeholder="Vd: Khách báo liệt phím Space, ngoại hình có vết xước góc phải..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Thông tin khách hàng</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-primary">Tên khách hàng*</label>
+                            <input type="text" id="customerName" class="form-control form-control-custom"
+                                   placeholder="Nhập tên khách">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-primary">Số điện thoại*</label>
+                            <input type="text" id="customerPhone" class="form-control form-control-custom"
+                                   placeholder="Nhập SĐT để liên hệ trả máy">
+                        </div>
+                    </div>
+                    <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Có thể sửa đổi thông tin
+                        nếu người mang đi bảo hành khác với người mua hàng ban đầu.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Thông tin tiếp nhận</div>
+
+                    <div class="mb-3">
+                        <label class="form-label-custom text-primary">Chi nhánh nhận*</label>
+                        <select id="branchId" class="form-select form-select-custom fw-bold">
+                            <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-custom">Ngày nhận máy</label>
+                        <input type="datetime-local" id="receiveDate" class="form-control form-control-custom bg-light"
+                               readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-custom">Ngày hẹn trả (Dự kiến)</label>
+                        <input type="date" id="returnDate" class="form-control form-control-custom">
+                        <div class="small text-muted mt-1">Để trống nếu chưa xác định được thời gian.</div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label-custom">Mã phiếu</label>
+                        <input type="text" id="ticketCode" class="form-control form-control-custom"
+                               placeholder="Hệ thống tự sinh">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end mt-4 border-top pt-4">
+        <button type="button" class="btn btn-primary fw-bold shadow-sm px-5 py-2" onclick="submitTicket()">Lưu phiếu
+            tiếp nhận
+        </button>
+    </div>
+
+    <script th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", () => {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('receiveDate').value = now.toISOString().slice(0, 16);
+        });
+
+        function toggleServiceType() {
+            const type = document.querySelector('input[name="ticketType"]:checked').value;
+            const labelWarranty = document.getElementById('label-warranty');
+            const labelRepair = document.getElementById('label-repair');
+            const feeContainer = document.getElementById('repairFeeContainer');
+
+            if (type === 'WARRANTY') {
+                labelWarranty.classList.add('active-warranty');
+                labelRepair.classList.remove('active-repair');
+                feeContainer.classList.add('d-none');
+                document.getElementById('repairCost').value = 0;
+            } else {
+                labelRepair.classList.add('active-repair');
+                labelWarranty.classList.remove('active-warranty');
+                feeContainer.classList.remove('d-none');
+            }
+        }
+
+        // --- HÀM TRA CỨU SERIAL TỪ HỆ THỐNG ĐƠN HÀNG ---
+        async function checkSerial() {
+            const serial = document.getElementById('serialNumber').value.trim();
+            const alertBox = document.getElementById('warrantyAlert');
+            const btn = document.getElementById('btnCheckSerial');
+
+            if (!serial) {
+                alert("Vui lòng nhập Serial/IMEI để kiểm tra!");
+                return;
+            }
+
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            btn.disabled = true;
+
+            // Xóa class cũ
+            alertBox.className = 'warranty-alert';
+
+            try {
+                // Gọi API xuống Backend
+                const res = await fetch(`/api/v1/warranties/check-serial?serial=${encodeURIComponent(serial)}`);
+
+                if (res.ok) {
+                    const data = await res.json();
+
+                    // Điền dữ liệu vào form
+                    document.getElementById('productName').value = data.productName || '';
+                    document.getElementById('customerName').value = data.customerName || '';
+                    document.getElementById('customerPhone').value = data.customerPhone || '';
+
+                    // Format ngày để hiển thị
+                    const buyDate = new Date(data.purchaseDate).toLocaleDateString('vi-VN');
+                    const endDate = new Date(data.warrantyEndDate).toLocaleDateString('vi-VN');
+
+                    // Hiển thị trạng thái
+                    if (data.isWarrantyValid) {
+                        alertBox.classList.add('alert-valid');
+                        alertBox.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i><strong>Sản phẩm chính hãng - CÒN BẢO HÀNH</strong><br>Ngày mua: ${buyDate} | Hạn bảo hành đến: ${endDate}`;
+
+                        // Tự động chuyển sang chế độ Bảo hành (Free)
+                        document.querySelector('input[name="ticketType"][value="WARRANTY"]').checked = true;
+                        toggleServiceType();
+                    } else {
+                        alertBox.classList.add('alert-expired');
+                        alertBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Sản phẩm chính hãng - ĐÃ HẾT HẠN BẢO HÀNH</strong><br>Ngày mua: ${buyDate} | Đã hết hạn vào: ${endDate}`;
+
+                        // Tự động chuyển sang chế độ Sửa dịch vụ (Có thu phí)
+                        document.querySelector('input[name="ticketType"][value="REPAIR"]').checked = true;
+                        toggleServiceType();
+                    }
+                } else {
+                    // Trả về 404 (Không tìm thấy)
+                    alertBox.classList.add('alert-notfound');
+                    alertBox.innerHTML = `<i class="bi bi-info-circle-fill me-2"></i>Hệ thống không tìm thấy Serial này trong lịch sử bán hàng. Vui lòng kiểm tra lại hoặc điền thông tin thủ công.`;
+                }
+            } catch (e) {
+                alert("Lỗi kết nối đến máy chủ kiểm tra Serial!");
+            } finally {
+                btn.innerHTML = 'Kiểm tra';
+                btn.disabled = false;
+            }
+        }
+
+        async function submitTicket() {
+            const payload = {
+                type: document.querySelector('input[name="ticketType"]:checked').value,
+                repairCost: parseFloat(document.getElementById('repairCost').value || 0),
+                productName: document.getElementById('productName').value.trim(),
+                serialNumber: document.getElementById('serialNumber').value.trim(),
+                issueDescription: document.getElementById('issueDescription').value.trim(),
+                customerName: document.getElementById('customerName').value.trim(),
+                customerPhone: document.getElementById('customerPhone').value.trim(),
+                returnDate: document.getElementById('returnDate').value ? document.getElementById('returnDate').value + "T17:00:00" : null,
+                ticketCode: document.getElementById('ticketCode').value.trim() || ("BH-" + new Date().getTime().toString().slice(-6))
+            };
+
+            if (!payload.productName || !payload.serialNumber || !payload.issueDescription || !payload.customerName || !payload.customerPhone) {
+                alert("Vui lòng điền đầy đủ thông tin vào các trường có dấu *");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/v1/warranties', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert("Tạo phiếu tiếp nhận thành công!");
+                    window.location.href = "/ui/warranties";
+                } else {
+                    alert("Có lỗi xảy ra khi lưu phiếu!");
+                }
+            } catch (e) {
+                alert("Lỗi kết nối Server!");
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

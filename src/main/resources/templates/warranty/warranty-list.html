@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        /* Base styles */
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #4b566b;
+            font-size: 13px;
+            font-weight: 500;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            border-radius: 4px;
+        }
+
+        .filter-btn:hover {
+            background-color: #f8f9fb;
+            border-color: #cbd5e1;
+        }
+
+        /* Table */
+        .table-custom thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            padding: 12px 10px;
+            white-space: nowrap;
+        }
+
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        /* Tabs */
+        .nav-tabs-custom .nav-link {
+            border: none;
+            color: #64748b;
+            font-weight: 500;
+            padding: 12px 20px;
+            font-size: 14px;
+            position: relative;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            color: #0d6efd;
+            background: transparent;
+            font-weight: 700;
+        }
+
+        .nav-tabs-custom .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #0d6efd;
+        }
+
+        /* Search */
+        .search-box {
+            max-width: 450px;
+            border: 1px solid #dce0e4;
+            border-radius: 6px;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .search-box:focus-within {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .15);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            padding-right: 8px;
+        }
+
+        .search-box .form-control {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding-left: 0;
+            font-size: 13px;
+            height: 34px;
+        }
+
+        /* Badges Trạng thái Bảo hành */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .badge-received {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        /* Đã tiếp nhận */
+        .badge-processing {
+            background-color: #cce5ff;
+            color: #004085;
+            border: 1px solid #b8daff;
+        }
+
+        /* Đang xử lý */
+        .badge-done {
+            background-color: #d1e7dd;
+            color: #0f5132;
+            border: 1px solid #badbcc;
+        }
+
+        /* Đã sửa xong */
+        .badge-returned {
+            background-color: #e2e8f0;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Đã trả khách */
+        .badge-canceled {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Hủy */
+
+        .type-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+
+        .type-warranty {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        /* Bảo hành (Free) */
+        .type-repair {
+            background: #ffedd5;
+            color: #9a3412;
+        }
+
+        /* Sửa chữa (Có phí) */
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <h4 class="fw-bold mb-0 text-dark">Bảo hành & Sửa chữa</h4>
+        <div class="d-flex gap-2">
+            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
+            <a th:href="@{/ui/warranties/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-2"></i>Tạo phiếu mới
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+
+        <div class="card-header bg-white border-0 p-0">
+            <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3">
+                <li class="nav-item"><a class="nav-link" th:classappend="${param.status == null} ? 'active'"
+                                        onclick="filterByStatus('')">Tất cả</a></li>
+                <li class="nav-item"><a class="nav-link"
+                                        th:classappend="${param.status != null and param.status[0] == 'RECEIVED'} ? 'active'"
+                                        onclick="filterByStatus('RECEIVED')">Mới tiếp nhận</a></li>
+                <li class="nav-item"><a class="nav-link"
+                                        th:classappend="${param.status != null and param.status[0] == 'PROCESSING'} ? 'active'"
+                                        onclick="filterByStatus('PROCESSING')">Đang xử lý</a></li>
+                <li class="nav-item"><a class="nav-link"
+                                        th:classappend="${param.status != null and param.status[0] == 'DONE'} ? 'active'"
+                                        onclick="filterByStatus('DONE')">Đã xong (Chờ trả)</a></li>
+                <li class="nav-item"><a class="nav-link"
+                                        th:classappend="${param.status != null and param.status[0] == 'RETURNED'} ? 'active'"
+                                        onclick="filterByStatus('RETURNED')">Đã trả khách</a></li>
+            </ul>
+        </div>
+
+        <div class="card-body p-0">
+            <div id="defaultToolbar"
+                 class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
+                <div class="input-group search-box flex-grow-1">
+                    <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="searchInput" class="form-control"
+                           placeholder="Tìm mã phiếu, SĐT khách, Tên sản phẩm, Serial..." th:value="${param.keyword}"
+                           onkeypress="handleEnter(event)">
+                </div>
+
+                <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select filter-btn w-auto" id="typeFilter" onchange="applyFilters()">
+                        <option value="">Tất cả dịch vụ</option>
+                        <option value="WARRANTY" th:selected="${param.type != null and param.type[0] == 'WARRANTY'}">Bảo
+                            hành (Miễn phí)
+                        </option>
+                        <option value="REPAIR" th:selected="${param.type != null and param.type[0] == 'REPAIR'}">Sửa
+                            chữa (Dịch vụ)
+                        </option>
+                    </select>
+
+                    <button class="btn filter-btn px-3" onclick="window.location.href='/ui/warranties'"
+                            title="Xóa bộ lọc">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Xóa lọc
+                    </button>
+                </div>
+            </div>
+
+            <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
+                 style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4; height: 60px;">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-medium" style="color: #0369a1; font-size: 13px;">Đã chọn <span id="selectedCount"
+                                                                                                   class="fw-bold fs-6">0</span> phiếu</span>
+                    <span class="text-muted small">|</span>
+                    <a href="javascript:void(0)" class="text-decoration-none fw-medium"
+                       style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
+                </div>
+                <div>
+                    <button class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
+                            style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;" onclick="bulkDelete()">
+                        <i class="bi bi-trash3 me-1"></i>Xóa phiếu
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive" style="min-height: 400px;">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th class="ps-4" style="width: 40px;"><input type="checkbox" class="form-check-input"
+                                                                     id="checkAll" onchange="toggleAll(this)"></th>
+                        <th>Mã phiếu</th>
+                        <th>Ngày nhận</th>
+                        <th>Khách hàng</th>
+                        <th>Sản phẩm / Serial</th>
+                        <th>Dịch vụ</th>
+                        <th class="text-end">Phí sửa chữa</th>
+                        <th class="text-center">Trạng thái</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="t : ${tickets}">
+                        <td class="ps-4"><input type="checkbox" class="form-check-input tick-checkbox"
+                                                th:value="${t.id}" onchange="checkSelection()"></td>
+                        <td>
+                            <a th:href="@{/ui/warranties/detail/{id}(id=${t.id})}"
+                               class="text-primary fw-bold text-decoration-none" th:text="${t.ticketCode}"></a>
+                        </td>
+                        <td class="text-muted" th:text="${#temporals.format(t.receiveDate, 'dd/MM/yyyy')}"></td>
+                        <td>
+                            <div class="fw-bold text-dark" th:text="${t.customerName}"></div>
+                            <div class="text-muted small" th:text="${t.customerPhone}"></div>
+                        </td>
+                        <td>
+                            <div class="fw-medium text-dark" th:text="${t.productName}"></div>
+                            <div class="text-muted small" th:text="'SN: ' + ${t.serialNumber ?: '---'}"></div>
+                        </td>
+                        <td>
+                            <span class="type-badge"
+                                  th:classappend="${t.type.name() == 'WARRANTY' ? 'type-warranty' : 'type-repair'}"
+                                  th:text="${t.type.name() == 'WARRANTY' ? 'Bảo hành' : 'Sửa chữa'}"></span>
+                        </td>
+                        <td class="text-end fw-bold" th:classappend="${t.repairCost > 0 ? 'text-danger' : 'text-muted'}"
+                            th:text="${t.repairCost > 0 ? #numbers.formatDecimal(t.repairCost, 0, 'COMMA', 0, 'POINT') + '₫' : 'Miễn phí'}">
+                        </td>
+                        <td class="text-center">
+                            <span th:if="${t.status.name() == 'RECEIVED'}" class="status-badge badge-received">Mới tiếp nhận</span>
+                            <span th:if="${t.status.name() == 'PROCESSING'}" class="status-badge badge-processing">Đang xử lý</span>
+                            <span th:if="${t.status.name() == 'DONE'}"
+                                  class="status-badge badge-done">Đã sửa xong</span>
+                            <span th:if="${t.status.name() == 'RETURNED'}" class="status-badge badge-returned">Đã trả khách</span>
+                            <span th:if="${t.status.name() == 'CANCELED'}"
+                                  class="status-badge badge-canceled">Đã hủy</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(tickets)}">
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-tools fs-2 d-block mb-3 opacity-25"></i>
+                            Không có phiếu bảo hành/sửa chữa nào phù hợp.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-3 bg-white border-top d-flex justify-content-between align-items-center">
+                <div class="small text-muted" th:text="'Hiển thị ' + ${tickets.size()} + ' bản ghi'"></div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        function handleEnter(e) {
+            if (e.key === 'Enter') applyFilters();
+        }
+
+        function filterByStatus(status) {
+            const params = new URLSearchParams(window.location.search);
+            if (status) params.set('status', status); else params.delete('status');
+            window.location.href = window.location.pathname + '?' + params.toString();
+        }
+
+        function applyFilters() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            const type = document.getElementById('typeFilter').value;
+
+            const params = new URLSearchParams(window.location.search);
+            if (keyword) params.set('keyword', keyword); else params.delete('keyword');
+            if (type) params.set('type', type); else params.delete('type');
+
+            window.location.href = window.location.pathname + '?' + params.toString();
+        }
+
+        // Bulk Actions
+        function toggleAll(source) {
+            document.querySelectorAll('.tick-checkbox').forEach(cb => cb.checked = source.checked);
+            checkSelection();
+        }
+
+        function clearSelection() {
+            document.getElementById('checkAll').checked = false;
+            document.querySelectorAll('.tick-checkbox').forEach(cb => cb.checked = false);
+            checkSelection();
+        }
+
+        function checkSelection() {
+            const checked = document.querySelectorAll('.tick-checkbox:checked');
+            const bulkBar = document.getElementById('bulkActionBar');
+            const defaultToolbar = document.getElementById('defaultToolbar');
+
+            if (checked.length > 0) {
+                bulkBar.classList.replace('d-none', 'd-flex');
+                defaultToolbar.classList.replace('d-flex', 'd-none');
+                document.getElementById('selectedCount').innerText = checked.length;
+            } else {
+                bulkBar.classList.replace('d-flex', 'd-none');
+                defaultToolbar.classList.replace('d-none', 'd-flex');
+                document.getElementById('checkAll').checked = false;
+            }
+        }
+
+        async function bulkDelete() {
+            const ids = Array.from(document.querySelectorAll('.tick-checkbox:checked')).map(cb => cb.value);
+            if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} phiếu này?`)) {
+                // Anh tạo API DELETE /api/v1/warranties/bulk tương tự Sổ quỹ nhé
+                try {
+                    const res = await fetch('/api/v1/warranties/bulk', {
+                        method: 'DELETE',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(ids)
+                    });
+                    if (res.ok) window.location.reload();
+                } catch (e) {
+                    alert("Lỗi kết nối Server!");
+                }
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

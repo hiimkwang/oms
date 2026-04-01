@@ -2,12 +2,16 @@ package com.oms.module.order.service;
 
 import com.oms.module.customer.entity.Customer;
 import com.oms.module.customer.service.CustomerService;
+import com.oms.module.inventory.entity.Inventory;
+import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.order.dto.OrderDetailRequest;
 import com.oms.module.order.dto.OrderRequest;
 import com.oms.module.order.entity.Order;
 import com.oms.module.order.entity.OrderDetail;
 import com.oms.module.order.repository.OrderRepository;
 import com.oms.module.product.entity.Product;
+import com.oms.module.product.entity.ProductVariant;
+import com.oms.module.product.repository.ProductVariantRepository; // BỔ SUNG IMPORT
 import com.oms.module.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -27,18 +31,21 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final CustomerService customerService;
     private final ProductService productService;
+    private final InventoryRepository inventoryRepository;
+
+    // BỔ SUNG: Tiêm repo này vào để lấy đúng Variant ID
+    private final ProductVariantRepository variantRepository;
 
     // LẤY DANH SÁCH ĐƠN HÀNG (Mới nhất lên đầu)
     public List<Order> getAllOrders() {
         return orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 
-    // TẠO ĐƠN HÀNG MỚI (Bao gồm cả Đơn Nháp)
+    // TẠO ĐƠN HÀNG MỚI
+    // TẠO ĐƠN HÀNG MỚI
     @Transactional
     public Order createOrder(OrderRequest request) {
-        // Tự động sinh mã đơn hàng: DH + Timestamp + 4 ký tự ngẫu nhiên
         String generatedCode = "DH" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
-
         Customer customer = customerService.getCustomerByCode(request.getCustomerCode());
 
         Order order = Order.builder()
@@ -48,8 +55,6 @@ public class OrderService {
                 .branchId(request.getBranchId())
                 .status(request.getStatus() != null ? request.getStatus() : "Khởi tạo")
                 .note(request.getNote())
-
-                // --- Vận chuyển ---
                 .shippingType(request.getShippingType())
                 .shipFromBranchId(request.getShipFromBranchId())
                 .shippingPartner(request.getShippingPartner())
@@ -59,48 +64,53 @@ public class OrderService {
                 .shippingFee(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO)
                 .codAmount(request.getCodAmount() != null ? request.getCodAmount() : BigDecimal.ZERO)
                 .shipWeight(request.getShipWeight())
-
-                // --- Thanh toán ---
                 .paymentStatus(request.getPaymentStatus())
                 .paymentMethod(request.getPaymentMethod())
                 .amountPaid(request.getAmountPaid() != null ? request.getAmountPaid() : BigDecimal.ZERO)
-
-                // --- Hóa đơn VAT ---
                 .invoiceTaxCode(request.getInvoiceTaxCode())
                 .invoiceCompanyName(request.getInvoiceCompanyName())
                 .invoiceCompanyAddress(request.getInvoiceCompanyAddress())
-
-                // --- Tiền nong ---
                 .discountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO)
                 .details(new ArrayList<>())
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        // Xử lý chi tiết sản phẩm và tính lại tổng tiền
+        // BƯỚC 1: Xây dựng danh sách chi tiết đơn hàng (Lúc này order.getDetails() đã có dữ liệu)
         buildOrderDetailsAndCalculateTotal(order, request.getDetails());
 
-        return orderRepository.save(order);
+        // BƯỚC 2: Lưu đơn hàng xuống DB (kèm theo details nhờ Cascade)
+        Order savedOrder = orderRepository.save(order);
+
+        // BƯỚC 3: Áp dụng trừ kho (Lúc này savedOrder đã có đầy đủ Details và BranchId)
+        applyInventory(savedOrder, savedOrder.getStatus());
+
+        return savedOrder;
     }
 
     // CẬP NHẬT ĐƠN HÀNG
     @Transactional
     public Order updateOrder(String orderCode, OrderRequest request) {
         Order order = getOrderByCode(orderCode);
+        String oldStatus = order.getStatus();
+        String newStatus = request.getStatus();
 
-        // Không cho sửa đơn đã hoàn thành/hủy
-        if ("Hoàn thành".equals(order.getStatus()) || "Đã hủy".equals(order.getStatus())) {
-            throw new RuntimeException("Không thể sửa đơn hàng đã chốt trạng thái cuối!");
+        if ("Đã hủy".equals(oldStatus)) {
+            throw new RuntimeException("Không thể sửa đơn hàng đã bị hủy!");
+        }
+        if ("Hoàn thành".equals(oldStatus) && !"Đã hủy".equals(newStatus)) {
+            throw new RuntimeException("Đơn hàng đã hoàn thành chỉ có thể chuyển sang trạng thái Hủy!");
         }
 
-        Customer customer = customerService.getCustomerByCode(request.getCustomerCode());
+        // BƯỚC 1: Hoàn trả số lượng cũ về kho TRƯỚC KHI xóa Details
+        revertInventory(order, oldStatus);
 
+        Customer customer = customerService.getCustomerByCode(request.getCustomerCode());
         order.setCustomer(customer);
         order.setSalesChannelCode(request.getSalesChannelCode());
         order.setBranchId(request.getBranchId());
-        order.setStatus(request.getStatus());
+        order.setStatus(newStatus);
         order.setNote(request.getNote());
 
-        // --- Cập nhật Vận chuyển ---
         order.setShippingType(request.getShippingType());
         order.setShipFromBranchId(request.getShipFromBranchId());
         order.setShippingPartner(request.getShippingPartner());
@@ -111,23 +121,20 @@ public class OrderService {
         order.setCodAmount(request.getCodAmount() != null ? request.getCodAmount() : BigDecimal.ZERO);
         order.setShipWeight(request.getShipWeight());
 
-        // --- Cập nhật Thanh toán ---
         order.setPaymentStatus(request.getPaymentStatus());
         order.setPaymentMethod(request.getPaymentMethod());
         order.setAmountPaid(request.getAmountPaid() != null ? request.getAmountPaid() : BigDecimal.ZERO);
 
-        // --- Cập nhật Hóa đơn VAT ---
         order.setInvoiceTaxCode(request.getInvoiceTaxCode());
         order.setInvoiceCompanyName(request.getInvoiceCompanyName());
         order.setInvoiceCompanyAddress(request.getInvoiceCompanyAddress());
-
-        // --- Cập nhật Tiền nong ---
         order.setDiscountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO);
 
-        // Xóa các line sản phẩm cũ và đắp line mới vào
+        // Xóa Details cũ, build lại Details mới theo request sửa
         order.getDetails().clear();
         buildOrderDetailsAndCalculateTotal(order, request.getDetails());
-        if ("Hoàn thành".equals(request.getStatus()) && !"Hoàn thành".equals(order.getStatus())) {
+
+        if (!"Hoàn thành".equals(oldStatus) && "Hoàn thành".equals(newStatus)) {
             for (OrderDetail detail : order.getDetails()) {
                 if (detail.getWarrantyMonths() != null && detail.getWarrantyMonths() > 0) {
                     detail.setWarrantyStartDate(LocalDateTime.now());
@@ -135,6 +142,10 @@ public class OrderService {
                 }
             }
         }
+
+        // BƯỚC 2: ÁP DỤNG LẠI TỒN KHO MỚI
+        applyInventory(order, newStatus);
+
         return orderRepository.save(order);
     }
 
@@ -142,6 +153,7 @@ public class OrderService {
     @Transactional
     public void deleteOrder(String orderCode) {
         Order order = getOrderByCode(orderCode);
+        revertInventory(order, order.getStatus());
         orderRepository.delete(order);
     }
 
@@ -150,19 +162,17 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode));
     }
 
-    // HÀM PHỤ TRỢ: Build chi tiết đơn hàng và tính tổng tiền
     private void buildOrderDetailsAndCalculateTotal(Order order, List<OrderDetailRequest> detailRequests) {
         BigDecimal totalItemsAmount = BigDecimal.ZERO;
 
         for (OrderDetailRequest detailReq : detailRequests) {
             Product product = null;
-            String productName = detailReq.getName(); // Lấy tên sản phẩm gửi từ frontend
+            String productName = detailReq.getName();
 
-            // Nếu KHÔNG phải hàng Custom (Tùy chỉnh) thì mới đi check DB
             if (detailReq.getIsCustom() == null || !detailReq.getIsCustom()) {
                 try {
                     product = productService.getProductBySku(detailReq.getSku());
-                    productName = product.getName(); // Lấy tên chuẩn từ DB
+                    productName = product.getName();
                 } catch (Exception e) {
                     System.out.println("Cảnh báo: Không tìm thấy sản phẩm có SKU " + detailReq.getSku());
                 }
@@ -180,7 +190,7 @@ public class OrderService {
                     .quantity(detailReq.getQuantity())
                     .unitPrice(unitPrice)
                     .totalPrice(lineTotal)
-                    .note(detailReq.getNote()) // Lưu ghi chú line (đổi size, bọc quà...)
+                    .note(detailReq.getNote())
                     .isCustom(detailReq.getIsCustom() != null ? detailReq.getIsCustom() : false)
                     .serialNumber(detailReq.getSerialNumber())
                     .warrantyMonths(detailReq.getWarrantyMonths())
@@ -190,10 +200,98 @@ public class OrderService {
             totalItemsAmount = totalItemsAmount.add(lineTotal);
         }
 
-        // Tính Thành Tiền = (Tổng tiền hàng + Phí Ship) - Giảm Giá
         BigDecimal finalTotal = totalItemsAmount.add(order.getShippingFee()).subtract(order.getDiscountAmount());
-
-        // Đảm bảo tổng tiền không bao giờ bị âm
         order.setTotalAmount(finalTotal.compareTo(BigDecimal.ZERO) > 0 ? finalTotal : BigDecimal.ZERO);
+    }
+
+    public List<Order> findTop10ByCustomer_CodeOrderByCreatedAtDescByCode(String orderCode) {
+        return orderRepository.findTop10ByCustomer_CodeOrderByCreatedAtDesc(orderCode);
+    }
+
+    // =========================================================
+    // CÁC HÀM XỬ LÝ TỒN KHO ĐÃ ĐƯỢC FIX LỖI TÌM THEO VARIANT ID
+    // =========================================================
+
+    /**
+     * TRỪ KHO (Áp dụng khi Tạo đơn hoặc sau khi Sửa đơn)
+     */
+    /**
+     * TRỪ KHO (ÉP BÁO LỖI NẾU KHÔNG TÌM THẤY DỮ LIỆU)
+     */
+    /**
+     * TRỪ KHO VÀ TỰ ĐỘNG CHỮA LỖI DATA
+     */
+    private void applyInventory(Order order, String status) {
+        if ("Đã hủy".equals(status)) return;
+        boolean isCompleted = "Hoàn thành".equals(status);
+
+        Long branchId = order.getShipFromBranchId() != null ? order.getShipFromBranchId() : order.getBranchId();
+
+        if (branchId == null) {
+            throw new RuntimeException("Không xác định được chi nhánh xuất hàng!");
+        }
+
+        for (OrderDetail detail : order.getDetails()) {
+            if (detail.getIsCustom() != null && detail.getIsCustom()) continue;
+
+            ProductVariant variant = variantRepository.findBySku(detail.getSku())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể có mã SKU: " + detail.getSku()));
+
+            // Ép văng lỗi nếu không có hàng tại chi nhánh này (để Frontend in ra chữ đỏ)
+            Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variant.getId(), branchId)
+                    .orElseThrow(() -> new RuntimeException("Sản phẩm [" + detail.getProductName() + "] chưa từng được nhập vào chi nhánh này!"));
+
+            // TÍNH NĂNG TỰ ĐỘNG CHỮA BỆNH LỖI DATA (SELF-HEALING)
+            if (inv.getAvailableStock() > inv.getStock()) {
+                inv.setAvailableStock(inv.getStock()); // Ép nó bằng số tồn vật lý
+            }
+
+            // Kiểm tra xem có đủ hàng để bán không
+            if (inv.getAvailableStock() < detail.getQuantity() && !isCompleted) {
+                throw new RuntimeException("Sản phẩm [" + detail.getProductName() + "] chỉ còn " + inv.getAvailableStock() + " chiếc có thể bán tại kho này!");
+            }
+
+            // Trừ Có thể bán
+            inv.setAvailableStock(Math.max(0, inv.getAvailableStock() - detail.getQuantity()));
+
+            // Nếu Hoàn thành thì trừ Tồn thực tế
+            if (isCompleted) {
+                inv.setStock(Math.max(0, inv.getStock() - detail.getQuantity()));
+            }
+            inventoryRepository.save(inv);
+        }
+    }
+
+    /**
+     * NHẢ KHO VÀ TỰ ĐỘNG CHỮA LỖI DATA
+     */
+    private void revertInventory(Order order, String status) {
+        if ("Đã hủy".equals(status)) return;
+        boolean isCompleted = "Hoàn thành".equals(status);
+        Long branchId = order.getShipFromBranchId() != null ? order.getShipFromBranchId() : order.getBranchId();
+
+        if (branchId == null) return;
+
+        for (OrderDetail detail : order.getDetails()) {
+            if (detail.getIsCustom() != null && detail.getIsCustom()) continue;
+
+            ProductVariant variant = variantRepository.findBySku(detail.getSku()).orElse(null);
+            if (variant != null) {
+                Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variant.getId(), branchId)
+                        .orElse(Inventory.builder().variantId(variant.getId()).branchId(branchId).stock(0).availableStock(0).build());
+
+                // Tự chữa bệnh trước khi nhả kho
+                if (inv.getAvailableStock() > inv.getStock()) {
+                    inv.setAvailableStock(inv.getStock());
+                }
+
+                inv.setAvailableStock(inv.getAvailableStock() + detail.getQuantity());
+
+                if (isCompleted) {
+                    inv.setStock(inv.getStock() + detail.getQuantity());
+                }
+                inventoryRepository.save(inv);
+            }
+        }
     }
 }

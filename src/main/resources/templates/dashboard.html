@@ -1,121 +1,456 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.dashboard-container})}">
+<head></head>
 <body>
-<div class="dashboard-container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0 text-dark">Tổng quan kinh doanh</h4>
-        <div class="text-muted text-end">
-            <small>Kỳ báo cáo: Tháng <span th:text="${currentMonth}"></span>/<span th:text="${currentYear}"></span></small>
+<div class="dashboard-container pb-5">
+    <style>
+        .dash-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s ease;
+        }
+
+        .dash-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .icon-blue {
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+
+        .icon-green {
+            background: #f0fdf4;
+            color: #10b981;
+        }
+
+        .icon-purple {
+            background: #faf5ff;
+            color: #a855f7;
+        }
+
+        .icon-orange {
+            background: #fff7ed;
+            color: #ea580c;
+        }
+
+        .card-title-custom {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 10px 0 5px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .metric-label {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        /* Style cho 5 thẻ vận hành */
+        .status-card {
+            text-align: center;
+            padding: 18px 10px;
+            border-right: 1px solid #e2e8f0;
+            flex: 1;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        .status-card:last-child {
+            border-right: none;
+        }
+
+        .status-card:hover {
+            background-color: #f8fafc;
+        }
+
+        .status-val {
+            font-size: 22px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .status-lbl {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-top: 6px;
+        }
+
+        /* Bảng mini */
+        .table-mini thead th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 16px;
+            text-transform: uppercase;
+        }
+
+        .table-mini td {
+            font-size: 13.5px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        .filter-btn {
+            background: white;
+            border: 1px solid #dce0e4;
+            color: #1e293b;
+            font-size: 13px;
+            font-weight: 600;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            border-radius: 6px;
+        }
+
+        .filter-btn:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-end mb-4 pt-2">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Tổng quan kinh doanh</h3>
+            <div class="text-muted small fw-medium">Theo dõi các chỉ số quan trọng trong kỳ.</div>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center">
+            <select class="form-select filter-btn w-auto text-primary" id="datePreset" onchange="handleDateChange()">
+                <option value="thisWeek" th:selected="${param.preset == null or param.preset[0] == 'thisWeek'}">Tuần
+                    này
+                </option>
+                <option value="thisMonth" th:selected="${param.preset != null and param.preset[0] == 'thisMonth'}">Tháng
+                    này
+                </option>
+                <option value="thisQuarter" th:selected="${param.preset != null and param.preset[0] == 'thisQuarter'}">
+                    Quý này
+                </option>
+                <option value="thisYear" th:selected="${param.preset != null and param.preset[0] == 'thisYear'}">Năm
+                    nay
+                </option>
+                <option value="custom" th:selected="${param.preset != null and param.preset[0] == 'custom'}">Tùy
+                    chọn...
+                </option>
+            </select>
+
+            <div id="customDateContainer" class="gap-2 align-items-center"
+                 th:classappend="${param.preset != null and param.preset[0] == 'custom'} ? 'd-flex' : 'd-none'">
+                <input type="date" class="form-control filter-btn w-auto text-muted" id="startDate"
+                       th:value="${param.start != null ? #strings.substring(param.start[0],0,10) : ''}">
+                <span class="text-muted">-</span>
+                <input type="date" class="form-control filter-btn w-auto text-muted" id="endDate"
+                       th:value="${param.end != null ? #strings.substring(param.end[0],0,10) : ''}">
+                <button class="btn btn-primary fw-bold px-3" style="height: 38px;" onclick="applyFilters()">Lọc</button>
+            </div>
+
+            <button class="btn filter-btn px-3" onclick="window.location.href='/ui/dashboard'" title="Xóa bộ lọc">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
         </div>
     </div>
 
-    <div class="row g-3 mb-4">
+    <div class="row g-4 mb-4">
         <div class="col-md-3">
-            <div class="card p-3 h-100">
-                <div class="d-flex justify-content-between">
-                    <div class="text-muted fw-semibold" style="font-size: 0.9rem;">Doanh thu tháng</div>
-                    <i class="bi bi-cash-coin text-primary fs-5"></i>
+            <div class="dash-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">Doanh Thu Thuần</div>
+                        <div class="metric-value text-primary"
+                             th:text="${#numbers.formatDecimal(netRevenue ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                        </div>
+                    </div>
+                    <div class="icon-box icon-blue"><i class="bi bi-cash-stack"></i></div>
                 </div>
-                <h3 class="fw-bold mt-2 mb-1" th:text="${#numbers.formatDecimal(report.totalRevenue, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h3>
-                <small class="text-success"><i class="bi bi-arrow-up-short"></i> Tự động tính từ đơn hàng</small>
+                <div class="mt-2 text-muted" style="font-size: 12px;"><i
+                        class="bi bi-check-circle-fill text-success me-1"></i>Đã trừ đơn hủy/trả hàng
+                </div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card p-3 h-100">
-                <div class="d-flex justify-content-between">
-                    <div class="text-muted fw-semibold" style="font-size: 0.9rem;">Lợi nhuận ròng</div>
-                    <i class="bi bi-graph-up-arrow text-success fs-5"></i>
+            <div class="dash-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">Lợi Nhuận Ròng</div>
+                        <div class="metric-value text-success"
+                             th:text="${#numbers.formatDecimal(netProfit ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                        </div>
+                    </div>
+                    <div class="icon-box icon-green"><i class="bi bi-piggy-bank"></i></div>
                 </div>
-                <h3 class="fw-bold mt-2 mb-1" th:text="${#numbers.formatDecimal(report.netProfit, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h3>
-                <small class="text-muted">Đã trừ giá vốn & chi phí</small>
+                <div class="mt-2 text-muted" style="font-size: 12px;"><i
+                        class="bi bi-info-circle-fill text-primary me-1"></i>Doanh thu - CP vận hành
+                </div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card p-3 h-100">
-                <div class="d-flex justify-content-between">
-                    <div class="text-muted fw-semibold" style="font-size: 0.9rem;">Chi phí vận hành</div>
-                    <i class="bi bi-wallet2 text-danger fs-5"></i>
+            <div class="dash-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">Giá Trị TB Đơn (AOV)</div>
+                        <div class="metric-value text-purple"
+                             th:text="${#numbers.formatDecimal(aov ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                        </div>
+                    </div>
+                    <div class="icon-box icon-purple"><i class="bi bi-receipt"></i></div>
                 </div>
-                <h3 class="fw-bold mt-2 mb-1" th:text="${#numbers.formatDecimal(report.operatingExpenses, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h3>
-                <small class="text-muted">Tổng từ phiếu chi</small>
+                <div class="mt-2 text-muted" style="font-size: 12px;"><i
+                        class="bi bi-calculator-fill text-muted me-1"></i>Doanh thu / Tổng số đơn
+                </div>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card p-3 h-100">
-                <div class="d-flex justify-content-between">
-                    <div class="text-muted fw-semibold" style="font-size: 0.9rem;">Sản phẩm trong kho</div>
-                    <i class="bi bi-box-seam text-info fs-5"></i>
+            <div class="dash-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">SL Hàng Thực Bán</div>
+                        <div class="metric-value text-orange" th:text="${totalItemsSold ?: 0}">0</div>
+                    </div>
+                    <div class="icon-box icon-orange"><i class="bi bi-box-seam"></i></div>
                 </div>
-                <h3 class="fw-bold mt-2 mb-1" th:text="${totalProducts}">0</h3>
-                <small class="text-muted">Tổng số mã SKU</small>
+                <div class="mt-2 text-muted" style="font-size: 12px;"><i
+                        class="bi bi-bag-check-fill text-orange me-1"></i>Tổng sản phẩm đã giao
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-3">
+    <div class="dash-card mb-4 d-flex bg-white w-100 overflow-hidden shadow-sm">
+        <div class="status-card" onclick="window.location.href='/ui/orders'">
+            <div class="status-val text-primary" th:text="${totalOrders ?: 0}">0</div>
+            <div class="status-lbl"><i class="bi bi-cart3 me-1 fs-6"></i>Tổng Đơn</div>
+        </div>
+        <div class="status-card" onclick="window.location.href='/ui/orders?paymentStatus=UNPAID'">
+            <div class="status-val text-warning" th:text="${unpaidOrders ?: 0}">0</div>
+            <div class="status-lbl"><i class="bi bi-clock-history me-1 fs-6"></i>Chưa Thanh Toán</div>
+        </div>
+        <div class="status-card" onclick="window.location.href='/ui/orders?status=Chưa giao'">
+            <div class="status-val text-dark" th:text="${pendingOrders ?: 0}">0</div>
+            <div class="status-lbl"><i class="bi bi-box me-1 fs-6"></i>Chưa Giao</div>
+        </div>
+        <div class="status-card" onclick="window.location.href='/ui/orders?status=Đang giao'">
+            <div class="status-val text-info" th:text="${shippingOrders ?: 0}">0</div>
+            <div class="status-lbl"><i class="bi bi-truck me-1 fs-6"></i>Đang Giao</div>
+        </div>
+        <div class="status-card" onclick="window.location.href='/ui/orders?status=Hủy'">
+            <div class="status-val text-danger" th:text="${canceledOrders ?: 0}">0</div>
+            <div class="status-lbl"><i class="bi bi-x-circle me-1 fs-6"></i>Hủy</div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
         <div class="col-md-8">
-            <div class="card p-4 h-100">
-                <h6 class="fw-bold mb-4">Doanh thu & Lợi nhuận (Mô phỏng)</h6>
-
-                <div style="position: relative; height: 300px; width: 100%;">
-                    <canvas id="mainChart"></canvas>
+            <div class="dash-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="card-title-custom mb-0">Biểu đồ Doanh Thu & Lợi Nhuận (6 tháng gần nhất)</div>
                 </div>
-
+                <div style="position: relative; height: 320px; width: 100%;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card p-0 h-100 overflow-hidden">
-                <div class="p-3 bg-light border-bottom">
-                    <h6 class="fw-bold mb-0">Hoạt động gần đây</h6>
-                </div>
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item py-3">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1 text-primary fw-semibold"><i class="bi bi-bag-check me-2"></i>Đơn hàng mới</h6>
-                            <small class="text-muted">Vừa xong</small>
-                        </div>
-                        <p class="mb-1 text-muted" style="font-size: 0.85rem;">Hệ thống đang sẵn sàng nhận đơn hàng đầu tiên.</p>
-                    </div>
-                    <div class="list-group-item py-3">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1 text-success fw-semibold"><i class="bi bi-box-arrow-in-down me-2"></i>Nhập kho</h6>
-                            <small class="text-muted">Hôm nay</small>
-                        </div>
-                        <p class="mb-1 text-muted" style="font-size: 0.85rem;">Kiểm tra danh sách bàn phím Aula F75 mới về.</p>
-                    </div>
+            <div class="dash-card p-4 h-100">
+                <div class="card-title-custom mb-4">Tỷ trọng Đơn hàng theo Kênh bán</div>
+                <div style="position: relative; height: 320px; width: 100%; display: flex; justify-content: center;">
+                    <canvas id="channelChart"></canvas>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="dash-card overflow-hidden">
+        <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
+            <div class="card-title-custom mb-0">5 Đơn hàng phát sinh gần nhất</div>
+            <a th:href="@{/ui/orders}" class="text-decoration-none small fw-bold btn btn-light btn-sm">Xem tất cả <i
+                    class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-mini table-borderless table-hover mb-0 bg-white">
+                <thead>
+                <tr>
+                    <th class="ps-4">Mã Đơn Hàng</th>
+                    <th>Khách Hàng</th>
+                    <th>Kênh Bán</th>
+                    <th>Giá Trị</th>
+                    <th>Thời Gian Đặt</th>
+                    <th>Trạng Thái</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="o : ${recentOrders}">
+                    <td class="ps-4"><a th:href="@{/ui/orders/detail/{id}(id=${o.orderCode})}"
+                                        class="fw-bold text-decoration-none" th:text="${o.orderCode}"></a></td>
+                    <td>
+                        <div class="fw-bold text-dark" th:text="${o.customer.fullName}"></div>
+                        <div class="small text-muted" th:text="${o.customer.phone}"></div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border px-2 py-1"
+                              th:text="${o.salesChannelCode ?: 'Tại quầy'}"></span>
+                    </td>
+                    <td class="fw-bold text-primary"
+                        th:text="${#numbers.formatDecimal(o.totalAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></td>
+                    <td class="text-muted" th:text="${#temporals.format(o.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                    <td>
+                            <span class="badge px-2 py-1 border fw-bold"
+                                  th:classappend="${o.status == 'Hủy' ? 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25' :
+                                                 (o.status == 'Hoàn thành' ? 'bg-success bg-opacity-10 text-success border-success border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border-primary border-opacity-25')}"
+                                  th:text="${o.status}">
+                            </span>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(recentOrders)}">
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+                        Chưa có đơn hàng nào.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script th:inline="javascript">
-        document.addEventListener("DOMContentLoaded", function() {
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            new Chart(ctx, {
+        // Xử lý Lọc Thời Gian
+        function handleDateChange() {
+            const preset = document.getElementById('datePreset').value;
+            const customContainer = document.getElementById('customDateContainer');
+
+            if (preset === 'custom') {
+                customContainer.classList.replace('d-none', 'd-flex');
+            } else {
+                customContainer.classList.replace('d-flex', 'd-none');
+                applyFilters(); // Submit luôn nếu chọn Tuần, Tháng, Quý
+            }
+        }
+
+        function applyFilters() {
+            const preset = document.getElementById('datePreset').value;
+            const params = new URLSearchParams(window.location.search);
+
+            params.set('preset', preset);
+
+            if (preset === 'custom') {
+                const start = document.getElementById('startDate').value;
+                const end = document.getElementById('endDate').value;
+                if (start) params.set('start', start + 'T00:00:00'); else params.delete('start');
+                if (end) params.set('end', end + 'T23:59:59'); else params.delete('end');
+            } else {
+                params.delete('start');
+                params.delete('end');
+            }
+
+            window.location.href = window.location.pathname + '?' + params.toString();
+        }
+
+        // Vẽ biểu đồ khi load trang xong
+        document.addEventListener("DOMContentLoaded", function () {
+
+            // 1. DỮ LIỆU BIỂU ĐỒ CỘT (Từ Backend truyền xuống)
+            const revLabels = /*[[${chartLabels}]]*/ [] || ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
+            const revData = /*[[${chartRevenue}]]*/ [] || [0, 0, 0, 0, 0, 0];
+            const profitData = /*[[${chartProfit}]]*/ [] || [0, 0, 0, 0, 0, 0];
+
+            new Chart(document.getElementById('revenueChart').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: ['Tháng 1', 'Tháng 2', 'Tháng Hiện Tại'],
+                    labels: revLabels,
                     datasets: [
                         {
                             label: 'Doanh Thu',
-                            data: [15000000, 22000000, /*[[${report.totalRevenue}]]*/ 3345083],
-                            backgroundColor: '#0d8abc',
-                            borderRadius: 4
+                            data: revData,
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 6,
+                            barPercentage: 0.5
                         },
                         {
                             label: 'Lợi Nhuận',
-                            data: [5000000, 7000000, /*[[${report.netProfit}]]*/ 885700],
+                            data: profitData,
                             backgroundColor: '#10b981',
-                            borderRadius: 4
+                            borderRadius: 6,
+                            barPercentage: 0.5
                         }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {position: 'top', align: 'end'},
+                        tooltip: {
+                            backgroundColor: '#1e293b', padding: 12, cornerRadius: 8,
+                            callbacks: {
+                                label: function (context) {
+                                    let value = context.raw || 0;
+                                    return context.dataset.label + ': ' + new Intl.NumberFormat('vi-VN').format(value) + '₫';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {beginAtZero: true, grid: {borderDash: [4, 4], color: '#e2e8f0'}},
+                        x: {grid: {display: false}}
+                    }
+                }
+            });
+
+            // 2. DỮ LIỆU BIỂU ĐỒ TRÒN (Từ Backend truyền xuống)
+            const chanLabels = /*[[${channelLabels}]]*/ ['Shopee', 'Facebook', 'Tiktok', 'Tại quầy'];
+            const chanData = /*[[${channelData}]]*/ [45, 20, 15, 20];
+
+            new Chart(document.getElementById('channelChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: chanLabels,
+                    datasets: [{
+                        data: chanData,
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#a855f7', '#ec4899', '#64748b'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {position: 'bottom', labels: {padding: 20, usePointStyle: true}}
+                    }
+                }
             });
         });
     </script>

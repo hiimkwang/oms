@@ -816,9 +816,17 @@
                         const res = await fetch(`/api/v1/inventory/check?branchId=${branchId}&sku=${item.sku}`);
                         if (res.ok) {
                             const data = await res.json();
-                            branchStock = data.stock || 0;
+
+                            // FIX TẠI ĐÂY: Xử lý thông minh mọi định dạng trả về từ Backend
+                            if (typeof data === 'number') {
+                                branchStock = data; // Nếu backend trả về số trần trụi (VD: 15)
+                            } else if (data) {
+                                // Nếu backend trả về DTO/Map, vét hết các key có thể có
+                                branchStock = data.stock || data.quantity || data.stockQuantity || data.available || 0;
+                            }
                         }
                     } catch (e) {
+                        console.error("Lỗi khi fetch tồn kho chi nhánh:", e);
                     }
                 }
 

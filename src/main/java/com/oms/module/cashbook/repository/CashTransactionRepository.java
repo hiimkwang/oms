@@ -65,4 +65,21 @@ public interface CashTransactionRepository extends JpaRepository<CashTransaction
             @Param("type") CashTransaction.TransactionType type,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+    // 1. TÍNH TỔNG THU/CHI TỪ XƯA ĐẾN TRƯỚC NGÀY BẮT ĐẦU (Dùng cho Quỹ đầu kỳ)
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t WHERE t.type = :type AND t.transactionDate < :startDate AND (:branchId IS NULL OR t.branchId = :branchId)")
+    BigDecimal sumAmountBeforeDate(@Param("type") CashTransaction.TransactionType type,
+                                   @Param("startDate") LocalDateTime startDate,
+                                   @Param("branchId") Long branchId);
+
+    // 2. TÍNH TỔNG THU/CHI TRONG KHOẢNG THỜI GIAN LỌC (Dùng cho Tổng thu/Tổng chi)
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t WHERE t.type = :type AND (t.transactionDate BETWEEN :startDate AND :endDate) AND (:branchId IS NULL OR t.branchId = :branchId)")
+    BigDecimal sumAmountBetweenDates(@Param("type") CashTransaction.TransactionType type,
+                                     @Param("startDate") LocalDateTime startDate,
+                                     @Param("endDate") LocalDateTime endDate,
+                                     @Param("branchId") Long branchId);
+
+    // Tính tổng chi phí vận hành (Tổng Phiếu Chi) trong tháng
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t WHERE t.type = 'PAYMENT' AND t.transactionDate BETWEEN :start AND :end")
+    BigDecimal sumOperatingExpenses(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

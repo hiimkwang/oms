@@ -39,6 +39,7 @@
             height: 36px;
             display: flex;
             align-items: center;
+            border-radius: 4px;
         }
 
         .filter-btn:hover {
@@ -52,6 +53,7 @@
             font-weight: 600;
             font-size: 13px;
             border-top: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
             padding: 12px 10px;
             white-space: nowrap;
         }
@@ -72,6 +74,7 @@
             font-size: 14px;
             position: relative;
             cursor: pointer;
+            border-radius: 0;
         }
 
         .nav-tabs-custom .nav-link.active {
@@ -119,7 +122,7 @@
             box-shadow: none;
             padding-left: 0;
             font-size: 13px;
-            height: 36px;
+            height: 34px;
         }
 
         .text-receipt {
@@ -193,9 +196,14 @@
 
         <div class="card-header bg-white border-0 p-0">
             <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3" id="cashbookTabs">
-                <li class="nav-item"><a class="nav-link active" data-type="ALL">Tất cả giao dịch</a></li>
-                <li class="nav-item"><a class="nav-link" data-type="RECEIPT">Phiếu thu</a></li>
-                <li class="nav-item"><a class="nav-link" data-type="PAYMENT">Phiếu chi</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${param.type == null} ? 'active'"
+                                        onclick="applyFilters('ALL')">Tất cả giao dịch</a></li>
+                <li class="nav-item"><a class="nav-link"
+                                        th:classappend="${param.type != null and param.type[0] == 'RECEIPT'} ? 'active'"
+                                        onclick="applyFilters('RECEIPT')">Phiếu thu</a></li>
+                <li class="nav-item"><a class="nav-link"
+                                        th:classappend="${param.type != null and param.type[0] == 'PAYMENT'} ? 'active'"
+                                        onclick="applyFilters('PAYMENT')">Phiếu chi</a></li>
             </ul>
         </div>
 
@@ -205,41 +213,58 @@
                 <div class="input-group search-box flex-grow-1">
                     <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
                     <input type="text" id="txSearchInput" class="form-control"
-                           placeholder="Tìm theo mã phiếu, tên đối tượng, lý do...">
+                           placeholder="Tìm theo mã phiếu, tên đối tượng, lý do..." th:value="${param.keyword}"
+                           onkeypress="handleEnter(event)">
                 </div>
 
                 <div class="d-flex gap-2 align-items-center">
-                    <select class="form-select filter-btn w-auto fw-bold text-primary" id="datePreset"
-                            onchange="handleDatePreset()">
-                        <option value="today">Hôm nay</option>
-                        <option value="yesterday">Hôm qua</option>
-                        <option value="thisMonth">Tháng này</option>
-                        <option value="lastMonth">Tháng trước</option>
-                        <option value="thisYear">Năm nay</option>
-                        <option value="custom">Tùy chọn...</option>
+                    <select class="form-select filter-btn w-auto fw-bold text-dark" id="datePreset"
+                            onchange="handleDateChange()">
+                        <option value="today" th:selected="${param.preset == null or param.preset[0] == 'today'}">Hôm
+                            nay
+                        </option>
+                        <option value="yesterday"
+                                th:selected="${param.preset != null and param.preset[0] == 'yesterday'}">Hôm qua
+                        </option>
+                        <option value="thisMonth"
+                                th:selected="${param.preset != null and param.preset[0] == 'thisMonth'}">Tháng này
+                        </option>
+                        <option value="lastMonth"
+                                th:selected="${param.preset != null and param.preset[0] == 'lastMonth'}">Tháng trước
+                        </option>
+                        <option value="thisYear"
+                                th:selected="${param.preset != null and param.preset[0] == 'thisYear'}">Năm nay
+                        </option>
+                        <option value="custom" th:selected="${param.preset != null and param.preset[0] == 'custom'}">Tùy
+                            chọn...
+                        </option>
                     </select>
 
-                    <div id="customDateContainer" class="d-none gap-2 align-items-center">
+                    <div id="customDateContainer" class="gap-2 align-items-center"
+                         th:classappend="${param.preset != null and param.preset[0] == 'custom'} ? 'd-flex' : 'd-none'">
                         <input type="date" class="form-control filter-btn w-auto text-muted" id="startDate"
+                               th:value="${param.start != null ? #strings.substring(param.start[0],0,10) : ''}"
                                onchange="applyFilters()">
                         <span class="text-muted">-</span>
                         <input type="date" class="form-control filter-btn w-auto text-muted" id="endDate"
+                               th:value="${param.end != null ? #strings.substring(param.end[0],0,10) : ''}"
                                onchange="applyFilters()">
                     </div>
 
                     <select class="form-select filter-btn w-auto" id="branchFilter" onchange="applyFilters()">
                         <option value="ALL">Tất cả chi nhánh</option>
-                        <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
+                        <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"
+                                th:selected="${param.branchId != null and param.branchId[0] == b.id.toString()}"></option>
                     </select>
 
-                    <button class="btn filter-btn" onclick="clearAllFilters()">
-                        <i class="bi bi-arrow-counterclockwise me-2"></i>Xóa lọc
+                    <button class="btn filter-btn" onclick="clearAllFilters()" title="Xóa bộ lọc">
+                        <i class="bi bi-arrow-counterclockwise"></i>
                     </button>
                 </div>
             </div>
 
             <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
-                 style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4;">
+                 style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4; height: 60px;">
                 <div class="d-flex align-items-center gap-3">
                     <span class="fw-medium" style="color: #0369a1; font-size: 13px;">Đã chọn <span id="selectedCount"
                                                                                                    class="fw-bold fs-6">0</span> phiếu</span>
@@ -261,7 +286,7 @@
                     <thead>
                     <tr>
                         <th class="ps-4" style="width: 40px;"><input type="checkbox" class="form-check-input"
-                                                                     id="checkAll"></th>
+                                                                     id="checkAll" onchange="toggleAll(this)"></th>
                         <th>Mã phiếu</th>
                         <th>Ngày ghi nhận</th>
                         <th>Tên đối tượng</th>
@@ -270,11 +295,32 @@
                         <th class="text-end pe-4">Số tiền</th>
                     </tr>
                     </thead>
-                    <tbody id="txTableBody">
-                    <tr>
-                        <td colspan="7" class="text-center py-5">
-                            <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
-                            Đang xử lý dữ liệu...
+                    <tbody>
+
+                    <tr th:each="t : ${transactions}">
+                        <td class="ps-4"><input type="checkbox" class="form-check-input tx-checkbox" th:value="${t.id}"
+                                                onchange="checkSelection()"></td>
+                        <td><a th:href="@{/ui/cashbook/detail/{id}(id=${t.id})}"
+                               class="text-primary fw-bold text-decoration-none hover-primary" th:text="${t.code}"></a>
+                        </td>
+
+                        <td class="text-muted"
+                            th:text="${#temporals.format(t.transactionDate, 'dd/MM/yyyy HH:mm')}"></td>
+
+                        <td class="fw-medium text-dark" th:text="${t.targetName ?: 'Khách vãng lai'}"></td>
+                        <td th:text="${t.reason}"></td>
+                        <td class="text-muted small" th:text="${t.referenceCode ?: '---'}"></td>
+
+                        <td class="text-end fw-bold pe-4"
+                            th:classappend="${t.type.name() == 'RECEIPT' ? 'text-receipt' : 'text-payment'}"
+                            th:text="${(t.type.name() == 'RECEIPT' ? '' : '-') + #numbers.formatDecimal(t.amount, 0, 'COMMA', 0, 'POINT') + '₫'}">
+                        </td>
+                    </tr>
+
+                    <tr th:if="${#lists.isEmpty(transactions)}">
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-3 opacity-25"></i>
+                            Không tìm thấy giao dịch nào phù hợp.
                         </td>
                     </tr>
                     </tbody>
@@ -282,9 +328,9 @@
             </div>
 
             <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
-                <div class="text-muted small" id="recordInfo">Đang tải...</div>
+                <div class="text-muted small" th:text="'Hiển thị ' + ${transactions.size()} + ' bản ghi'"></div>
                 <div class="d-flex align-items-center gap-3">
-                    <nav>
+                    <nav th:if="${transactions.size() > 0}">
                         <ul class="pagination pagination-sm mb-0">
                             <li class="page-item disabled"><a class="page-link" href="#"><i
                                     class="bi bi-chevron-left"></i></a></li>
@@ -299,184 +345,80 @@
     </div>
 
     <script th:inline="javascript">
-        const rawTransactions = /*[[${transactions}]]*/ [];
-        let currentTabType = 'ALL';
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Thiết lập mặc định là Hôm nay khi vừa mở trang
-            document.getElementById('datePreset').value = 'today';
-            handleDatePreset();
+        function handleEnter(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyFilters();
+            }
+        }
 
-            // Events
-            document.querySelectorAll('#cashbookTabs .nav-link').forEach(tab => {
-                tab.addEventListener('click', function () {
-                    document.querySelectorAll('#cashbookTabs .nav-link').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    currentTabType = this.getAttribute('data-type');
-                    applyFilters();
-                });
-            });
-
-            let searchTimeout;
-            document.getElementById('txSearchInput').addEventListener('input', () => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(applyFilters, 300);
-            });
-
-            document.getElementById('checkAll').addEventListener('change', function () {
-                document.querySelectorAll('.tx-checkbox').forEach(cb => {
-                    cb.checked = this.checked;
-                });
-                toggleBulkActionBar();
-            });
-        });
-
-        // HÀM XỬ LÝ LỌC NGÀY (Dropdown & Custom)
-        function handleDatePreset() {
+        // Hiện ô Tùy chọn ngày nếu chọn 'custom'
+        function handleDateChange() {
             const preset = document.getElementById('datePreset').value;
             const customContainer = document.getElementById('customDateContainer');
-            const now = new Date();
-            let start = new Date();
-            let end = new Date();
 
             if (preset === 'custom') {
-                customContainer.classList.remove('d-none');
-                customContainer.classList.add('d-flex');
-                return; // Dừng lại để người dùng tự chọn ngày
+                customContainer.classList.replace('d-none', 'd-flex');
             } else {
-                customContainer.classList.add('d-none');
-                customContainer.classList.remove('d-flex');
+                customContainer.classList.replace('d-flex', 'd-none');
+                applyFilters(); // Submit luôn nếu chọn Hôm nay, Hôm qua...
             }
-
-            if (preset === 'today') {
-                // Giữ nguyên Date
-            } else if (preset === 'yesterday') {
-                start.setDate(now.getDate() - 1);
-                end.setDate(now.getDate() - 1);
-            } else if (preset === 'thisMonth') {
-                start = new Date(now.getFullYear(), now.getMonth(), 1);
-                end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            } else if (preset === 'lastMonth') {
-                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                end = new Date(now.getFullYear(), now.getMonth(), 0);
-            } else if (preset === 'thisYear') {
-                start = new Date(now.getFullYear(), 0, 1);
-                end = new Date(now.getFullYear(), 11, 31);
-            }
-
-            // Gắn vào field ẩn (Để JS lấy ra lọc)
-            document.getElementById('startDate').value = start.toISOString().split('T')[0];
-            document.getElementById('endDate').value = end.toISOString().split('T')[0];
-
-            applyFilters();
         }
 
-        // HÀM GIẢI MÃ DATE CỦA SPRING BOOT TRÁNH LỖI "INVALID DATE"
-        function parseDateSafely(dateInput) {
-            if (!dateInput) return null;
-            // Nếu là mảng [YYYY, MM, DD, hh, mm, ss]
-            if (Array.isArray(dateInput)) {
-                return new Date(dateInput[0], dateInput[1] - 1, dateInput[2], dateInput[3] || 0, dateInput[4] || 0, dateInput[5] || 0);
-            }
-            // Nếu là chuỗi
-            return new Date(dateInput);
-        }
-
-        function applyFilters() {
-            const keyword = document.getElementById('txSearchInput').value.toLowerCase().trim();
+        // Gom tất cả params và Redirect
+        function applyFilters(overrideTabType) {
+            const keyword = document.getElementById('txSearchInput').value.trim();
             const branchId = document.getElementById('branchFilter').value;
+            const preset = document.getElementById('datePreset').value;
 
-            // Lấy khoảng thời gian
-            const sVal = document.getElementById('startDate').value;
-            const eVal = document.getElementById('endDate').value;
-            const startFilter = sVal ? new Date(sVal + 'T00:00:00').getTime() : null;
-            const endFilter = eVal ? new Date(eVal + 'T23:59:59').getTime() : null;
+            const params = new URLSearchParams(window.location.search);
 
-            const filteredData = rawTransactions.filter(t => {
-                const matchTab = (currentTabType === 'ALL') || (t.type === currentTabType);
-                const matchBranch = (branchId === 'ALL') || (t.branchId == branchId);
+            // Xử lý Search & Chi nhánh
+            if (keyword) params.set('keyword', keyword); else params.delete('keyword');
+            if (branchId && branchId !== 'ALL') params.set('branchId', branchId); else params.delete('branchId');
 
-                // Kiểm tra điều kiện ngày
-                let matchDate = true;
-                if (startFilter || endFilter) {
-                    const txDateObj = parseDateSafely(t.transactionDate);
-                    if (txDateObj) {
-                        const txTime = txDateObj.getTime();
-                        if (startFilter && txTime < startFilter) matchDate = false;
-                        if (endFilter && txTime > endFilter) matchDate = false;
-                    } else {
-                        matchDate = false;
-                    }
-                }
-
-                const code = t.code ? t.code.toLowerCase() : '';
-                const target = t.targetName ? t.targetName.toLowerCase() : '';
-                const reason = t.reason ? t.reason.toLowerCase() : '';
-                const ref = t.referenceCode ? t.referenceCode.toLowerCase() : '';
-
-                const matchKeyword = !keyword || code.includes(keyword) || target.includes(keyword) || reason.includes(keyword) || ref.includes(keyword);
-
-                return matchTab && matchBranch && matchDate && matchKeyword;
-            });
-
-            renderTable(filteredData);
-        }
-
-        function clearAllFilters() {
-            document.getElementById('txSearchInput').value = '';
-            document.getElementById('branchFilter').value = 'ALL';
-            document.getElementById('datePreset').value = 'today';
-            handleDatePreset(); // Reset về Hôm nay
-        }
-
-        function renderTable(dataList) {
-            const tbody = document.getElementById('txTableBody');
-            const info = document.getElementById('recordInfo');
-
-            if (!dataList || dataList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy giao dịch nào.</td></tr>';
-                info.innerText = 'Hiển thị 0 kết quả';
-                clearSelection();
-                return;
+            // Xử lý Tabs
+            if (overrideTabType !== undefined) {
+                if (overrideTabType === 'ALL') params.delete('type');
+                else params.set('type', overrideTabType);
             }
 
-            let html = '';
-            dataList.forEach(t => {
-                // FORMAT NGÀY THÁNG DD/MM/YYYY CHUẨN XÁC
-                let formattedDate = '---';
-                const d = parseDateSafely(t.transactionDate);
-                if (d) {
-                    const day = String(d.getDate()).padStart(2, '0');
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const year = d.getFullYear();
-                    formattedDate = `${day}/${month}/${year}`;
-                }
+            // Xử lý Ngày
+            if (preset && preset !== 'today') params.set('preset', preset); else params.delete('preset');
 
-                const isReceipt = t.type === 'RECEIPT';
-                const amountClass = isReceipt ? 'text-receipt' : 'text-payment';
-                const amountPrefix = isReceipt ? '' : '-';
-                const formattedAmount = amountPrefix + new Intl.NumberFormat('vi-VN').format(t.amount || 0) + '₫';
+            if (preset === 'custom') {
+                const start = document.getElementById('startDate').value;
+                const end = document.getElementById('endDate').value;
+                if (start) params.set('start', start + 'T00:00:00'); else params.delete('start');
+                if (end) params.set('end', end + 'T23:59:59'); else params.delete('end');
+            } else {
+                params.delete('start');
+                params.delete('end');
+            }
 
-                html += `
-                    <tr>
-                        <td class="ps-4"><input type="checkbox" class="form-check-input tx-checkbox" value="${t.id}" onchange="toggleBulkActionBar()"></td>
-                        <td><a href="/ui/cashbook/detail/${t.id}" class="text-decoration-none fw-bold text-primary hover-primary">${t.code}</a></td>
-                        <td class="text-muted">${formattedDate}</td>
-                        <td class="fw-medium text-dark">${t.targetName || 'Khách vãng lai'}</td>
-                        <td>${t.reason || '---'}</td>
-                        <td class="text-muted small">${t.referenceCode || '---'}</td>
-                        <td class="text-end fw-bold ${amountClass} pe-4">${formattedAmount}</td>
-                    </tr>
-                `;
-            });
-
-            tbody.innerHTML = html;
-            info.innerText = `Hiển thị ${dataList.length} phiếu`;
-            clearSelection();
+            // Gọi thẳng xuống Backend
+            window.location.href = window.location.pathname + '?' + params.toString();
         }
 
-        // --- BULK ACTION GIỮ NGUYÊN ---
-        function toggleBulkActionBar() {
+        // Xóa bộ lọc
+        function clearAllFilters() {
+            window.location.href = window.location.pathname; // Về trang trắng mặc định
+        }
+
+        // --- Logic Bulk Action ---
+        function toggleAll(source) {
+            document.querySelectorAll('.tx-checkbox').forEach(cb => cb.checked = source.checked);
+            checkSelection();
+        }
+
+        function clearSelection() {
+            document.getElementById('checkAll').checked = false;
+            document.querySelectorAll('.tx-checkbox').forEach(cb => cb.checked = false);
+            checkSelection();
+        }
+
+        function checkSelection() {
             const checkedBoxes = document.querySelectorAll('.tx-checkbox:checked');
             const bulkBar = document.getElementById('bulkActionBar');
             const defaultToolbar = document.getElementById('defaultToolbar');
@@ -497,17 +439,12 @@
             }
         }
 
-        function clearSelection() {
-            document.querySelectorAll('.tx-checkbox, #checkAll').forEach(cb => cb.checked = false);
-            toggleBulkActionBar();
-        }
-
         async function deleteSelectedTransactions() {
             const checkboxes = document.querySelectorAll('.tx-checkbox:checked');
             if (checkboxes.length === 0) return;
             const ids = Array.from(checkboxes).map(cb => cb.value);
 
-            if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} giao dịch này?`)) return;
+            if (!confirm(`Cảnh báo: Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} giao dịch này không?`)) return;
 
             try {
                 const res = await fetch('/api/v1/cashbook/bulk', {

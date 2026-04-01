@@ -355,11 +355,16 @@
                         <td class="col-lot text-muted small">Không</td>
 
                         <td class="col-stock fw-bold fs-6" th:text="${v.stock}"></td>
-                        <td class="col-available fw-bold text-success fs-6" th:text="${v.availableStock}"></td>
+
+                        <td class="col-available fw-bold text-success fs-6"
+                            th:text="${(v.stock != null and v.availableStock != null and v.availableStock > v.stock) ? v.stock : v.availableStock}"></td>
+
                         <td class="col-not-available text-muted">0</td>
+
                         <td class="col-transaction text-muted fw-medium"
-                            th:text="${v.stock != null and v.availableStock != null ? (v.stock - v.availableStock) : 0}"></td>
-                        <td class="col-inbound text-muted">0</td>
+                            th:text="${(v.stock != null and v.availableStock != null and v.stock >= v.availableStock) ? (v.stock - v.availableStock) : 0}"></td>
+
+                        <td class="col-inbound fw-bold text-info" th:text="${v.inboundStock != null ? v.inboundStock : 0}">0</td>
 
                         <td class="col-price-cost"
                             th:text="${v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') : '0'}"></td>
@@ -451,7 +456,8 @@
             {id: 'col-created', label: 'Ngày tạo SP', visible: true, canHide: true}
         ];
 
-        let config = JSON.parse(localStorage.getItem('inventory_column_config')) || [...DEFAULT_COLUMNS];
+        // Dùng Key mới để reset lại bộ đệm trình duyệt
+        let config = JSON.parse(localStorage.getItem('inventory_column_config_v4')) || [...DEFAULT_COLUMNS];
 
         document.addEventListener('DOMContentLoaded', function () {
             // Xử lý nút ngày
@@ -529,12 +535,12 @@
                 const col = config.find(c => c.id === chk.getAttribute('data-id'));
                 if (col) col.visible = chk.checked;
             });
-            localStorage.setItem('inventory_column_config', JSON.stringify(config));
+            localStorage.setItem('inventory_column_config_v4', JSON.stringify(config));
             location.reload();
         }
 
         function resetToDefault() {
-            localStorage.removeItem('inventory_column_config');
+            localStorage.removeItem('inventory_column_config_v4');
             location.reload();
         }
 

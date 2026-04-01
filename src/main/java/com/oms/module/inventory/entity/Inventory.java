@@ -37,6 +37,9 @@ public class Inventory {
     @Column(name = "available_stock", nullable = false)
     private Integer availableStock;
 
+    @Column(name = "inbound_stock")
+    private Integer inboundStock = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -224,4 +224,10 @@ public class CustomerService {
             return results.contains(true);   // ANY: Chỉ cần 1 cái đúng
         }
     }
+
+    public Customer getByCode(String orderCode) {
+        return customerRepository.findByCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng: " + orderCode));
+
+    }
 }

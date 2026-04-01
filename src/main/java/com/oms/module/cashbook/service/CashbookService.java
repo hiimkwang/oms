@@ -135,4 +135,23 @@ public class CashbookService {
 
         return cashRepo.searchAndFilter(keyword, branchId, typeEnum, start, end);
     }
+
+    public CashbookSummary getSummary(LocalDateTime start, LocalDateTime end, Long branchId) {
+        // 1. Lấy tổng thu/chi từ thuở sơ khai đến trước ngày 'start'
+        BigDecimal totalInBefore = cashRepo.sumAmountBeforeDate(CashTransaction.TransactionType.RECEIPT, start, branchId);
+        BigDecimal totalOutBefore = cashRepo.sumAmountBeforeDate(CashTransaction.TransactionType.PAYMENT, start, branchId);
+
+        // => Tính ra Quỹ đầu kỳ
+        BigDecimal openingBalance = totalInBefore.subtract(totalOutBefore);
+
+        // 2. Lấy tổng thu/chi TRONG kỳ lọc (từ 'start' đến 'end')
+        BigDecimal totalIn = cashRepo.sumAmountBetweenDates(CashTransaction.TransactionType.RECEIPT, start, end, branchId);
+        BigDecimal totalOut = cashRepo.sumAmountBetweenDates(CashTransaction.TransactionType.PAYMENT, start, end, branchId);
+
+        // 3. Tính Tồn quỹ cuối kỳ
+        BigDecimal closingBalance = openingBalance.add(totalIn).subtract(totalOut);
+
+        // Đóng gói gửi lên Controller
+        return new CashbookSummary(openingBalance, totalIn, totalOut, closingBalance,new BigDecimal(0),new BigDecimal(0));
+    }
 }

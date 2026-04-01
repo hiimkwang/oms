@@ -29,4 +29,5 @@ public class InventoryDTO {
     private BigDecimal costPrice;
     private BigDecimal price;
     private LocalDateTime createdAt;
+    private Integer inboundStock;
 }

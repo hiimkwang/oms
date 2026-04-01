@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .readonly-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .card-title-custom {
+            font-size: 15px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .form-label-custom {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+        }
+
+        .form-control-custom, .form-select-custom {
+            font-size: 14px;
+            border-color: #dce0e4;
+            box-shadow: none;
+            height: 38px;
+        }
+
+        .form-control-custom:focus, .form-select-custom:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.1);
+        }
+
+        /* Toggle Dịch vụ */
+        .service-type-toggle {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .type-item {
+            flex: 1;
+            border: 1px solid #dce0e4;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+            background: white;
+            position: relative;
+        }
+
+        .type-item i {
+            font-size: 20px;
+            color: #64748b;
+        }
+
+        .type-item input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .type-item.active-warranty {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+        }
+
+        .type-item.active-warranty i, .type-item.active-warranty .fw-bold {
+            color: #4f46e5;
+        }
+
+        .type-item.active-repair {
+            border-color: #ea580c;
+            background-color: #fff7ed;
+        }
+
+        .type-item.active-repair i, .type-item.active-repair .fw-bold {
+            color: #ea580c;
+        }
+
+        /* Highlight box trạng thái */
+        .status-update-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <div class="d-flex align-items-center gap-3">
+            <a th:href="@{/ui/warranties}" class="btn btn-white border shadow-sm px-2"><i class="bi bi-arrow-left"></i></a>
+            <h3 class="fw-bold text-dark mb-0">Chi tiết phiếu: <span class="text-primary"
+                                                                     th:text="${ticket.ticketCode}"></span></h3>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-danger fw-bold shadow-sm px-3" onclick="deleteTicket()"><i
+                    class="bi bi-trash me-1"></i> Xóa phiếu
+            </button>
+            <button type="button" class="btn btn-primary fw-bold shadow-sm px-4" onclick="updateTicket()">Lưu thay đổi
+            </button>
+        </div>
+    </div>
+
+    <input type="hidden" id="ticketId" th:value="${ticket.id}">
+
+    <div class="row g-4">
+        <div class="col-md-8">
+
+            <div class="status-update-box mb-4 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-success mb-0"><i class="bi bi-activity me-2"></i>Cập nhật tiến độ xử lý</h5>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-custom text-success">Trạng thái hiện tại*</label>
+                        <select id="status" class="form-select form-select-custom border-success fw-bold text-success">
+                            <option value="RECEIVED" th:selected="${ticket.status.name() == 'RECEIVED'}">Mới tiếp nhận
+                            </option>
+                            <option value="PROCESSING" th:selected="${ticket.status.name() == 'PROCESSING'}">Đang xử lý
+                                / Đang sửa
+                            </option>
+                            <option value="DONE" th:selected="${ticket.status.name() == 'DONE'}">Đã sửa xong (Chờ trả
+                                khách)
+                            </option>
+                            <option value="RETURNED" th:selected="${ticket.status.name() == 'RETURNED'}">Đã trả khách
+                                (Hoàn thành)
+                            </option>
+                            <option value="CANCELED" th:selected="${ticket.status.name() == 'CANCELED'}">Hủy (Không sửa
+                                được)
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-custom text-success">Ngày hẹn trả / Ngày trả thực tế</label>
+                        <input type="date" id="returnDate" class="form-control form-control-custom border-success"
+                               th:value="${ticket.returnDate != null ? #temporals.format(ticket.returnDate, 'yyyy-MM-dd') : ''}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Loại dịch vụ & Chi phí</div>
+                    <div class="service-type-toggle">
+                        <label class="type-item"
+                               th:classappend="${ticket.type.name() == 'WARRANTY' ? 'active-warranty' : ''}"
+                               id="label-warranty">
+                            <input type="radio" name="ticketType" value="WARRANTY"
+                                   th:checked="${ticket.type.name() == 'WARRANTY'}" onchange="toggleServiceType()">
+                            <i class="bi bi-shield-check"></i>
+                            <div>
+                                <div class="fw-bold">Bảo hành</div>
+                                <div class="small text-muted" style="font-size: 12px;">Xử lý lỗi nhà sản xuất (Miễn
+                                    phí)
+                                </div>
+                            </div>
+                        </label>
+                        <label class="type-item"
+                               th:classappend="${ticket.type.name() == 'REPAIR' ? 'active-repair' : ''}"
+                               id="label-repair">
+                            <input type="radio" name="ticketType" value="REPAIR"
+                                   th:checked="${ticket.type.name() == 'REPAIR'}" onchange="toggleServiceType()">
+                            <i class="bi bi-tools"></i>
+                            <div>
+                                <div class="fw-bold">Sửa chữa dịch vụ</div>
+                                <div class="small text-muted" style="font-size: 12px;">Sửa máy hết bảo hành, rơi vỡ...
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div id="repairFeeContainer" class="mt-3"
+                         th:classappend="${ticket.type.name() == 'WARRANTY' ? 'd-none' : ''}">
+                        <label class="form-label-custom text-danger">Phí sửa chữa thực tế báo khách (VNĐ)</label>
+                        <div class="input-group" style="max-width: 300px;">
+                            <input type="number" id="repairCost"
+                                   class="form-control form-control-custom text-end fw-bold text-danger"
+                                   th:value="${ticket.repairCost}">
+                            <span class="input-group-text bg-white fw-bold">₫</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Tình trạng máy móc</div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Tên sản phẩm</label>
+                            <div class="readonly-box" th:text="${ticket.productName}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Số Serial / IMEI</label>
+                            <div class="readonly-box text-uppercase" th:text="${ticket.serialNumber}"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label-custom text-primary">Mô tả lỗi / Ghi chú sửa chữa (Được phép
+                            sửa)*</label>
+                        <textarea id="issueDescription" class="form-control form-control-custom border-primary" rows="4"
+                                  style="height: auto;" th:text="${ticket.issueDescription}"></textarea>
+                        <div class="small text-muted mt-1">Kỹ thuật viên có thể bổ sung tiến độ hoặc phát hiện lỗi mới
+                            vào đây.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Thông tin liên hệ</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-primary">Tên khách hàng</label>
+                            <input type="text" id="customerName" class="form-control form-control-custom"
+                                   th:value="${ticket.customerName}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-primary">Số điện thoại</label>
+                            <input type="text" id="customerPhone" class="form-control form-control-custom"
+                                   th:value="${ticket.customerPhone}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="card-title-custom">Thông tin hệ thống</div>
+
+                    <div class="mb-3">
+                        <label class="form-label-custom">Mã phiếu</label>
+                        <div class="readonly-box text-primary fs-5" th:text="${ticket.ticketCode}"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-custom text-primary">Chi nhánh đang giữ máy*</label>
+                        <select id="branchId" class="form-select form-select-custom fw-bold">
+                            <option th:each="b : ${branches}"
+                                    th:value="${b.id}"
+                                    th:text="${b.name}"
+                                    th:selected="${b.id == ticket.branchId}"></option>
+                        </select>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label-custom">Ngày nhận máy</label>
+                        <div class="readonly-box"
+                             th:text="${#temporals.format(ticket.receiveDate, 'dd/MM/yyyy HH:mm')}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        // Toggle UI Phí Sửa Chữa
+        function toggleServiceType() {
+            const type = document.querySelector('input[name="ticketType"]:checked').value;
+            const labelWarranty = document.getElementById('label-warranty');
+            const labelRepair = document.getElementById('label-repair');
+            const feeContainer = document.getElementById('repairFeeContainer');
+
+            if (type === 'WARRANTY') {
+                labelWarranty.classList.add('active-warranty');
+                labelRepair.classList.remove('active-repair');
+                feeContainer.classList.add('d-none');
+                document.getElementById('repairCost').value = 0;
+            } else {
+                labelRepair.classList.add('active-repair');
+                labelWarranty.classList.remove('active-warranty');
+                feeContainer.classList.remove('d-none');
+            }
+        }
+
+        // Gọi API Cập nhật (PUT)
+        async function updateTicket() {
+            const id = document.getElementById('ticketId').value;
+
+            const payload = {
+                type: document.querySelector('input[name="ticketType"]:checked').value,
+                status: document.getElementById('status').value,
+                branchId: document.getElementById('branchId').value,
+                repairCost: parseFloat(document.getElementById('repairCost').value || 0),
+                issueDescription: document.getElementById('issueDescription').value.trim(),
+                customerName: document.getElementById('customerName').value.trim(),
+                customerPhone: document.getElementById('customerPhone').value.trim(),
+                returnDate: document.getElementById('returnDate').value ? document.getElementById('returnDate').value + "T17:00:00" : null
+            };
+
+            if (!payload.issueDescription || !payload.customerName || !payload.customerPhone) {
+                alert("Mô tả lỗi và Thông tin khách hàng không được để trống!");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/v1/warranties/${id}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert("Cập nhật phiếu thành công!");
+                    window.location.reload(); // Reload lại trang để thấy thay đổi
+                } else {
+                    alert("Có lỗi xảy ra khi cập nhật!");
+                }
+            } catch (e) {
+                alert("Lỗi kết nối Server!");
+            }
+        }
+
+        // Gọi API Xóa (DELETE)
+        async function deleteTicket() {
+            const id = document.getElementById('ticketId').value;
+            if (confirm("Hành động này không thể hoàn tác. Bạn có chắc chắn muốn XÓA phiếu bảo hành này không?")) {
+                try {
+                    // Dùng API Xóa Bulk cho tiện, truyền mảng 1 phần tử
+                    const res = await fetch('/api/v1/warranties/bulk', {
+                        method: 'DELETE',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify([id])
+                    });
+                    if (res.ok) {
+                        alert("Đã xóa phiếu!");
+                        window.location.href = "/ui/warranties";
+                    } else {
+                        alert("Lỗi khi xóa phiếu!");
+                    }
+                } catch (e) {
+                    alert("Lỗi kết nối Server!");
+                }
+            }
+        }
+    </script>
+</div>
+</body>
+</html>
