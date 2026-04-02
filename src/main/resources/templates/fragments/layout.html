@@ -105,20 +105,77 @@
             border: 1px solid #e2e8f0;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
+
+        .noti-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            gap: 12px;
+        }
+
+        .noti-item:hover {
+            background-color: #f8fafc;
+        }
+
+        .noti-unread {
+            background-color: #eff6ff;
+            border-left: 3px solid #3b82f6;
+        }
+
+        /* Màu xanh nhạt cho tin chưa đọc */
+
+        .noti-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .noti-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .noti-msg {
+            font-size: 12.5px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .noti-time {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
     </style>
+
 </head>
 <body>
 <div class="d-flex">
     <div class="oms-sidebar vh-100 position-fixed overflow-auto d-flex flex-column">
-        <a href="/" class="p-4 mb-2 d-flex align-items-center gap-3 border-bottom border-secondary border-opacity-25 mx-2 pb-4 text-decoration-none transition-transform" style="cursor: pointer;">
-            <div class="bg-white rounded d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 48px; height: 48px; padding: 4px;">
-                <img th:if="${storeLogo != null && !storeLogo.isEmpty()}" th:src="${storeLogo}" alt="Logo" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                <i th:unless="${storeLogo != null && !storeLogo.isEmpty()}" class="bi bi-layers-fill text-primary fs-3"></i>
+        <a href="/"
+           class="p-4 mb-2 d-flex align-items-center gap-3 border-bottom border-secondary border-opacity-25 mx-2 pb-4 text-decoration-none transition-transform"
+           style="cursor: pointer;">
+            <div class="bg-white rounded d-flex align-items-center justify-content-center shadow-sm flex-shrink-0"
+                 style="width: 48px; height: 48px; padding: 4px;">
+                <img th:if="${storeLogo != null && !storeLogo.isEmpty()}" th:src="${storeLogo}" alt="Logo"
+                     style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                <i th:unless="${storeLogo != null && !storeLogo.isEmpty()}"
+                   class="bi bi-layers-fill text-primary fs-3"></i>
             </div>
 
             <div class="d-flex flex-column overflow-hidden">
-                <h5 class="text-white fw-bolder mb-1 text-truncate text-uppercase tracking-wide" th:text="${storeName != null ? storeName : 'OMS'}">OMS</h5>
-                <small class="text-info fw-semibold" style="font-size: 0.65rem; letter-spacing: 1px;">MANAGEMENT SYSTEM</small>
+                <h5 class="text-white fw-bolder mb-1 text-truncate text-uppercase tracking-wide"
+                    th:text="${storeName != null ? storeName : 'OMS'}">OMS</h5>
+                <small class="text-info fw-semibold" style="font-size: 0.65rem; letter-spacing: 1px;">MANAGEMENT
+                    SYSTEM</small>
             </div>
         </a>
 
@@ -219,36 +276,35 @@
 
             <div class="d-flex align-items-center gap-3" th:if="${currentUser != null}">
 
-                <div class="dropdown">
-                    <button class="btn btn-light rounded-circle p-2 position-relative border-0 shadow-sm"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-bell text-secondary"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                            <span class="visually-hidden">Có thông báo mới</span>
-                        </span>
+                <div class="dropdown me-3">
+                    <button class="btn btn-link position-relative p-0 text-dark border-0"
+                            type="button" id="notiBell" data-bs-toggle="dropdown" aria-expanded="false"
+                            onclick="loadNotifications()">
+                        <i class="bi bi-bell fs-4"></i>
+                        <span id="notiBadge"
+                              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                              style="font-size: 10px; padding: 3px 6px;">
+            0
+        </span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="width: 320px;">
-                        <li>
-                            <div class="dropdown-header d-flex justify-content-between align-items-center">
-                                <span class="fw-bold text-dark">Thông báo mới</span>
-                                <a href="#" class="text-decoration-none small">Đánh dấu đã đọc</a>
-                            </div>
-                        </li>
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-                        <li><a class="dropdown-item py-2 text-wrap" href="#"><i
-                                class="bi bi-cart-check text-success me-2"></i><strong>Đơn hàng #1024</strong> vừa được
-                            thanh toán thành công.</a></li>
-                        <li><a class="dropdown-item py-2 text-wrap" href="#"><i
-                                class="bi bi-exclamation-triangle text-warning me-2"></i>Sản phẩm <strong>Bàn phím cơ
-                            Aula</strong> sắp hết hàng trong kho.</a></li>
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-                        <li><a class="dropdown-item text-center text-primary fw-medium py-2" href="#">Xem tất cả thông
-                            báo</a></li>
-                    </ul>
+
+                    <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
+                         aria-labelledby="notiBell" style="width: 320px; max-height: 450px; overflow-y: auto;">
+                        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+                            <span class="fw-bold text-dark">Thông báo</span>
+                            <button class="btn btn-sm btn-link text-primary text-decoration-none p-0"
+                                    onclick="markAllRead()">Đã đọc hết
+                            </button>
+                        </div>
+
+                        <div id="notiList" class="py-0">
+                            <div class="text-center py-4 text-muted small">Đang tải thông báo...</div>
+                        </div>
+
+                        <div class="p-2 border-top text-center bg-light">
+                            <a href="/ui/notifications" class="text-decoration-none small fw-bold">Xem tất cả</a>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="d-flex align-items-center">
@@ -475,6 +531,90 @@
             searchDropdown.style.display = 'block';
         }
     });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        updateUnreadCount();
+        // Tự động cập nhật số đỏ sau mỗi 1 phút (60000ms) - Cảm giác real-time cho sếp
+        setInterval(updateUnreadCount, 60000);
+    });
+
+    // 1. Cập nhật con số đỏ trên quả chuông
+    async function updateUnreadCount() {
+        try {
+            const res = await fetch('/api/notifications/unread-count');
+            const data = await res.json();
+            const badge = document.getElementById('notiBadge');
+            if (data.count > 0) {
+                badge.innerText = data.count > 99 ? '99+' : data.count;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+        } catch (e) {
+            console.error("Lỗi lấy count:", e);
+        }
+    }
+
+    // 2. Load danh sách thông báo khi bấm vào chuông
+    async function loadNotifications() {
+        const list = document.getElementById('notiList');
+        try {
+            const res = await fetch('/api/notifications/latest');
+            const data = await res.json();
+
+            if (data.length === 0) {
+                list.innerHTML = '<div class="text-center py-4 text-muted small">Không có thông báo nào</div>';
+                return;
+            }
+
+            list.innerHTML = data.map(n => `
+            <div class="noti-item ${n.read ? '' : 'noti-unread'}" onclick="handleNotiClick(${n.id}, '${n.link}')">
+                <div class="noti-icon ${getIconClass(n.type)}">
+                    <i class="bi ${getIcon(n.type)}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="noti-title">${n.title}</div>
+                    <div class="noti-msg">${n.message}</div>
+                    <div class="noti-time">${formatTimeAgo(n.createdAt)}</div>
+                </div>
+            </div>
+        `).join('');
+        } catch (e) {
+            list.innerHTML = '<div class="text-center py-4 text-danger small">Lỗi tải dữ liệu</div>';
+        }
+    }
+
+    // 3. Xử lý khi bấm vào 1 thông báo
+    async function handleNotiClick(id, link) {
+        await fetch(`/api/notifications/mark-read/${id}`, {method: 'POST'});
+        window.location.href = link; // Chuyển hướng đến trang chi tiết (đơn hàng, sổ quỹ...)
+    }
+
+    // Hàm bổ trợ giao diện
+    function getIcon(type) {
+        if (type === 'ORDER') return 'bi-cart-check-fill';
+        if (type === 'PAYMENT') return 'bi-cash-coin';
+        if (type === 'WARNING') return 'bi-exclamation-triangle-fill';
+        return 'bi-info-circle-fill';
+    }
+
+    function getIconClass(type) {
+        if (type === 'ORDER') return 'bg-primary-subtle text-primary';
+        if (type === 'PAYMENT') return 'bg-success-subtle text-success';
+        if (type === 'WARNING') return 'bg-danger-subtle text-danger';
+        return 'bg-info-subtle text-info';
+    }
+
+    function formatTimeAgo(dateStr) {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffInSec = Math.floor((now - date) / 1000);
+        if (diffInSec < 60) return 'Vừa xong';
+        if (diffInSec < 3600) return Math.floor(diffInSec / 60) + ' phút trước';
+        if (diffInSec < 86400) return Math.floor(diffInSec / 3600) + ' giờ trước';
+        return date.toLocaleDateString('vi-VN');
+    }
+
 </script>
 </body>
 </html>

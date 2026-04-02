@@ -10,6 +10,7 @@ import com.oms.module.customer.service.CustomerService;
 import com.oms.module.inventory.dto.InventoryDTO;
 import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.inventory.service.InventoryService;
+import com.oms.module.notification.service.NotificationService;
 import com.oms.module.order.entity.Order;
 import com.oms.module.order.repository.OrderRepository;
 import com.oms.module.order.service.OrderService;
@@ -51,7 +52,7 @@ public class WebController {
     private final SupplierService supplierService;
     private final ReceiptService receiptService;
     private final InventoryService inventoryService;
-
+    private final NotificationService notificationService;
     private final OrderService orderService;
     private final CategoryService categoryService;
 
@@ -449,6 +450,13 @@ public class WebController {
             });
         }
         return "warranty/warranty-detail";
+    }
+
+
+    @GetMapping("/ui/notifications")
+    public String list(Model model) {
+        model.addAttribute("notifications", notificationService.getAll());
+        return "notifications/list-noti";
     }
     
 }
