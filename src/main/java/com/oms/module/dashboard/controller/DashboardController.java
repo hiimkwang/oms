@@ -1,5 +1,6 @@
 package com.oms.module.dashboard.controller;
 
+import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.repository.CashTransactionRepository;
 import com.oms.module.order.entity.Order;
 import com.oms.module.order.repository.OrderRepository;
@@ -29,7 +30,6 @@ public class DashboardController {
     private final OrderService orderService;
     private final CashTransactionRepository cashRepo; // Bảng lưu Phiếu thu/chi
 
-    // FIX LỖI 1: Bắt cả đường dẫn "/" (Trang chủ) và "/ui/dashboard"
     @GetMapping({"/", "/ui/dashboard", "/dashboard"})
     public String dashboard(
             Model model,
@@ -39,9 +39,8 @@ public class DashboardController {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // FIX LỖI 1: Gán MẶC ĐỊNH là "Tháng này" nếu mới truy cập lần đầu (chưa lọc)
         if (preset == null && start == null && end == null) {
-            preset = "thisMonth";
+            preset = "thisWeek";
         }
 
         // 1. LOGIC XỬ LÝ THỜI GIAN
@@ -72,9 +71,12 @@ public class DashboardController {
             }
         }
 
+        model.addAttribute("preset", preset);
+        model.addAttribute("startDate", start);
+        model.addAttribute("endDate", end);
+
         // ==========================================
         // 2. GỌI CÁC CHỈ SỐ TÀI CHÍNH & BÁN HÀNG
-        // (CHUẨN CÔNG THỨC KẾ TOÁN)
         // ==========================================
 
         // A. TỔNG DOANH THU (Total Revenue)
@@ -88,11 +90,12 @@ public class DashboardController {
         // C. LỢI NHUẬN GỘP (Gross Profit) = Doanh thu - Giá vốn
         BigDecimal grossProfit = totalRevenue.subtract(cogs);
 
-        // D. CHI PHÍ BÁN HÀNG & QUẢN LÝ (Operating Expenses)
-        // Nếu anh có làm module Sổ Quỹ (Thu/Chi), anh sẽ dùng Repository của Sổ Quỹ để SUM các khoản chi trong kỳ.
-        // Tạm thời để 0, anh có thể móc data thật vào sau.
-        BigDecimal operatingExpenses = BigDecimal.ZERO;
-        // VD: operatingExpenses = cashbookRepo.sumTotalExpenses(start, end);
+        // D. CHI PHÍ BÁN HÀNG & QUẢN LÝ (Operating Expenses từ Sổ Quỹ)
+        BigDecimal operatingExpenses = cashRepo.sumAmountByTypeBetween(CashTransaction.TransactionType.PAYMENT, start, end);
+
+        if (operatingExpenses == null) {
+            operatingExpenses = BigDecimal.ZERO;
+        }
 
         // E. LỢI NHUẬN TRƯỚC THUẾ
         BigDecimal profitBeforeTax = grossProfit.subtract(operatingExpenses);
@@ -100,7 +103,6 @@ public class DashboardController {
         // F. THUẾ TNDN (Tạm tính 20% nếu có lãi, theo đúng ví dụ của anh)
         BigDecimal tax = BigDecimal.ZERO;
         if (profitBeforeTax.compareTo(BigDecimal.ZERO) > 0) {
-            // Uncomment dòng dưới nếu anh muốn trừ luôn 20% thuế tự động
             // tax = profitBeforeTax.multiply(new BigDecimal("0.20"));
         }
 
@@ -117,11 +119,11 @@ public class DashboardController {
         if (totalOrders != null && totalOrders > 0) {
             aov = totalRevenue.divide(BigDecimal.valueOf(totalOrders), 0, RoundingMode.HALF_UP);
         }
-        // FIX LỖI 2: CHUẨN TÊN TRẠNG THÁI TRONG DB CỦA ANH
+
         Long unpaidOrders = orderRepo.countUnpaidOrders(start, end);
         Long pendingOrders = orderRepo.countOrdersByStatus("Khởi tạo", start, end);
-        Long shippingOrders = orderRepo.countOrdersByStatus("Đang giao hàng", start, end); // <- Sửa ở đây
-        Long canceledOrders = orderRepo.countOrdersByStatus("Đã hủy", start, end);         // <- Sửa ở đây
+        Long shippingOrders = orderRepo.countOrdersByStatus("Đang giao hàng", start, end);
+        Long canceledOrders = orderRepo.countOrdersByStatus("Đã hủy", start, end);
 
         // Đẩy 8 thẻ bài ra View
         model.addAttribute("netRevenue", totalRevenue);
@@ -134,35 +136,79 @@ public class DashboardController {
         model.addAttribute("shippingOrders", shippingOrders != null ? shippingOrders : 0);
         model.addAttribute("canceledOrders", canceledOrders != null ? canceledOrders : 0);
 
-        // 3. FIX LỖI 4: VẼ BIỂU ĐỒ (Dữ liệu 6 tháng gần nhất)
+        // ==========================================
+        // 3. VẼ BIỂU ĐỒ (BÁM SÁT VÀO BỘ LỌC THỜI GIAN)
+        // ==========================================
         List<String> chartLabels = new ArrayList<>();
         List<BigDecimal> chartRevenue = new ArrayList<>();
+        List<BigDecimal> chartExpenses = new ArrayList<>(); // Cột mới cho Chi phí
         List<BigDecimal> chartProfit = new ArrayList<>();
 
-        for (int i = 5; i >= 0; i--) {
-            YearMonth targetMonth = YearMonth.from(now.minusMonths(i));
-            LocalDateTime mStart = targetMonth.atDay(1).atTime(LocalTime.MIN);
-            LocalDateTime mEnd = targetMonth.atEndOfMonth().atTime(LocalTime.MAX);
+        long daysBetween = java.time.Duration.between(start, end).toDays();
 
-            BigDecimal mRev = orderRepo.sumNetRevenue(mStart, mEnd);
-            if (mRev == null) mRev = BigDecimal.ZERO;
+        // NẾU LỌC DƯỚI 35 NGÀY -> VẼ THEO TỪNG NGÀY
+        if (daysBetween <= 35) {
+            for (int i = 0; i <= daysBetween; i++) {
+                LocalDateTime dayStart = start.plusDays(i).with(LocalTime.MIN);
+                LocalDateTime dayEnd = dayStart.with(LocalTime.MAX);
 
-            BigDecimal mCogs = orderRepo.sumTotalCOGS(mStart, mEnd);
-            if (mCogs == null) mCogs = BigDecimal.ZERO;
+                BigDecimal dRev = orderRepo.sumNetRevenue(dayStart, dayEnd);
+                if (dRev == null) dRev = BigDecimal.ZERO;
 
-            BigDecimal mExp = BigDecimal.ZERO; // Sửa thành cashRepo.sumOperatingExpenses(mStart, mEnd) nếu anh có sổ quỹ
+                BigDecimal dCogs = orderRepo.sumTotalCOGS(dayStart, dayEnd);
+                if (dCogs == null) dCogs = BigDecimal.ZERO;
 
-            chartLabels.add("T" + targetMonth.getMonthValue());
-            chartRevenue.add(mRev);
-            chartProfit.add(mRev.subtract(mCogs).subtract(mExp));
+                BigDecimal dExp = cashRepo.sumAmountByTypeBetween(CashTransaction.TransactionType.PAYMENT, dayStart, dayEnd);
+                if (dExp == null) dExp = BigDecimal.ZERO;
+
+                chartLabels.add(dayStart.getDayOfMonth() + "/" + dayStart.getMonthValue());
+                chartRevenue.add(dRev);
+                chartExpenses.add(dExp); // Đẩy chi phí vào mảng
+                chartProfit.add(dRev.subtract(dCogs).subtract(dExp));
+            }
+        }
+        // NẾU LỌC DÀI HƠN -> VẼ THEO TỪNG THÁNG
+        else {
+            YearMonth startMonth = YearMonth.from(start);
+            YearMonth endMonth = YearMonth.from(end);
+
+            while (!startMonth.isAfter(endMonth)) {
+                LocalDateTime mStart = startMonth.atDay(1).atTime(LocalTime.MIN);
+                LocalDateTime mEnd = startMonth.atEndOfMonth().atTime(LocalTime.MAX);
+
+                BigDecimal mRev = orderRepo.sumNetRevenue(mStart, mEnd);
+                if (mRev == null) mRev = BigDecimal.ZERO;
+
+                BigDecimal mCogs = orderRepo.sumTotalCOGS(mStart, mEnd);
+                if (mCogs == null) mCogs = BigDecimal.ZERO;
+
+                BigDecimal mExp = cashRepo.sumAmountByTypeBetween(CashTransaction.TransactionType.PAYMENT, mStart, mEnd);
+                if (mExp == null) mExp = BigDecimal.ZERO;
+
+                chartLabels.add("T" + startMonth.getMonthValue());
+                chartRevenue.add(mRev);
+                chartExpenses.add(mExp); // Đẩy chi phí vào mảng
+                chartProfit.add(mRev.subtract(mCogs).subtract(mExp));
+
+                startMonth = startMonth.plusMonths(1);
+            }
         }
 
-        // Bắt buộc đẩy mảng rỗng nếu không có dữ liệu để JS không bị lỗi undefined
         model.addAttribute("chartLabels", chartLabels);
         model.addAttribute("chartRevenue", chartRevenue);
+        model.addAttribute("chartExpenses", chartExpenses); // Ném mảng Chi phí ra cho JS
         model.addAttribute("chartProfit", chartProfit);
 
-        // Biểu đồ tròn: Kênh bán hàng
+        // ==========================================
+        // 4. BẢNG TOP SẢN PHẨM BÁN CHẠY
+        // ==========================================
+        // Lấy top 5 sản phẩm (Cần import org.springframework.data.domain.PageRequest)
+        List<Object[]> topProducts = orderRepo.findDashboardTopProducts(start, end, org.springframework.data.domain.PageRequest.of(0, 5));
+        model.addAttribute("topProducts", topProducts != null ? topProducts : new ArrayList<>());
+
+        // ==========================================
+        // 5. BIỂU ĐỒ TRÒN KÊNH BÁN & ĐƠN HÀNG GẦN ĐÂY
+        // ==========================================
         List<Object[]> channelStats = orderRepo.countOrdersByChannel(start, end);
         List<String> channelLabels = new ArrayList<>();
         List<Long> channelData = new ArrayList<>();
@@ -173,17 +219,15 @@ public class DashboardController {
                 channelData.add(stat[1] != null ? ((Number) stat[1]).longValue() : 0L);
             }
         } else {
-            // Dữ liệu mẫu nếu chưa có đơn nào để vẽ vòng tròn
             channelLabels.add("Chưa có đơn");
             channelData.add(1L);
         }
         model.addAttribute("channelLabels", channelLabels);
         model.addAttribute("channelData", channelData);
 
-        // Danh sách đơn hàng gần đây
         List<Order> recentOrders = orderRepo.findTop5ByOrderByCreatedAtDesc();
         model.addAttribute("recentOrders", recentOrders != null ? recentOrders : new ArrayList<>());
 
-        return "dashboard"; // Trả về file html của anh
+        return "dashboard";
     }
 }

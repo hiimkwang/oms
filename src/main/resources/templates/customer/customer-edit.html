@@ -243,11 +243,16 @@
                 <div class="card-body-custom">
                     <div class="stat-box">
                         <div class="stat-label">Tổng tiền đã mua (Thành công)</div>
-                        <div class="stat-value text-primary fs-4" id="uiTotalSpent">Đang tải...</div>
+                        <div class="stat-value text-primary fs-4" id="uiTotalSpent"
+                             th:text="${customer.totalSpent != null ? #numbers.formatDecimal(customer.totalSpent, 0, 'COMMA', 0, 'POINT') : '0'} + '₫'">
+                            0₫
+                        </div>
                     </div>
                     <div class="stat-box">
                         <div class="stat-label">Tổng SL đơn hàng</div>
-                        <div class="stat-value" id="uiOrderCount">Đang tải...</div>
+                        <div class="stat-value" id="uiOrderCount"
+                             th:text="${customer.orderCount != null ? customer.orderCount : '0'}">0
+                        </div>
                     </div>
                     <div class="stat-box border-0 pb-0">
                         <div class="stat-label">Công nợ hiện tại</div>
@@ -421,32 +426,35 @@
     </div>
 
     <script th:inline="javascript">
+        // 1. Lấy thẳng dữ liệu từ Thymeleaf (đã được @Formula tính sẵn dưới DB)
         const customerCode = /*[[${customer.code}]]*/ 'UNKNOWN';
-        let stats = {totalSpent: 0, orderCount: 0};
-        let currentGroup = 'Khách lẻ';
+        let currentGroup = /*[[${customer.customerGroup ?: 'Khách lẻ'}]]*/ 'Khách lẻ';
+
+        let stats = {
+            totalSpent: /*[[${customer.totalSpent ?: 0}]]*/ 0,
+            orderCount: /*[[${customer.orderCount ?: 0}]]*/ 0
+        };
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await fetchCustomerStatsAndGroups();
+            // Bơm số liệu lên thẳng giao diện luôn cho nóng
+            document.getElementById('uiTotalSpent').innerText = new Intl.NumberFormat('vi-VN').format(stats.totalSpent) + '₫';
+            document.getElementById('uiOrderCount').innerText = stats.orderCount;
+            const groupEl = document.getElementById('uiCustomerGroup');
+            if (groupEl) groupEl.innerText = currentGroup;
+
+            // Chỉ cần gọi duy nhất API lấy nhóm khách hàng để check thăng hạng
+            await fetchCustomerGroups();
         });
 
-        async function fetchCustomerStatsAndGroups() {
+        async function fetchCustomerGroups() {
             try {
-                const cRes = await fetch(`/api/v1/customers/${customerCode}`);
-                if (cRes.ok) {
-                    const cData = await cRes.json();
-                    stats.totalSpent = cData.totalSpent || 0;
-                    stats.orderCount = cData.orderCount || 0;
-                    currentGroup = cData.customerGroup || 'Khách lẻ';
-
-                    document.getElementById('uiTotalSpent').innerText = new Intl.NumberFormat('vi-VN').format(stats.totalSpent) + '₫';
-                    document.getElementById('uiOrderCount').innerText = stats.orderCount;
-                    document.getElementById('uiCustomerGroup').innerText = currentGroup;
-                }
-
                 const gRes = await fetch('/api/v1/customer-groups');
+                if (!gRes.ok) return;
+
                 const groups = await gRes.json();
                 const select = document.getElementById('customerGroup');
                 select.innerHTML = '<option value="Khách lẻ">Khách lẻ</option>';
+
                 groups.forEach(g => {
                     if (g.name !== "Khách lẻ") select.innerHTML += `<option value="${g.name}">${g.name}</option>`;
                 });
@@ -454,6 +462,7 @@
                 let bestMatch = currentGroup;
                 let isAuto = false;
 
+                // Chạy logic check điều kiện thăng hạng
                 groups.forEach(g => {
                     if (g.autoUpdate && g.conditions) {
                         try {
@@ -472,20 +481,25 @@
                                 isAuto = true;
                             }
                         } catch (e) {
+                            console.error("Lỗi parse JSON luật:", e);
                         }
                     }
                 });
 
+                // Gắn vào ô Select và bật Badge nếu có thăng hạng
                 select.value = bestMatch;
                 if (isAuto && bestMatch !== currentGroup) {
                     select.classList.add('auto-selected');
                     document.getElementById('suggestBadge').classList.remove('d-none');
                 }
             } catch (e) {
-                console.error("Lỗi:", e);
+                console.error("Lỗi tải danh sách nhóm KH:", e);
             }
         }
 
+        // =====================================
+        // CÁC HÀM CẬP NHẬT & XÓA KHÁCH HÀNG
+        // =====================================
         function getCustomerPayload(includeNote = true) {
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
@@ -517,7 +531,8 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
-                if (res.ok) location.reload(); else alert("Không thể cập nhật!");
+                if (res.ok) location.reload();
+                else alert("Không thể cập nhật!");
             } catch (e) {
                 alert("Lỗi server!");
             }
@@ -531,7 +546,8 @@
             if (!confirm("Cảnh báo: Xóa khách hàng sẽ làm mất liên kết với các đơn hàng cũ. Bạn có chắc chắn không?")) return;
             try {
                 const res = await fetch(`/api/v1/customers/${customerCode}`, {method: 'DELETE'});
-                if (res.ok) window.location.href = "/ui/customers"; else alert("Không thể xóa!");
+                if (res.ok) window.location.href = "/ui/customers";
+                else alert("Không thể xóa!");
             } catch (e) {
                 alert("Lỗi server!");
             }

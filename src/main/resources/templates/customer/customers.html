@@ -184,7 +184,6 @@
                         <th>Email</th>
                         <th>Điện thoại</th>
                         <th class="text-center">Số đơn</th>
-                        <th>Đơn gần nhất</th>
                         <th class="text-end pe-4">Tổng chi tiêu</th>
                     </tr>
                     </thead>
@@ -390,7 +389,6 @@
                             <td>${c.email || '---'}</td>
                             <td>${c.phoneNumber || '---'}</td>
                             <td class="text-center fw-medium">${c.orderCount || 0}</td>
-                            <td class="text-muted">${lastDate}</td>
                             <td class="text-end pe-4 fw-bold">${totalSpent}</td>
                         </tr>
                     `;

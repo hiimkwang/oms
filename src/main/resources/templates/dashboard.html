@@ -68,7 +68,6 @@
             color: #64748b;
         }
 
-        /* Style cho 5 thẻ vận hành */
         .status-card {
             text-align: center;
             padding: 18px 10px;
@@ -100,7 +99,6 @@
             margin-top: 6px;
         }
 
-        /* Bảng mini */
         .table-mini thead th {
             background: #f8fafc;
             color: #64748b;
@@ -184,7 +182,8 @@
                     <div>
                         <div class="metric-label">Doanh Thu Thuần</div>
                         <div class="metric-value text-primary"
-                             th:text="${#numbers.formatDecimal(netRevenue ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                             th:text="${netRevenue != null ? #numbers.formatDecimal(netRevenue, 0, 'COMMA', 0, 'POINT') : '0'} + '₫'">
+                            0₫
                         </div>
                     </div>
                     <div class="icon-box icon-blue"><i class="bi bi-cash-stack"></i></div>
@@ -201,7 +200,8 @@
                     <div>
                         <div class="metric-label">Lợi Nhuận Ròng</div>
                         <div class="metric-value text-success"
-                             th:text="${#numbers.formatDecimal(netProfit ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                             th:text="${netProfit != null ? #numbers.formatDecimal(netProfit, 0, 'COMMA', 0, 'POINT') : '0'} + '₫'">
+                            0₫
                         </div>
                     </div>
                     <div class="icon-box icon-green"><i class="bi bi-piggy-bank"></i></div>
@@ -218,7 +218,8 @@
                     <div>
                         <div class="metric-label">Giá Trị TB Đơn (AOV)</div>
                         <div class="metric-value text-purple"
-                             th:text="${#numbers.formatDecimal(aov ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                             th:text="${aov != null ? #numbers.formatDecimal(aov, 0, 'COMMA', 0, 'POINT') : '0'} + '₫'">
+                            0₫
                         </div>
                     </div>
                     <div class="icon-box icon-purple"><i class="bi bi-receipt"></i></div>
@@ -272,7 +273,7 @@
         <div class="col-md-8">
             <div class="dash-card p-4 h-100">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="card-title-custom mb-0">Biểu đồ Doanh Thu & Lợi Nhuận (6 tháng gần nhất)</div>
+                    <div class="card-title-custom mb-0">Biểu đồ Phân tích (Theo thời gian lọc)</div>
                 </div>
                 <div style="position: relative; height: 320px; width: 100%;">
                     <canvas id="revenueChart"></canvas>
@@ -290,61 +291,104 @@
         </div>
     </div>
 
-    <div class="dash-card overflow-hidden">
-        <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
-            <div class="card-title-custom mb-0">5 Đơn hàng phát sinh gần nhất</div>
-            <a th:href="@{/ui/orders}" class="text-decoration-none small fw-bold btn btn-light btn-sm">Xem tất cả <i
-                    class="bi bi-arrow-right"></i></a>
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="dash-card overflow-hidden h-100">
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+                    <div class="card-title-custom mb-0">5 Đơn hàng mới nhất</div>
+                    <a th:href="@{/ui/orders}" class="text-decoration-none small fw-bold btn btn-light btn-sm">Xem tất
+                        cả <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-mini table-borderless table-hover mb-0 bg-white">
+                        <thead>
+                        <tr>
+                            <th class="ps-4">Mã Đơn</th>
+                            <th>Khách Hàng</th>
+                            <th>Giá Trị</th>
+                            <th>Trạng Thái</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="o : ${recentOrders}">
+                            <td class="ps-4"><a th:href="@{/ui/orders/detail/{id}(id=${o.orderCode})}"
+                                                class="fw-bold text-decoration-none" th:text="${o.orderCode}"></a></td>
+                            <td>
+                                <div class="fw-bold text-dark" th:text="${o.customer.fullName}"></div>
+                                <div class="small text-muted" th:text="${o.customer.phone}"></div>
+                            </td>
+                            <td class="fw-bold text-primary"
+                                th:text="${#numbers.formatDecimal(o.totalAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></td>
+                            <td>
+                                <span class="badge px-2 py-1 border fw-bold"
+                                      th:classappend="${o.status == 'Hủy' ? 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25' :
+                                                     (o.status == 'Hoàn thành' ? 'bg-success bg-opacity-10 text-success border-success border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border-primary border-opacity-25')}"
+                                      th:text="${o.status}">
+                                </span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(recentOrders)}">
+                            <td colspan="4" class="text-center py-5 text-muted">Chưa có đơn hàng nào.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="table-responsive">
-            <table class="table table-mini table-borderless table-hover mb-0 bg-white">
-                <thead>
-                <tr>
-                    <th class="ps-4">Mã Đơn Hàng</th>
-                    <th>Khách Hàng</th>
-                    <th>Kênh Bán</th>
-                    <th>Giá Trị</th>
-                    <th>Thời Gian Đặt</th>
-                    <th>Trạng Thái</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="o : ${recentOrders}">
-                    <td class="ps-4"><a th:href="@{/ui/orders/detail/{id}(id=${o.orderCode})}"
-                                        class="fw-bold text-decoration-none" th:text="${o.orderCode}"></a></td>
-                    <td>
-                        <div class="fw-bold text-dark" th:text="${o.customer.fullName}"></div>
-                        <div class="small text-muted" th:text="${o.customer.phone}"></div>
-                    </td>
-                    <td>
-                        <span class="badge bg-light text-dark border px-2 py-1"
-                              th:text="${o.salesChannelCode ?: 'Tại quầy'}"></span>
-                    </td>
-                    <td class="fw-bold text-primary"
-                        th:text="${#numbers.formatDecimal(o.totalAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></td>
-                    <td class="text-muted" th:text="${#temporals.format(o.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
-                    <td>
-                            <span class="badge px-2 py-1 border fw-bold"
-                                  th:classappend="${o.status == 'Hủy' ? 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25' :
-                                                 (o.status == 'Hoàn thành' ? 'bg-success bg-opacity-10 text-success border-success border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border-primary border-opacity-25')}"
-                                  th:text="${o.status}">
-                            </span>
-                    </td>
-                </tr>
-                <tr th:if="${#lists.isEmpty(recentOrders)}">
-                    <td colspan="6" class="text-center py-5 text-muted">
-                        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
-                        Chưa có đơn hàng nào.
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+
+        <div class="col-md-6">
+            <div class="dash-card overflow-hidden h-100">
+                <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+                    <div class="card-title-custom mb-0">Top 5 Sản phẩm bán chạy (Theo bộ lọc)</div>
+                    <a th:href="@{/ui/reports}" class="text-decoration-none small fw-bold btn btn-light btn-sm">Báo cáo
+                        <i class="bi bi-bar-chart-line"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-mini table-borderless table-hover mb-0 bg-white">
+                        <thead>
+                        <tr>
+                            <th class="ps-4">Sản Phẩm</th>
+                            <th class="text-center">Đã Bán</th>
+                            <th class="text-end pe-4">Doanh Thu</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="p : ${topProducts}">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div style="width: 40px; height: 40px; border-radius: 6px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #e2e8f0;">
+                                        <img th:if="${p[0] != null}" th:src="${p[0]}"
+                                             style="width: 100%; height: 100%; object-fit: cover;">
+                                        <i th:unless="${p[0] != null}" class="bi bi-box-seam text-muted"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark"
+                                             th:text="${p[1]}"
+                                             style="font-size: 13px; line-height: 1.4; max-width: 250px;">
+                                        </div>
+                                        <div class="small text-muted" th:text="'SKU: ' + ${p[2]}"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center fw-bold text-dark align-middle" th:text="${p[3]}">0</td>
+                            <td class="text-end pe-4 fw-bold text-primary align-middle"
+                                th:text="${p[4] != null ? #numbers.formatDecimal(p[4], 0, 'COMMA', 0, 'POINT') : '0'} + '₫'">
+                                0₫
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(topProducts)}">
+                            <td colspan="3" class="text-center py-5 text-muted">Chưa có dữ liệu sản phẩm trong kỳ này.
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script th:inline="javascript">
-        // Xử lý Lọc Thời Gian
         function handleDateChange() {
             const preset = document.getElementById('datePreset').value;
             const customContainer = document.getElementById('customDateContainer');
@@ -353,7 +397,7 @@
                 customContainer.classList.replace('d-none', 'd-flex');
             } else {
                 customContainer.classList.replace('d-flex', 'd-none');
-                applyFilters(); // Submit luôn nếu chọn Tuần, Tháng, Quý
+                applyFilters();
             }
         }
 
@@ -372,17 +416,15 @@
                 params.delete('start');
                 params.delete('end');
             }
-
             window.location.href = window.location.pathname + '?' + params.toString();
         }
 
-        // Vẽ biểu đồ khi load trang xong
         document.addEventListener("DOMContentLoaded", function () {
-
-            // 1. DỮ LIỆU BIỂU ĐỒ CỘT (Từ Backend truyền xuống)
-            const revLabels = /*[[${chartLabels}]]*/ [] || ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
-            const revData = /*[[${chartRevenue}]]*/ [] || [0, 0, 0, 0, 0, 0];
-            const profitData = /*[[${chartProfit}]]*/ [] || [0, 0, 0, 0, 0, 0];
+            // 1. BIỂU ĐỒ DOANH THU & CHI PHÍ
+            const revLabels = /*[[${chartLabels}]]*/ [];
+            const revData = /*[[${chartRevenue}]]*/ [];
+            const expData = /*[[${chartExpenses}]]*/ []; // Dữ liệu Chi phí màu vàng
+            const profitData = /*[[${chartProfit}]]*/ [];
 
             new Chart(document.getElementById('revenueChart').getContext('2d'), {
                 type: 'bar',
@@ -393,15 +435,28 @@
                             label: 'Doanh Thu',
                             data: revData,
                             backgroundColor: '#3b82f6',
-                            borderRadius: 6,
-                            barPercentage: 0.5
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            minBarLength: 5,
+                            maxBarThickness: 40
+                        },
+                        {
+                            label: 'Chi Phí',
+                            data: expData,
+                            backgroundColor: '#f59e0b', // Màu vàng cam
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            minBarLength: 5,
+                            maxBarThickness: 40
                         },
                         {
                             label: 'Lợi Nhuận',
                             data: profitData,
                             backgroundColor: '#10b981',
-                            borderRadius: 6,
-                            barPercentage: 0.5
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            minBarLength: 5,
+                            maxBarThickness: 40
                         }
                     ]
                 },
@@ -427,7 +482,7 @@
                 }
             });
 
-            // 2. DỮ LIỆU BIỂU ĐỒ TRÒN (Từ Backend truyền xuống)
+            // 2. BIỂU ĐỒ TRÒN
             const chanLabels = /*[[${channelLabels}]]*/ ['Shopee', 'Facebook', 'Tiktok', 'Tại quầy'];
             const chanData = /*[[${channelData}]]*/ [45, 20, 15, 20];
 

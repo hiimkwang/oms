@@ -47,6 +47,12 @@ public class CashbookService {
         }
 
         String currentUser = getCurrentUserName();
+        LocalDateTime finalDate = request.getTransactionDate();
+        if (finalDate == null) {
+            finalDate = LocalDateTime.now();
+        } else if (finalDate.getHour() == 0 && finalDate.getMinute() == 0) {
+            finalDate = finalDate.with(java.time.LocalTime.now());
+        }
 
         CashTransaction transaction = CashTransaction.builder()
                 .code(finalCode)
@@ -60,8 +66,8 @@ public class CashbookService {
                 .description(request.getDescription())
                 .branchId(request.getBranchId())
                 .referenceCode(request.getReferenceCode())
-                .transactionDate(request.getTransactionDate())
-                .creatorName(currentUser) // Sau này lấy từ SecurityContextHolder.getContext().getAuthentication().getName()
+                .transactionDate(finalDate)
+                .creatorName(currentUser)
                 .build();
 
         return cashRepo.save(transaction);
@@ -97,6 +103,7 @@ public class CashbookService {
     public List<CashTransaction> getAllTransactions(LocalDateTime start, LocalDateTime end) {
         return cashRepo.findByTransactionDateBetweenOrderByTransactionDateDesc(start, end);
     }
+
     private String getCurrentUserName() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal instanceof User) {
@@ -104,6 +111,7 @@ public class CashbookService {
         }
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
+
     public CashTransaction getById(Long id) {
         return cashRepo.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu!"));
     }
@@ -152,6 +160,6 @@ public class CashbookService {
         BigDecimal closingBalance = openingBalance.add(totalIn).subtract(totalOut);
 
         // Đóng gói gửi lên Controller
-        return new CashbookSummary(openingBalance, totalIn, totalOut, closingBalance,new BigDecimal(0),new BigDecimal(0));
+        return new CashbookSummary(openingBalance, totalIn, totalOut, closingBalance, new BigDecimal(0), new BigDecimal(0));
     }
 }

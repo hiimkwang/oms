@@ -358,12 +358,16 @@
 
                     <div id="shippingContent-PLATFORM" class="shipping-block d-none mt-3">
                         <div class="alert alert-info small mb-3"><i class="bi bi-info-circle me-1"></i> Đối với đơn qua
-                            Sàn TMĐT (Shopee, TikTok...), việc giao vận do sàn đảm nhận. Bạn chỉ cần lưu mã vận đơn để
-                            đối soát.
+                            Sàn TMĐT (Shopee, TikTok...), việc giao vận do sàn đảm nhận. Bạn cần lưu Mã đơn hàng và Mã vận đơn để đối soát doanh thu.
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label-custom text-muted small">Mã vận đơn của sàn</label>
+                                <label class="form-label-custom text-muted small text-primary fw-bold">Mã đơn hàng Sàn</label>
+                                <input type="text" id="platformOrderCode" class="form-control form-control-custom"
+                                       placeholder="VD: 230514ABCD...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-custom text-muted small text-success fw-bold">Mã vận đơn Sàn</label>
                                 <input type="text" id="platformTrackingCode" class="form-control form-control-custom"
                                        placeholder="VD: SPX123456789">
                             </div>
@@ -1092,7 +1096,7 @@
                 branchId: rawBranchId ? parseInt(rawBranchId) : null,
                 status: orderStatus,
                 note: document.getElementById('orderNote').value,
-
+                referenceCode: shippingType === 'PLATFORM' ? document.getElementById('platformOrderCode').value : null,
                 // Giao hàng
                 shippingType: shippingType,
                 shipFromBranchId: rawShipFromId ? parseInt(rawShipFromId) : null,

@@ -373,8 +373,11 @@
                             <div class="text-muted small mb-2 fw-bold text-dark">Thông tin Giao hàng:</div>
                             <div class="small mb-1"><span class="text-muted">Đối tác:</span> <span
                                     class="fw-medium text-dark" id="viewShipPartner">---</span></div>
+                            <div class="small mb-1"><span class="text-muted">Mã đơn Sàn:</span> <span
+                                    class="fw-medium text-primary font-monospace" id="viewReferenceCode">---</span>
+                            </div>
                             <div class="small mb-1"><span class="text-muted">Mã vận đơn:</span> <span
-                                    class="fw-medium text-primary font-monospace" id="viewTrackingCode">---</span></div>
+                                    class="fw-medium text-success font-monospace" id="viewTrackingCode">---</span></div>
                             <div class="small mb-1"><span class="text-muted">COD thu hộ:</span> <span
                                     class="fw-medium text-danger" id="viewCodAmount">0₫</span></div>
                             <div class="small"><span class="text-muted">Phương thức TT:</span> <span
@@ -453,6 +456,23 @@
                 <div class="text-dark small lh-base view-element" id="rightShippingAddress">Khách mua tại quầy</div>
                 <textarea id="editShippingAddress" class="form-control form-control-custom edit-element"
                           rows="2"></textarea>
+                <div class="edit-element">
+                    <hr class="my-3 text-muted">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <div class="fw-bold text-dark small mb-1">Mã đơn Sàn (Reference)</div>
+                            <input type="text" id="editReferenceCode"
+                                   class="form-control form-control-custom text-primary font-monospace"
+                                   placeholder="VD: 230514ABCD...">
+                        </div>
+                        <div class="col-12">
+                            <div class="fw-bold text-dark small mb-1">Mã vận đơn (Tracking)</div>
+                            <input type="text" id="editTrackingCode"
+                                   class="form-control form-control-custom text-success font-monospace"
+                                   placeholder="VD: SPX12345...">
+                        </div>
+                    </div>
+                </div>
 
                 <hr class="my-3 text-muted edit-element">
                 <div class="fw-bold text-dark small mb-1 edit-element">Ngày hẹn giao</div>
@@ -660,6 +680,7 @@
             document.getElementById('viewFinalTotal').innerText = formatMoney(currentOrder.totalAmount);
             document.getElementById('viewCodAmount').innerText = formatMoney(currentOrder.codAmount);
             document.getElementById('viewShipPartner').innerText = currentOrder.shippingPartner || '---';
+            document.getElementById('viewReferenceCode').innerText = currentOrder.referenceCode || '---';
             document.getElementById('viewTrackingCode').innerText = currentOrder.trackingCode || '---';
 
             // Cột phải
@@ -681,6 +702,9 @@
             if (cus) {
                 document.getElementById('rightCusName').innerText = cus.fullName || cus.name || 'Khách lẻ';
                 document.getElementById('rightCusPhone').innerText = cus.phone || cus.phoneNumber || '---';
+                const cusNameEl = document.getElementById('rightCusName');
+                const cusCode = cus.code;
+                cusNameEl.href = `/ui/customers/${cusCode}`;
             }
 
             // Render Các Nút Thao Tác (Workflow)
@@ -732,7 +756,8 @@
 
                 document.getElementById('editSource').value = currentOrder.salesChannelCode || '';
                 document.getElementById('editBranch').value = currentOrder.branchId ? String(currentOrder.branchId) : '';
-
+                document.getElementById('editReferenceCode').value = currentOrder.referenceCode || '';
+                document.getElementById('editTrackingCode').value = currentOrder.trackingCode || '';
                 if (currentOrder.expectedDeliveryDate) document.getElementById('editExpectedDeliveryDate').value = currentOrder.expectedDeliveryDate;
 
                 renderProductTable(editCart, true);
@@ -901,7 +926,8 @@
             const sourceCode = isEditing ? document.getElementById('editSource').value : currentOrder.salesChannelCode;
             const branchId = isEditing ? document.getElementById('editBranch').value : currentOrder.branchId;
             const exDate = isEditing ? document.getElementById('editExpectedDeliveryDate').value : currentOrder.expectedDeliveryDate;
-
+            const refCode = isEditing ? document.getElementById('editReferenceCode').value : currentOrder.referenceCode;
+            const trackCode = isEditing ? document.getElementById('editTrackingCode').value : currentOrder.trackingCode;
             const totalAmt = subTotal - discount + shippingFee;
             const finalTotalAmount = totalAmt > 0 ? totalAmt : 0;
 
@@ -920,6 +946,7 @@
 
             const payload = {
                 orderCode: currentOrder.orderCode,
+                referenceCode: refCode,
                 customerCode: currentOrder.customer?.code || currentOrder.customer?.id,
                 salesChannelCode: sourceCode,
                 branchId: branchId ? parseInt(branchId) : null,
@@ -928,7 +955,7 @@
                 shippingType: currentOrder.shippingType,
                 shipFromBranchId: currentOrder.shipFromBranchId,
                 shippingPartner: currentOrder.shippingPartner,
-                trackingCode: currentOrder.trackingCode,
+                trackingCode: trackCode,
                 shippingAddress: shippingAddress,
                 expectedDeliveryDate: exDate || null,
                 shippingFee: shippingFee,

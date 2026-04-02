@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -43,4 +44,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     // Lấy số tồn kho vật lý dựa vào mã SKU và Chi nhánh
     @Query("SELECT i.stock FROM Inventory i, ProductVariant v WHERE i.variantId = v.id AND i.branchId = :branchId AND v.sku = :sku")
     Integer getStockByBranchAndSku(@Param("branchId") Long branchId, @Param("sku") String sku);
+    // Tính tổng giá trị tồn kho toàn hệ thống
+    @Query("SELECT COALESCE(SUM(i.stock * v.costPrice), 0) FROM Inventory i JOIN ProductVariant v ON i.variantId = v.id")
+    BigDecimal sumTotalInventoryValue();
 }

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.report-container})}">
+<head></head>
+<body>
+<div class="report-container pb-5" style="background-color: #f6f8f9;">
+    <style>
+        .report-header-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .kpi-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 15px;
+        }
+
+        .kpi-title {
+            font-size: 13px;
+            color: #475569;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .kpi-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .chart-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+            height: 350px;
+        }
+
+        .chart-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 15px;
+        }
+
+        .date-picker-custom {
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #475569;
+            padding: 5px 10px;
+            background: #fff;
+            height: 34px;
+            outline: none;
+            cursor: pointer;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+        <div class="report-header-title">Tổng quan báo cáo</div>
+    </div>
+
+    <ul class="nav nav-tabs border-bottom mb-4" style="font-size: 14px;">
+        <li class="nav-item"><a th:href="@{/ui/reports(tab='overview', preset=${preset}, channel=${selectedChannel})}"
+                                th:classappend="${tab == 'overview' || tab == null} ? 'active fw-bold border-0 border-bottom border-primary border-2' : 'text-muted border-0'"
+                                class="nav-link">Tổng quan</a></li>
+        <li class="nav-item"><a th:href="@{/ui/reports(tab='revenue', preset=${preset}, channel=${selectedChannel})}"
+                                th:classappend="${tab == 'revenue'} ? 'active fw-bold border-0 border-bottom border-primary border-2' : 'text-muted border-0'"
+                                class="nav-link">Phân tích doanh thu</a></li>
+        <li class="nav-item"><a th:href="@{/ui/reports(tab='customer', preset=${preset}, channel=${selectedChannel})}"
+                                th:classappend="${tab == 'customer'} ? 'active fw-bold border-0 border-bottom border-primary border-2' : 'text-muted border-0'"
+                                class="nav-link">Phân tích khách hàng</a></li>
+        <li class="nav-item"><a
+                th:href="@{/ui/reports(tab='sales_channel', preset=${preset}, channel=${selectedChannel})}"
+                th:classappend="${tab == 'sales_channel'} ? 'active fw-bold border-0 border-bottom border-primary border-2' : 'text-muted border-0'"
+                class="nav-link">Phân tích theo kênh bán</a></li>
+    </ul>
+
+    <div class="d-flex gap-2 align-items-center mb-4">
+        <select class="date-picker-custom" id="timePreset" onchange="handleFilterChange()" style="width: 220px;">
+            <option value="today" th:selected="${preset == 'today'}">Hôm nay</option>
+            <option value="yesterday" th:selected="${preset == 'yesterday'}">Hôm qua</option>
+            <option value="7days" th:selected="${preset == '7days'}">7 ngày qua</option>
+            <option value="30days" th:selected="${preset == '30days'}">30 ngày qua</option>
+            <option value="thisWeek" th:selected="${preset == 'thisWeek'}">Tuần này</option>
+            <option value="lastWeek" th:selected="${preset == 'lastWeek'}">Tuần trước</option>
+            <option value="thisMonth" th:selected="${preset == 'thisMonth'}">Tháng này</option>
+            <option value="lastMonth" th:selected="${preset == 'lastMonth'}">Tháng trước</option>
+            <option value="thisYear" th:selected="${preset == 'thisYear'}">Năm nay</option>
+            <option value="lastYear" th:selected="${preset == 'lastYear'}">Năm trước</option>
+            <option value="custom" th:selected="${preset == 'custom'}">Tùy chọn...</option>
+        </select>
+        <div id="customDateRange" class="d-flex gap-2 align-items-center"
+             th:classappend="${preset == 'custom' ? '' : 'd-none'}">
+            <input type="date" id="startDate" class="date-picker-custom"
+                   th:value="${#temporals.format(startDate, 'yyyy-MM-dd')}">
+            <span class="text-muted">đến</span>
+            <input type="date" id="endDate" class="date-picker-custom"
+                   th:value="${#temporals.format(endDate, 'yyyy-MM-dd')}">
+            <button class="btn btn-primary btn-sm px-3" onclick="applyCustomFilter()">Áp dụng</button>
+        </div>
+
+        <select th:if="${tab == 'sales_channel'}" id="channelFilter" class="date-picker-custom ms-2"
+                onchange="handleFilterChange()">
+            <option value="">Tất cả kênh bán</option>
+            <option th:each="c : ${activeChannels}" th:if="${c != 'CHUA_CO_DATA'}" th:value="${c}" th:text="${c}"
+                    th:selected="${selectedChannel == c}"></option>
+        </select>
+    </div>
+
+    <div th:if="${tab != 'sales_channel'}" class="row g-3 mb-4">
+        <div th:classappend="${tab == 'overview' || tab == null} ? 'col-md-3' : 'col-md-6'">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Doanh thu thuần</div>
+                <div class="kpi-value text-primary"
+                     th:text="${#numbers.formatDecimal(netRevenue, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${tab == 'overview' || tab == null}" class="col-md-3">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Lợi nhuận gộp</div>
+                <div class="kpi-value text-dark"
+                     th:text="${#numbers.formatDecimal(grossProfit, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${tab == 'overview' || tab == null}" class="col-md-3">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Chi phí vận hành</div>
+                <div class="kpi-value text-warning"
+                     th:text="${#numbers.formatDecimal(operatingExpenses, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                </div>
+            </div>
+        </div>
+
+        <div th:classappend="${tab == 'overview' || tab == null} ? 'col-md-3' : 'col-md-6'">
+            <div class="kpi-card shadow-sm border-0"
+                 style="background-color: #f0fdf4; border: 1px solid #bbf7d0 !important;">
+                <div class="kpi-title text-success fw-bold">Lợi nhuận ròng</div>
+                <div class="kpi-value text-success"
+                     th:text="${#numbers.formatDecimal(netProfit, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                </div>
+            </div>
+        </div>
+    </div>
+    <div th:if="${tab == 'overview' || tab == null}" class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Tổng số đơn hàng</div>
+                <div class="kpi-value" th:text="${totalOrders}">0</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Giá trị tồn kho hiện tại</div>
+                <div class="kpi-value text-secondary"
+                     th:text="${#numbers.formatDecimal(inventoryValue, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${tab == 'sales_channel'}" class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Tổng doanh thu Kênh</div>
+                <div class="kpi-value" th:text="${#numbers.formatDecimal(chanNetRev, 0, 'COMMA', 0, 'POINT')} + '₫'">
+                    0₫
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Lợi nhuận gộp Kênh</div>
+                <div class="kpi-value"
+                     th:text="${#numbers.formatDecimal(chanGrossProfit, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Tổng Đơn hàng Kênh</div>
+                <div class="kpi-value" th:text="${chanOrders}">0</div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Số lượng đơn hủy</div>
+                <div class="kpi-value text-danger" th:text="${chanCanceled}">0</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Số lượng hàng trả lại</div>
+                <div class="kpi-value text-warning" th:text="${chanReturned}">0</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card shadow-sm border-0">
+                <div class="kpi-title">Số đơn hoàn thành</div>
+                <div class="kpi-value text-success" th:text="${chanShipped}">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${tab == 'overview' || tab == null}" class="row g-3">
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Doanh thu theo thời gian</div>
+                <div style="height: 270px;">
+                    <canvas id="ov_revChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Giá trị đơn hàng trung bình</div>
+                <div style="height: 270px;">
+                    <canvas id="ov_aovChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Top sản phẩm bán chạy</div>
+                <div style="height: 270px;">
+                    <canvas id="ov_topProdChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Số lượng đơn hàng theo thời gian</div>
+                <div style="height: 270px;">
+                    <canvas id="ov_orderChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Doanh thu theo nguồn đơn hàng</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="ov_channelChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Doanh thu theo chi nhánh</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="ov_branchChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${tab == 'revenue'}" class="row g-3">
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Tỷ suất lợi nhuận (%)</div>
+                <div style="height: 270px;">
+                    <canvas id="rev_marginChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Doanh thu theo nguồn đơn hàng</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="rev_channelChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Tỷ trọng doanh thu theo kênh bán</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="rev_channelChart2"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Tỷ trọng doanh thu theo chi nhánh</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="rev_branchChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Tỷ trọng lợi nhuận theo kênh bán</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="rev_profitChannelChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Tỷ trọng lợi nhuận theo chi nhánh</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="rev_profitBranchChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Top sản phẩm bán chạy</div>
+                <div style="height: 270px;">
+                    <canvas id="rev_topProdChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Doanh thu theo thời gian</div>
+                <div style="height: 270px;">
+                    <canvas id="rev_revChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${tab == 'customer'}" class="row g-3">
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Top khách hàng mua nhiều nhất</div>
+                <div style="height: 270px;">
+                    <canvas id="cus_topCusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Khách hàng theo vùng miền (Chi nhánh)</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="cus_regionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Chi tiêu khách hàng theo thời gian</div>
+                <div style="height: 270px;">
+                    <canvas id="cus_spendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${tab == 'sales_channel'}" class="row g-3">
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Doanh thu theo kênh bán hàng</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="chan_channelChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Doanh thu theo chi nhánh</div>
+                <div style="height: 270px; display: flex; justify-content: center;">
+                    <canvas id="chan_branchChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Top sản phẩm bán chạy</div>
+                <div style="height: 270px;">
+                    <canvas id="chan_topProdChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-card shadow-sm border-0">
+                <div class="chart-title">Top sản phẩm bị trả lại</div>
+                <div style="height: 270px;">
+                    <canvas id="chan_returnProdChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:inline="javascript">
+        const currentTab = /*[[${tab}]]*/ 'overview';
+
+        function getChannelParam() {
+            const chEl = document.getElementById('channelFilter');
+            return chEl && chEl.value ? `&channel=${chEl.value}` : '';
+        }
+
+        function handleFilterChange() {
+            const preset = document.getElementById('timePreset').value;
+            const channelParam = getChannelParam();
+            if (preset === 'custom') {
+                document.getElementById('customDateRange').classList.remove('d-none');
+            } else {
+                window.location.href = `/ui/reports?tab=${currentTab}&preset=${preset}${channelParam}`;
+            }
+        }
+
+        function applyCustomFilter() {
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+            const channelParam = getChannelParam();
+            if (!start || !end) return alert("Vui lòng chọn đầy đủ ngày!");
+            window.location.href = `/ui/reports?tab=${currentTab}&preset=custom&start=${start}T00:00:00&end=${end}T23:59:59${channelParam}`;
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const dateLabels = /*[[${dateLabels}]]*/ [] || [];
+            const revData = /*[[${revData}]]*/ [] || [];
+            const orderData = /*[[${orderData}]]*/ [] || [];
+            const aovData = /*[[${aovData}]]*/ [] || [];
+            const topProdLabels = /*[[${topProdLabels}]]*/ [] || [];
+            const topProdData = /*[[${topProdData}]]*/ [] || [];
+            const channelLabels = /*[[${channelLabels}]]*/ [] || [];
+            const channelData = /*[[${channelData}]]*/ [] || [];
+            const branchLabels = /*[[${branchLabels}]]*/ [] || [];
+            const branchData = /*[[${branchData}]]*/ [] || [];
+
+            const marginData = /*[[${marginData}]]*/ [] || [];
+            const branchProfitData = /*[[${branchProfitData}]]*/ [] || [];
+            const channelProfitData = /*[[${channelProfitData}]]*/ [] || [];
+
+            const topCusLabels = /*[[${topCusLabels}]]*/ [] || [];
+            const topCusData = /*[[${topCusData}]]*/ [] || [];
+            const regionLabels = /*[[${regionLabels}]]*/ [] || [];
+            const regionData = /*[[${regionData}]]*/ [] || [];
+
+            const chanChannelLabels = /*[[${chanChannelLabels}]]*/ [] || [];
+            const chanChannelData = /*[[${chanChannelData}]]*/ [] || [];
+            const chanBranchLabels = /*[[${chanBranchLabels}]]*/ [] || [];
+            const chanBranchData = /*[[${chanBranchData}]]*/ [] || [];
+            const chanTopProdLabels = /*[[${chanTopProdLabels}]]*/ [] || [];
+            const chanTopProdData = /*[[${chanTopProdData}]]*/ [] || [];
+            const chanReturnProdLabels = /*[[${chanReturnProdLabels}]]*/ [] || [];
+            const chanReturnProdData = /*[[${chanReturnProdData}]]*/ [] || [];
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {legend: {display: false}},
+                scales: {y: {beginAtZero: true}, x: {grid: {display: false}}}
+            };
+            const horizOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {legend: {display: false}},
+                scales: {x: {beginAtZero: true}, y: {grid: {display: false}}}
+            };
+            const pieColors = ['#0d6efd', '#0dcaf0', '#198754', '#ffc107', '#fd7e14', '#6c757d'];
+            const pieOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {legend: {position: 'right', labels: {boxWidth: 12, font: {size: 11}}}}
+            };
+
+            const initChart = (id, type, labels, data, bg, extraOpts) => {
+                const el = document.getElementById(id);
+                if (el) new Chart(el, {
+                    type,
+                    data: {
+                        labels,
+                        datasets: [{
+                            data,
+                            backgroundColor: bg,
+                            borderColor: type === 'line' ? bg : undefined,
+                            tension: 0.3,
+                            fill: type === 'line',
+                            borderRadius: type === 'bar' ? 4 : 0,
+                            maxBarThickness: type === 'bar' ? 40 : undefined
+                        }]
+                    },
+                    options: extraOpts
+                });
+            };
+
+            initChart('ov_revChart', 'line', dateLabels, revData, '#0d6efd', commonOptions);
+            initChart('ov_orderChart', 'line', dateLabels, orderData, '#198754', commonOptions);
+            initChart('ov_aovChart', 'bar', dateLabels, aovData, '#0dcaf0', commonOptions);
+            initChart('ov_topProdChart', 'bar', topProdLabels, topProdData, '#0d6efd', horizOptions);
+            initChart('ov_channelChart', 'doughnut', channelLabels, channelData, pieColors, pieOptions);
+            initChart('ov_branchChart', 'doughnut', branchLabels, branchData, pieColors, pieOptions);
+
+            initChart('rev_marginChart', 'line', dateLabels, marginData, '#f59e0b', commonOptions);
+            initChart('rev_channelChart', 'doughnut', channelLabels, channelData, pieColors, pieOptions);
+            initChart('rev_channelChart2', 'doughnut', channelLabels, channelData, pieColors, pieOptions);
+            initChart('rev_branchChart', 'doughnut', branchLabels, branchData, pieColors, pieOptions);
+            initChart('rev_profitChannelChart', 'doughnut', channelLabels, channelProfitData, pieColors, pieOptions);
+            initChart('rev_profitBranchChart', 'doughnut', branchLabels, branchProfitData, pieColors, pieOptions);
+            initChart('rev_topProdChart', 'bar', topProdLabels, topProdData, '#0d6efd', horizOptions);
+            initChart('rev_revChart', 'line', dateLabels, revData, '#0d6efd', commonOptions);
+
+            initChart('cus_topCusChart', 'bar', topCusLabels, topCusData, '#0dcaf0', horizOptions);
+            initChart('cus_regionChart', 'doughnut', regionLabels, regionData, pieColors, pieOptions);
+            initChart('cus_spendChart', 'line', dateLabels, revData, '#8b5cf6', commonOptions);
+
+            initChart('chan_channelChart', 'doughnut', chanChannelLabels, chanChannelData, pieColors, pieOptions);
+            initChart('chan_branchChart', 'doughnut', chanBranchLabels, chanBranchData, pieColors, pieOptions);
+            initChart('chan_topProdChart', 'bar', chanTopProdLabels, chanTopProdData, '#0d6efd', horizOptions);
+            initChart('chan_returnProdChart', 'bar', chanReturnProdLabels, chanReturnProdData, '#dc3545', horizOptions);
+        });
+    </script>
+</div>
+</body>
+</html>

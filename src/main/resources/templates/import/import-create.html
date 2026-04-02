@@ -568,15 +568,23 @@
         function addToCart(vStr) {
             const v = JSON.parse(decodeURIComponent(vStr));
             const idx = cart.findIndex(i => i.sku === v.sku);
-            if (idx > -1) cart[idx].quantity += 1;
-            else cart.push({
-                sku: v.sku,
-                name: v.productName,
-                variantName: v.variantName,
-                importPrice: v.costPrice || 0,
-                quantity: 1,
-                warrantyMonths: 12 // Mặc định bảo hành 12 tháng
-            });
+
+            const fullName = (v.variantName && v.variantName !== 'Mặc định')
+                ? v.productName + ' - ' + v.variantName
+                : v.productName;
+
+            if (idx > -1) {
+                cart[idx].quantity += 1;
+            } else {
+                cart.push({
+                    sku: v.sku,
+                    name: fullName,
+                    importPrice: v.costPrice || 0,
+                    quantity: 1,
+                    warrantyMonths: 12
+                });
+            }
+
             renderCart();
             document.getElementById('productSearchInput').value = '';
             document.getElementById('productDropdownList').classList.remove('show');

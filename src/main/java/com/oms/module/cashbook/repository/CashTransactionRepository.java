@@ -35,10 +35,12 @@ public interface CashTransactionRepository extends JpaRepository<CashTransaction
 
     // 2. Tính tổng số tiền của một LOẠI trong KHOẢNG thời gian (Để tính Tổng Thu/Chi trong kỳ)
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t " +
-            "WHERE t.type = :type AND t.transactionDate BETWEEN :start AND :end")
-    BigDecimal sumAmountByTypeBetween(@Param("type") CashTransaction.TransactionType type,
-                                      @Param("start") LocalDateTime start,
-                                      @Param("end") LocalDateTime end);
+            "WHERE t.type = :type " +
+            "AND t.transactionDate BETWEEN :start AND :end")
+    BigDecimal sumAmountByTypeBetween(
+            @Param("type") CashTransaction.TransactionType type,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 
     // 3. Tính tổng theo PHƯƠNG THỨC và LOẠI (Để tính số dư Tiền mặt / Tiền gửi hiện tại)
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t " +

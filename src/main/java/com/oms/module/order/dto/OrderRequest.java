@@ -32,7 +32,7 @@ public class OrderRequest {
     private BigDecimal shippingFee;
     private BigDecimal codAmount;
     private Double shipWeight;
-
+    private String referenceCode;
     // --- Thanh toán ---
     @NotBlank(message = "Thiếu trạng thái thanh toán")
     private String paymentStatus;

@@ -59,6 +59,7 @@ public class OrderService {
                 .shipFromBranchId(request.getShipFromBranchId())
                 .shippingPartner(request.getShippingPartner())
                 .trackingCode(request.getTrackingCode())
+                .referenceCode(request.getReferenceCode())
                 .shippingAddress(request.getShippingAddress())
                 .expectedDeliveryDate(request.getExpectedDeliveryDate())
                 .shippingFee(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO)
@@ -110,6 +111,7 @@ public class OrderService {
         order.setBranchId(request.getBranchId());
         order.setStatus(newStatus);
         order.setNote(request.getNote());
+        order.setReferenceCode(request.getReferenceCode());
 
         order.setShippingType(request.getShippingType());
         order.setShipFromBranchId(request.getShipFromBranchId());

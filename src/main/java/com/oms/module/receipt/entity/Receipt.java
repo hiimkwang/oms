@@ -4,6 +4,7 @@ import com.oms.module.supplier.entity.Supplier; // Nhớ check path này
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Formula;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,7 +34,8 @@ public class Receipt {
     private String branchName; // Chi nhánh nhập
     private String creatorName; // Nhân viên tạo
     private BigDecimal totalAmount; // Tổng giá trị đơn
-    private Integer totalQuantity; // Tổng số lượng nhập
+    @Formula("(SELECT COALESCE(SUM(d.quantity), 0) FROM receipt_details d WHERE d.receipt_id = id)")
+    private Integer totalQuantity;
     private String note;
     private String paymentStatus; // PAID, UNPAID
     @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -49,6 +51,7 @@ public class Receipt {
     private BigDecimal discount;
     private BigDecimal shippingFee;
     private BigDecimal amountPaid;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

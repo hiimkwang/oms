@@ -105,6 +105,9 @@ public class Order {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "reference_code", length = 100)
+    private String referenceCode;
+
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
