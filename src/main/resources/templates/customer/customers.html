@@ -298,11 +298,30 @@
 
         async function deleteSelected() {
             const checkboxes = document.querySelectorAll('.customer-checkbox:checked');
-            if (checkboxes.length === 0) return;
 
-            if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} khách hàng đã chọn không?`)) {
+            // Cảnh báo nếu chưa chọn khách hàng nào
+            if (checkboxes.length === 0) {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng chọn ít nhất 1 khách hàng để xóa!'
+                });
                 return;
             }
+
+            // Hiện bảng xác nhận chuyên nghiệp
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa hàng loạt',
+                text: `Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} khách hàng đã chọn không? Thao tác này không thể hoàn tác.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Nút đỏ cảnh báo nguy hiểm
+                cancelButtonColor: '#3085d6', // Nút xanh an toàn
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            // Dừng lại nếu người dùng bấm Hủy
+            if (!confirmation.isConfirmed) return;
 
             const codes = Array.from(checkboxes).map(cb => cb.value);
 
@@ -314,16 +333,27 @@
                 });
 
                 if (res.ok) {
-                    alert(`Đã xóa thành công ${codes.length} khách hàng!`);
+                    Toast.fire({
+                        icon: 'success',
+                        title: `Đã xóa thành công ${codes.length} khách hàng!`
+                    });
+
+                    // Xóa vùng chọn và load lại danh sách mượt mà
                     clearSelection();
                     loadCustomers(document.getElementById('cusSearchInput').value);
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Không thể xóa khách hàng!"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Không thể xóa khách hàng!')
+                    });
                 }
             } catch (e) {
                 console.error("Lỗi xóa khách hàng:", e);
-                alert("Lỗi server, vui lòng thử lại sau!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
 
@@ -406,10 +436,22 @@
         }
 
         async function syncGroups() {
-            if (!confirm("Hệ thống sẽ quét toàn bộ dữ liệu đơn hàng và tự động xếp lại nhóm cho TẤT CẢ khách hàng. Bạn có chắc chắn muốn tiếp tục?")) {
-                return;
-            }
+            // Hiện bảng xác nhận bằng SweetAlert2
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận đồng bộ hệ thống',
+                text: 'Hệ thống sẽ quét toàn bộ dữ liệu đơn hàng và tự động xếp lại nhóm cho TẤT CẢ khách hàng. Bạn có chắc chắn muốn tiếp tục?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6', // Xanh lam cho hành động xử lý hệ thống
+                cancelButtonColor: '#6c757d',  // Xám cho nút hủy
+                confirmButtonText: 'Bắt đầu đồng bộ',
+                cancelButtonText: 'Hủy bỏ'
+            });
 
+            // Dừng lại nếu người dùng bấm Hủy
+            if (!confirmation.isConfirmed) return;
+
+            // Logic xử lý UI loading (Bạn viết đoạn này rất chuẩn!)
             const btn = document.getElementById('btnSync');
             const originalText = btn.innerHTML;
 
@@ -417,19 +459,32 @@
             btn.disabled = true;
 
             try {
-                const res = await fetch('/api/v1/customers/sync-groups', {method: 'POST'});
+                const res = await fetch('/api/v1/customers/sync-groups', {
+                    method: 'POST'
+                });
 
                 if (res.ok) {
-                    alert("Đồng bộ và phân loại nhóm khách hàng thành công!");
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Đồng bộ và phân loại nhóm khách hàng thành công!'
+                    });
+                    // Gọi lại hàm load để vẽ lại danh sách mượt mà
                     loadCustomers(document.getElementById('cusSearchInput').value);
                 } else {
                     const err = await res.json();
-                    alert("Lỗi đồng bộ: " + (err.message || "Kiểm tra lại server"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi đồng bộ: ' + (err.message || 'Vui lòng kiểm tra lại server')
+                    });
                 }
             } catch (e) {
                 console.error("Lỗi:", e);
-                alert("Lỗi kết nối đến máy chủ!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             } finally {
+                // Luôn nhả nút bấm ra cho dù API thành công hay thất bại
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }

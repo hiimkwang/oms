@@ -390,12 +390,32 @@
 
         async function deleteSelected() {
             const checkedBoxes = document.querySelectorAll('.item-check:checked');
-            if (checkedBoxes.length === 0) return;
+
+            // 1. Nhắc nhở nếu người dùng chưa chọn sản phẩm nào
+            if (checkedBoxes.length === 0) {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng chọn ít nhất 1 sản phẩm để xóa!'
+                });
+                return;
+            }
 
             // Lấy ID và ép kiểu sang số để đảm bảo truyền lên Backend chuẩn kiểu Long
             const ids = Array.from(checkedBoxes).map(cb => Number(cb.value));
 
-            if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} sản phẩm đã chọn không?`)) return;
+            // 2. Bảng xác nhận xóa bằng SweetAlert2
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa hàng loạt',
+                text: `Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} sản phẩm đã chọn không? Thao tác này không thể hoàn tác.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Đỏ cảnh báo nguy hiểm
+                cancelButtonColor: '#3085d6', // Xanh an toàn
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            if (!confirmation.isConfirmed) return;
 
             try {
                 const res = await fetch('/api/v1/products/bulk', {
@@ -405,14 +425,24 @@
                 });
 
                 if (res.ok) {
-                    alert(`Đã xóa thành công ${ids.length} sản phẩm!`);
+                    // 3. Đợi báo thành công xong mới reload trang (Dùng await thay cho .then)
+                    await Toast.fire({
+                        icon: 'success',
+                        title: `Đã xóa thành công ${ids.length} sản phẩm!`
+                    });
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Không thể xóa sản phẩm!"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Không thể xóa sản phẩm!')
+                    });
                 }
             } catch (err) {
-                alert("Lỗi kết nối Server: " + err);
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
     </script>

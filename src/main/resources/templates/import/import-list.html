@@ -363,11 +363,31 @@
         // 4. Hàm xóa đơn hàng hàng loạt (Giả định Backend đã có API)
         async function deleteSelected() {
             const checkedBoxes = document.querySelectorAll('.item-check:checked');
-            if (checkedBoxes.length === 0) return;
+
+            // 1. Nhắc nhở nếu người dùng chưa chọn đơn hàng nào
+            if (checkedBoxes.length === 0) {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng chọn ít nhất 1 đơn nhập hàng để xóa!'
+                });
+                return;
+            }
 
             const ids = Array.from(checkedBoxes).map(cb => Number(cb.value));
 
-            if (!confirm(`Bạn có chắc chắn muốn xóa ${ids.length} đơn nhập hàng đã chọn?`)) return;
+            // 2. Bảng xác nhận xóa bằng SweetAlert2
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa hàng loạt',
+                text: `Bạn có chắc chắn muốn xóa ${ids.length} đơn nhập hàng đã chọn không? Thao tác này không thể hoàn tác.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Đỏ cảnh báo nguy hiểm
+                cancelButtonColor: '#3085d6', // Xanh an toàn
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            if (!confirmation.isConfirmed) return;
 
             try {
                 // Thay đổi URL API cho khớp với Backend của bạn
@@ -378,14 +398,24 @@
                 });
 
                 if (res.ok) {
-                    alert(`Đã xóa thành công!`);
+                    // 3. Đợi Toast hiện xong thông báo rồi mới reload trang
+                    await Toast.fire({
+                        icon: 'success',
+                        title: `Đã xóa thành công ${ids.length} đơn nhập hàng!`
+                    });
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Không thể xóa đơn hàng!"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Không thể xóa đơn hàng!')
+                    });
                 }
             } catch (err) {
-                alert("Lỗi kết nối Server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
     </script>

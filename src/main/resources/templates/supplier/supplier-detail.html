@@ -284,15 +284,44 @@
 
         async function toggleStatus(newStatus) {
             const actionText = newStatus === 'ACTIVE' ? "mở hoạt động lại" : "ngừng hoạt động";
-            if (!confirm(`Xác nhận ${actionText} nhà cung cấp này?`)) return;
+
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận thay đổi',
+                text: `Bạn có chắc chắn muốn ${actionText} nhà cung cấp này không?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: newStatus === 'ACTIVE' ? '#28a745' : '#f39c12',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            if (!confirmation.isConfirmed) return;
 
             const code = document.getElementById('supplierCode').value;
             try {
-                const res = await fetch(`/api/v1/suppliers/${code}/status?status=${newStatus}`, {method: 'PUT'});
-                if (res.ok) location.reload();
-                else alert("Lỗi khi thay đổi trạng thái!");
+                const res = await fetch(`/api/v1/suppliers/${code}/status?status=${newStatus}`, {
+                    method: 'PUT'
+                });
+
+                if (res.ok) {
+                    await Swal.fire(
+                        'Thành công!',
+                        `Đã ${actionText} nhà cung cấp.`,
+                        'success'
+                    );
+                    window.location.reload();
+                } else {
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Có lỗi xảy ra khi thay đổi trạng thái!'
+                    });
+                }
             } catch (e) {
-                alert("Lỗi kết nối Server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
 
@@ -371,10 +400,17 @@
             });
 
             if (res.ok) {
-                alert("Đã cập nhật thông tin nhà cung cấp thành công!");
-                location.reload();
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Đã cập nhật thông tin nhà cung cấp thành công!'
+                }).then(() => {
+                    window.location.reload();
+                });
             } else {
-                alert("Lỗi khi lưu thay đổi!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi cập nhật thông tin nhà cung cấp!'
+                });
             }
         }
     </script>

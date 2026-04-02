@@ -295,7 +295,10 @@
             const btn = document.getElementById('btnCheckSerial');
 
             if (!serial) {
-                alert("Vui lòng nhập Serial/IMEI để kiểm tra!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng nhập Serial/IMEI để kiểm tra!'
+                });
                 return;
             }
 
@@ -343,7 +346,10 @@
                     alertBox.innerHTML = `<i class="bi bi-info-circle-fill me-2"></i>Hệ thống không tìm thấy Serial này trong lịch sử bán hàng. Vui lòng kiểm tra lại hoặc điền thông tin thủ công.`;
                 }
             } catch (e) {
-                alert("Lỗi kết nối đến máy chủ kiểm tra Serial!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             } finally {
                 btn.innerHTML = 'Kiểm tra';
                 btn.disabled = false;
@@ -364,7 +370,11 @@
             };
 
             if (!payload.productName || !payload.serialNumber || !payload.issueDescription || !payload.customerName || !payload.customerPhone) {
-                alert("Vui lòng điền đầy đủ thông tin vào các trường có dấu *");
+
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng điền đầy đủ thông tin vào các trường có dấu *'
+                });
                 return;
             }
 
@@ -376,13 +386,23 @@
                 });
 
                 if (res.ok) {
-                    alert("Tạo phiếu tiếp nhận thành công!");
-                    window.location.href = "/ui/warranties";
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Tạo phiếu tiếp nhận thành công!'
+                    }).then(() => {
+                        window.location.href = "/ui/warranties";
+                    });
                 } else {
-                    alert("Có lỗi xảy ra khi lưu phiếu!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Có lỗi xảy ra khi lưu phiếu!'
+                    });
                 }
             } catch (e) {
-                alert("Lỗi kết nối Server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             }
         }
     </script>

@@ -516,16 +516,25 @@
             const branchIdVal = document.getElementById("branchId").value; // Lấy ID kho
 
             if (!nameVal) {
-                alert("Vui lòng nhập Tên sản phẩm!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng nhập Tên sản phẩm!'
+                });
                 document.getElementById("name").focus();
                 return;
             }
             if (!unitVal) {
-                alert("Vui lòng nhập Đơn vị tính (VD: Chiếc, Bộ)!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng nhập Đơn vị tính (VD: Chiếc, Bộ)!'
+                });
                 return;
             }
             if (!branchIdVal) {
-                alert("Vui lòng chọn Chi nhánh / Kho để nhập tồn kho ban đầu!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng chọn Chi nhánh / Kho để nhập tồn kho ban đầu!'
+                });
                 document.getElementById("branchId").focus();
                 return;
             }
@@ -566,12 +575,23 @@
                 body: JSON.stringify(payload)
             }).then(res => {
                 if (res.ok) {
-                    alert("Thêm sản phẩm thành công!");
-                    window.location.href = '/ui/products';
+
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Thêm sản phẩm thành công!'
+                    }).then(() => {
+                        window.location.href = '/ui/products';
+                    });
                 } else {
-                    res.json().then(err => alert("Lỗi Backend: " + (err.message || "Kiểm tra DTO Java!")));
+                    res.json().then(err => Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi Backend: ' + (err.message || 'Kiểm tra DTO Java!')
+                    }))
                 }
-            }).catch(err => alert("Lỗi kết nối: " + err));
+            }).catch(err => Toast.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối máy chủ!'
+            }));
         }
 
         // ================= XỬ LÝ UPLOAD ẢNH =================
@@ -600,7 +620,11 @@
                 previewEl.classList.remove('d-none');
                 placeholder.classList.add('d-none');
             } catch (err) {
-                alert(err.message);
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
+
             }
         }
 
@@ -620,7 +644,10 @@
                 previewEl.classList.remove('d-none');
                 placeholder.classList.add('d-none');
             } catch (err) {
-                alert(err.message);
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             }
         }
     </script>

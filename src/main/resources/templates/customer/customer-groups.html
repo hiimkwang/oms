@@ -316,11 +316,30 @@
         // Xóa hàng loạt
         async function deleteSelected() {
             const checkboxes = document.querySelectorAll('.group-checkbox:checked');
-            if (checkboxes.length === 0) return;
 
-            if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} nhóm đã chọn không?`)) {
+            // Thêm cảnh báo nếu người dùng chưa chọn nhóm nào
+            if (checkboxes.length === 0) {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng chọn ít nhất 1 nhóm để xóa!'
+                });
                 return;
             }
+
+            // Hiện bảng xác nhận chuyên nghiệp
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa hàng loạt',
+                text: `Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} nhóm đã chọn không? Thao tác này không thể hoàn tác.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Đỏ cảnh báo nguy hiểm
+                cancelButtonColor: '#3085d6', // Xanh an toàn
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            // Dừng lại nếu người dùng bấm Hủy
+            if (!confirmation.isConfirmed) return;
 
             const codes = Array.from(checkboxes).map(cb => cb.value);
 
@@ -332,17 +351,30 @@
                 });
 
                 if (res.ok) {
-                    alert(`Đã xóa thành công ${codes.length} nhóm!`);
+                    Toast.fire({
+                        icon: 'success',
+                        title: `Đã xóa thành công ${codes.length} nhóm!`
+                    });
+
+                    // Reset bộ lọc
                     document.getElementById('groupSearchInput').value = '';
                     document.getElementById('typeFilter').value = '';
+
+                    // Gọi lại hàm load danh sách (rất mượt, không cần reload trang)
                     await loadGroups();
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Không thể xóa nhóm!"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Không thể xóa nhóm!')
+                    });
                 }
             } catch (e) {
                 console.error("Lỗi xóa nhóm:", e);
-                alert("Lỗi server, vui lòng thử lại sau!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
     </script>

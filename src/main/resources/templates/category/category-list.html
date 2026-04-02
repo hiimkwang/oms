@@ -4,7 +4,6 @@
 <body>
 <div class="oms-container pb-5">
     <style>
-        /* Thống nhất style chuẩn hệ thống */
         .filter-btn {
             background: white;
             border: 1px solid #dce0e4;
@@ -203,7 +202,8 @@
                                       th:text="${cat.name != null ? cat.name : cat.dataValue}"></span>
                             </div>
                         </td>
-                        <td class="text-center fw-medium text-dark" th:text="${cat.productCount != null ? cat.productCount : 0}">
+                        <td class="text-center fw-medium text-dark"
+                            th:text="${cat.productCount != null ? cat.productCount : 0}">
                             0
                         </td>
                         <td class="text-end text-muted pe-4">
@@ -254,7 +254,6 @@
             });
         });
 
-        // Xử lý Checkbox & Bulk Actions
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('.item-check');
             checkboxes.forEach(cb => {
@@ -287,19 +286,37 @@
                 bulkBar.classList.remove('d-flex');
             }
 
-            // Cập nhật trạng thái của nút Check All
             const totalVisible = Array.from(document.querySelectorAll('.item-check')).filter(cb => cb.closest('tr').style.display !== 'none').length;
             document.getElementById('checkAll').checked = (count > 0 && count === totalVisible);
         }
 
-        // Gọi API Xóa hàng loạt
         async function deleteSelectedCategories() {
             const checkedBoxes = document.querySelectorAll('.item-check:checked');
-            if (checkedBoxes.length === 0) return;
+
+            // 1. Nhắc nhở nhẹ nếu người dùng quên chưa chọn danh mục nào
+            if (checkedBoxes.length === 0) {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng chọn ít nhất 1 danh mục để xóa!'
+                });
+                return;
+            }
 
             const ids = Array.from(checkedBoxes).map(cb => cb.value);
 
-            if (!confirm(`Xác nhận xoá vĩnh viễn ${ids.length} danh mục đã chọn?`)) return;
+            // 2. Bảng xác nhận xóa chuyên nghiệp
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa hàng loạt',
+                text: `Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} danh mục đã chọn không? Thao tác này không thể hoàn tác.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Đỏ cảnh báo
+                cancelButtonColor: '#3085d6', // Xanh an toàn
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            if (!confirmation.isConfirmed) return;
 
             try {
                 const res = await fetch('/ui/categories/bulk-delete', {
@@ -309,14 +326,24 @@
                 });
 
                 if (res.ok) {
-                    alert(`Đã xóa thành công ${ids.length} danh mục!`);
+                    // 3. Chờ báo thành công xong mới reload trang (Dùng await thay cho .then)
+                    await Toast.fire({
+                        icon: 'success',
+                        title: `Đã xóa thành công ${ids.length} danh mục!`
+                    });
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    alert("Lỗi khi xoá: " + (err.message || "Hãy kiểm tra xem danh mục có đang chứa sản phẩm không."));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi khi xoá: ' + (err.message || 'Hãy kiểm tra xem danh mục có đang chứa sản phẩm không.')
+                    });
                 }
             } catch (err) {
-                alert("Lỗi kết nối Server: " + err);
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến Server!'
+                });
             }
         }
     </script>

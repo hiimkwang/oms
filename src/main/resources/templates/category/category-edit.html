@@ -137,7 +137,6 @@
     </div>
 
     <script th:inline="javascript">
-        // 1. Xem trước ảnh khi chọn file mới
         function previewImage(input) {
             const file = input.files[0];
             if (file) {
@@ -146,15 +145,14 @@
                     document.getElementById('imagePreview').src = e.target.result;
                     document.getElementById('previewContainer').classList.remove('d-none');
                     document.getElementById('uploadInstruction').classList.add('d-none');
-                    document.getElementById('isImageRemoved').value = "false"; // Hủy cờ xóa nếu up ảnh mới
+                    document.getElementById('isImageRemoved').value = "false";
                 }
                 reader.readAsDataURL(file);
             }
         }
 
-        // 2. Xóa ảnh đang hiển thị
         function removeImage(event) {
-            event.stopPropagation(); // Không kích hoạt click của uploadZone
+            event.stopPropagation();
             document.getElementById('fileInput').value = "";
             document.getElementById('imagePreview').src = "#";
             document.getElementById('previewContainer').classList.add('d-none');
@@ -162,7 +160,6 @@
             document.getElementById('isImageRemoved').value = "true"; // Bật cờ xóa ảnh
         }
 
-        // 3. Gửi API Cập nhật
         async function updateCategory() {
             const id = document.getElementById("categoryId").value;
             const name = document.getElementById("categoryName").value;
@@ -171,42 +168,66 @@
             const isImageRemoved = document.getElementById("isImageRemoved").value;
 
             if (!name || name.trim() === "") {
-                alert("Tên danh mục không được để trống!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Tên danh mục không được để trống!'
+                });
                 return;
             }
 
             const formData = new FormData();
             formData.append("name", name);
             formData.append("description", desc);
-            formData.append("isImageRemoved", isImageRemoved); // Gửi cờ xóa ảnh
+            formData.append("isImageRemoved", isImageRemoved);
 
             if (fileInput.files[0]) {
                 formData.append("image", fileInput.files[0]);
             }
 
             try {
-                // Đảm bảo Backend có API PUT /api/v1/categories/{id} hỗ trợ MultipartFormData
                 const response = await fetch(`/api/v1/categories/${id}`, {
                     method: 'PUT',
                     body: formData
                 });
 
                 if (response.ok) {
-                    alert("Cập nhật danh mục thành công!");
-                    window.location.href = '/ui/categories';
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Cập nhật danh mục thành công!'
+                    }).then(() => {
+                        window.location.href = '/ui/categories';
+                    });
                 } else {
                     const error = await response.text();
-                    alert("Lỗi: " + error);
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi!'
+                    });
                 }
             } catch (err) {
-                alert("Không gọi được API, kiểm tra lại kết nối!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Không gọi được API, kiểm tra lại kết nối!'
+                });
             }
         }
 
-        // 4. API Xóa danh mục
         async function deleteCategory() {
             const id = document.getElementById("categoryId").value;
-            if (!confirm("Ông có chắc chắn muốn xóa danh mục này?")) return;
+
+            // 1. Dùng SweetAlert2 với ngôn từ chuyên nghiệp
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa danh mục',
+                text: "Bạn có chắc chắn muốn xóa danh mục này không? Thao tác này không thể hoàn tác.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            if (!confirmation.isConfirmed) return;
 
             try {
                 const response = await fetch(`/api/v1/categories/${id}`, {
@@ -214,13 +235,24 @@
                 });
 
                 if (response.ok) {
-                    alert("Đã xóa danh mục!");
-                    window.location.href = '/ui/categories';
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Xóa danh mục thành công!'
+                    }).then(() => {
+                        window.location.href = '/ui/categories';
+                    });
+
                 } else {
-                    alert("Không thể xóa danh mục. Có thể nó đang chứa sản phẩm!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Không thể xóa. Danh mục này đang chứa sản phẩm!'
+                    });
                 }
             } catch (err) {
-                alert("Lỗi kết nối máy chủ!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
     </script>

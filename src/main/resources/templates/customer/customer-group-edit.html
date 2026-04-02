@@ -4,7 +4,6 @@
 <body>
 <div class="oms-container pb-5" style="background-color: #f8f9fa; min-height: 100vh;">
     <style>
-        /* ... (Giữ nguyên phần style của bạn) ... */
         .card-custom {
             background: #fff;
             border: 1px solid #e2e8f0;
@@ -286,14 +285,20 @@
                 }
             } catch (e) {
                 console.error(e);
-                alert("Có lỗi xảy ra khi tải thông tin nhóm!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Có lỗi xảy ra khi tải thông tin nhóm!'
+                });
             }
         });
 
         // HÀM LƯU GỬI DỮ LIỆU LÊN
         async function updateGroup() {
             const name = document.getElementById('name').value.trim();
-            if (!name) return alert("Vui lòng nhập Tên nhóm!");
+            if (!name) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng nhập Tên nhóm!'
+            });
 
             const payload = {
                 name: name,
@@ -311,14 +316,24 @@
                 });
 
                 if (res.ok) {
-                    alert("Cập nhật nhóm thành công!");
-                    window.location.href = "/ui/customer-groups";
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Cập nhật nhóm thành công!'
+                    }).then(() => {
+                        window.location.href = "/ui/customer-groups";
+                    });
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Không thể cập nhật"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Không thể cập nhật')
+                    });
                 }
             } catch (e) {
-                alert("Lỗi kết nối máy chủ!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             }
         }
     </script>

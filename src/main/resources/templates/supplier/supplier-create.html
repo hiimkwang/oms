@@ -179,7 +179,10 @@
         async function submitSupplier() {
             const name = document.getElementById('name').value.trim();
             if (!name) {
-                alert('Vui lòng nhập tên nhà cung cấp!');
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng nhập tên nhà cung cấp!'
+                });
                 document.getElementById('name').focus();
                 return;
             }
@@ -208,15 +211,25 @@
                 });
 
                 if (response.ok) {
-                    alert('Thêm mới nhà cung cấp thành công!');
-                    window.location.href = '/ui/suppliers';
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Thêm mới nhà cung cấp thành công!'
+                    }).then(() => {
+                        window.location.href = '/ui/suppliers';
+                    });
                 } else {
                     const errorData = await response.json();
-                    alert('Lỗi: ' + (errorData.message || 'Không thể lưu dữ liệu.'));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Không thể lưu dữ liệu.')
+                    });
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Lỗi kết nối đến máy chủ!');
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             }
         }
     </script>

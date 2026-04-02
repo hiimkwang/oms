@@ -575,7 +575,10 @@
         let editCart = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
-            if (!orderCode) return alert("Lỗi ID đơn hàng!");
+            if (!orderCode) return Toast.fire({
+                icon: 'error',
+                title: 'Lỗi ID đơn hàng!'
+            });
             const isSuccess = await loadOrder();
             if (isSuccess) {
                 setupSearchProduct();
@@ -741,7 +744,10 @@
         function toggleEditMode(isEdit) {
             const container = document.getElementById('orderContainer');
             if (isEdit) {
-                if (currentOrder.status === 'Hoàn thành' || currentOrder.status === 'Đã hủy') return alert("Không thể sửa đơn đã đóng!");
+                if (currentOrder.status === 'Hoàn thành' || currentOrder.status === 'Đã hủy') return Toast.fire({
+                    icon: 'error',
+                    title: 'Không thể sửa đơn đã đóng!'
+                });
                 container.classList.add('is-editing');
 
                 editCart = currentOrder.details.map(item => ({
@@ -986,14 +992,23 @@
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) {
-                    alert("Cập nhật thành công!");
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Cập nhật đơn hàng thành công!'
+                    });
                     toggleEditMode(false);
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Kiểm tra dữ liệu"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Kiểm tra dữ liệu')
+                    });
                 }
             } catch (e) {
-                alert("Lỗi kết nối!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             }
         }
 
@@ -1003,14 +1018,46 @@
 
         // 4. API WORKFLOW
         async function changeOrderStatus(newStatus) {
-            if (!confirm(`Xác nhận đổi trạng thái đơn thành: ${newStatus}?`)) return;
+            // 1. Hiện bảng xác nhận với màu sắc linh hoạt theo trạng thái
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận đổi trạng thái',
+                text: `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng thành: "${newStatus}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: newStatus === 'Hoàn thành' ? '#28a745' : '#3085d6',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            if (!confirmation.isConfirmed) return;
+
+            // 2. Cập nhật logic đơn hàng
             currentOrder.status = newStatus;
+
+            // Logic tự động: Nếu hoàn thành thì coi như đã thanh toán đủ
             if (newStatus === 'Hoàn thành' && currentOrder.paymentStatus !== 'PAID') {
                 currentOrder.paymentStatus = 'PAID';
                 if (!currentOrder.paymentMethod) currentOrder.paymentMethod = 'CASH';
                 currentOrder.amountPaid = currentOrder.totalAmount;
+
+                // Thông báo nhẹ cho user biết hệ thống đã tự động thu tiền
+                Toast.fire({
+                    icon: 'info',
+                    title: 'Hệ thống đã tự động ghi nhận thanh toán đủ cho đơn hàng này.'
+                });
             }
-            await submitFullOrderUpdate();
+
+            // 3. Gọi hàm update (giả sử submitFullOrderUpdate đã có try-catch và Toast bên trong)
+            try {
+                await submitFullOrderUpdate();
+            } catch (e) {
+                console.error("Lỗi cập nhật đơn hàng:", e);
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi khi cập nhật trạng thái đơn hàng!'
+                });
+            }
         }
 
         function openPaymentModal() {
@@ -1027,11 +1074,49 @@
         }
 
         async function deleteOrder() {
-            if (!confirm(`CẢNH BÁO: Xóa vĩnh viễn đơn hàng #${currentOrder.orderCode}?`)) return;
+            // 1. Sử dụng SweetAlert2 để đưa ra cảnh báo xóa vĩnh viễn
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa đơn hàng',
+                text: `CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn đơn hàng #${currentOrder.orderCode}? Thao tác này không thể hoàn tác!`,
+                icon: 'error', // Dùng icon lỗi để tăng tính cảnh báo
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Màu đỏ cho hành động xóa
+                cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+                confirmButtonText: 'Tôi hiểu, xóa ngay!',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            // Nếu người dùng chọn Hủy
+            if (!confirmation.isConfirmed) return;
+
             try {
-                const res = await fetch('/api/v1/orders/' + orderCode, {method: 'DELETE'});
-                if (res.ok) window.location.href = '/ui/orders';
+                // Lưu ý: Sử dụng đúng biến chứa mã đơn hàng (ở đây tôi dùng orderCode theo code gốc của bạn)
+                const res = await fetch('/api/v1/orders/' + orderCode, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    // Hiện thông báo thành công trước khi điều hướng về danh sách
+                    await Toast.fire({
+                        icon: 'success',
+                        title: 'Đã xóa đơn hàng thành công!'
+                    });
+                    window.location.href = '/ui/orders';
+                } else {
+                    // Trường hợp server trả về lỗi (về phân quyền hoặc logic nghiệp vụ)
+                    const errorMsg = await res.text();
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Không thể xóa: ' + (errorMsg || 'Vui lòng kiểm tra lại!')
+                    });
+                }
             } catch (e) {
+                // Bắt lỗi kết nối mạng hoặc server sập
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
+                console.error("Delete order error:", e);
             }
         }
     </script>

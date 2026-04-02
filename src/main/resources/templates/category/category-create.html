@@ -14,17 +14,40 @@
             border: 2px dashed #dee2e6;
             background-color: #f8f9fa;
         }
-        .upload-zone:hover { border-color: #0d6efd; background-color: #f1f7ff; }
-        #imagePreview { max-width: 100%; max-height: 250px; display: none; border-radius: 8px; }
-        .preview-container { position: relative; display: inline-block; }
+
+        .upload-zone:hover {
+            border-color: #0d6efd;
+            background-color: #f1f7ff;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 250px;
+            display: none;
+            border-radius: 8px;
+        }
+
+        .preview-container {
+            position: relative;
+            display: inline-block;
+        }
+
         .btn-remove-img {
-            position: absolute; top: -10px; right: -10px;
-            background: #dc3545; color: white; border-radius: 50%;
-            width: 25px; height: 25px; border: none; display: none;
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            border: none;
+            display: none;
         }
     </style>
 
-    <div class="d-flex justify-content-between align-items-center mb-4 sticky-top bg-light py-3" style="z-index: 1000; top: 64px;">
+    <div class="d-flex justify-content-between align-items-center mb-4 sticky-top bg-light py-3"
+         style="z-index: 1000; top: 64px;">
         <div class="d-flex align-items-center gap-3">
             <a href="/ui/categories" class="btn btn-light border shadow-sm"><i class="bi bi-arrow-left"></i></a>
             <h4 class="fw-bold mb-0 text-dark">Thêm danh mục</h4>
@@ -41,11 +64,13 @@
                 <h6 class="fw-bold mb-3 border-bottom pb-2">Thông tin cơ bản</h6>
                 <div class="mb-4">
                     <label class="form-label small fw-bold">Tên danh mục <span class="text-danger">*</span></label>
-                    <input type="text" id="categoryName" class="form-control shadow-none" placeholder="Ví dụ: Bàn phím cơ, Switch, Keycap...">
+                    <input type="text" id="categoryName" class="form-control shadow-none"
+                           placeholder="Ví dụ: Bàn phím cơ, Switch, Keycap...">
                 </div>
                 <div>
                     <label class="form-label small fw-bold">Mô tả</label>
-                    <textarea id="categoryDesc" class="form-control shadow-none" rows="8" placeholder="Mô tả ngắn gọn về danh mục này..."></textarea>
+                    <textarea id="categoryDesc" class="form-control shadow-none" rows="8"
+                              placeholder="Mô tả ngắn gọn về danh mục này..."></textarea>
                 </div>
             </div>
         </div>
@@ -61,7 +86,8 @@
                     </div>
                     <div class="preview-container">
                         <img id="imagePreview" src="#" alt="Preview">
-                        <button type="button" class="btn-remove-img" id="removeImg" onclick="removeImage(event)"><i class="bi bi-x"></i></button>
+                        <button type="button" class="btn-remove-img" id="removeImg" onclick="removeImage(event)"><i
+                                class="bi bi-x"></i></button>
                     </div>
                 </div>
                 <input type="file" id="fileInput" hidden accept="image/*" onchange="previewImage(this)">
@@ -75,12 +101,11 @@
     </div>
 
     <script>
-        // 1. Xử lý Xem trước ảnh
         function previewImage(input) {
             const file = input.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     document.getElementById('imagePreview').src = e.target.result;
                     document.getElementById('imagePreview').style.display = 'block';
                     document.getElementById('uploadInstruction').style.display = 'none';
@@ -90,7 +115,6 @@
             }
         }
 
-        // 2. Xóa ảnh đã chọn
         function removeImage(event) {
             event.stopPropagation(); // Không cho kích hoạt click của uploadZone
             document.getElementById('fileInput').value = "";
@@ -99,40 +123,52 @@
             document.getElementById('removeImg').style.display = 'none';
         }
 
-        // 3. Gửi dữ liệu (Dùng FormData)
         async function saveCategory() {
             const name = document.getElementById("categoryName").value;
             const desc = document.getElementById("categoryDesc").value;
             const fileInput = document.getElementById("fileInput");
 
-            if(!name || name.trim() === "") {
-                alert("Ông quên nhập tên danh mục kìa!");
+            if (!name || name.trim() === "") {
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Thiếu tên danh mục!'
+                });
                 return;
             }
 
             const formData = new FormData();
             formData.append("name", name);
             formData.append("description", desc);
-            if(fileInput.files[0]) {
+            if (fileInput.files[0]) {
                 formData.append("image", fileInput.files[0]);
             }
 
             try {
                 const response = await fetch('/api/v1/categories', {
                     method: 'POST',
-                    body: formData // Không set Content-Type, trình duyệt tự làm
+                    body: formData
                 });
 
-                if(response.ok) {
-                    alert("Lưu danh mục ngon lành rồi ông nhé!");
-                    window.location.href = '/ui/categories';
+                if (response.ok) {
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Lưu danh mục thành công!'
+                    }).then(() => {
+                        window.location.href = '/ui/categories';
+                    });
                 } else {
                     const error = await response.text();
-                    alert("Lỗi rồi: " + error);
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi lưu danh mục !'
+                    });
                 }
             } catch (err) {
                 console.error(err);
-                alert("Không gọi được API, check lại Backend đi ông!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Không gọi được API !'
+                });
             }
         }
     </script>

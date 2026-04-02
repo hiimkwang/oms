@@ -442,19 +442,39 @@
 
         async function deleteSelectedOrders() {
             const checkboxes = document.querySelectorAll('.order-checkbox:checked');
-            if (checkboxes.length === 0) return;
 
-            if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} đơn hàng đã chọn không? Thao tác này không thể hoàn tác!`)) {
+            // 1. Cảnh báo nếu chưa chọn đơn nào
+            if (checkboxes.length === 0) {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng chọn ít nhất 1 đơn hàng để xóa!'
+                });
                 return;
             }
 
+            // 2. Hiện bảng xác nhận cực kỳ chuyên nghiệp và nghiêm túc
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa vĩnh viễn',
+                text: `CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} đơn hàng đã chọn không? Thao tác này không thể hoàn tác!`,
+                icon: 'error', // Dùng icon error (dấu X đỏ) để nhấn mạnh mức độ nguy hiểm
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Tôi hiểu, xác nhận xóa!',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            if (!confirmation.isConfirmed) return;
+
+            // 3. Logic xử lý UI loading
             let successCount = 0;
             const btn = document.querySelector('#bulkActionBar button');
             const originalText = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xóa...';
+
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
             btn.disabled = true;
 
-            // Lặp qua từng đơn để gọi API Xóa
+            // 4. Lặp qua từng đơn để gọi API Xóa
             for (let cb of checkboxes) {
                 try {
                     const res = await fetch(`/api/v1/orders/${cb.value}`, {method: 'DELETE'});
@@ -464,9 +484,21 @@
                 }
             }
 
-            alert(`Đã xóa thành công ${successCount}/${checkboxes.length} đơn hàng!`);
+            // 5. Thông báo kết quả tổng quát
+            if (successCount > 0) {
+                await Swal.fire({
+                    title: 'Hoàn tất!',
+                    text: `Hệ thống đã xóa thành công ${successCount}/${checkboxes.length} đơn hàng đã chọn.`,
+                    icon: 'success'
+                });
+            } else {
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Không có đơn hàng nào được xóa. Vui lòng kiểm tra lại!'
+                });
+            }
 
-            // Tải lại danh sách sau khi xóa
+            // 6. Reset UI và tải lại danh sách mượt mà
             btn.innerHTML = originalText;
             btn.disabled = false;
             await loadOrders();

@@ -1,27 +1,24 @@
 package com.oms.ui;
 
 import com.oms.module.account.entity.User;
-import com.oms.module.account.repository.UserRepository;
+import com.oms.module.account.service.CustomUserDetailsService;
 import com.oms.module.cashbook.dto.CashbookSummary;
 import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.service.CashbookService;
-import com.oms.module.category.service.CategoryService; // Thêm import này
+import com.oms.module.category.service.CategoryService;
 import com.oms.module.customer.service.CustomerService;
 import com.oms.module.inventory.dto.InventoryDTO;
-import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.inventory.service.InventoryService;
 import com.oms.module.notification.service.NotificationService;
 import com.oms.module.order.entity.Order;
-import com.oms.module.order.repository.OrderRepository;
 import com.oms.module.order.service.OrderService;
 import com.oms.module.product.service.ProductService;
 import com.oms.module.receipt.entity.Receipt;
 import com.oms.module.receipt.service.ReceiptService;
-import com.oms.module.report.service.ReportService;
 import com.oms.module.setting.entity.Branch;
-import com.oms.module.setting.repository.BranchRepository;
-import com.oms.module.setting.repository.SalesChannelRepository;
+import com.oms.module.setting.service.BranchService;
 import com.oms.module.setting.service.MasterDataService;
+import com.oms.module.setting.service.SalesChannelService;
 import com.oms.module.supplier.service.SupplierService;
 import com.oms.module.warranty.entity.WarrantyTicket;
 import com.oms.module.warranty.service.WarrantyService;
@@ -46,7 +43,6 @@ import java.util.List;
 public class WebController {
 
     private final ProductService productService;
-    private final ReportService reportService;
     private final CustomerService customerService;
     private final MasterDataService masterDataService;
     private final SupplierService supplierService;
@@ -55,15 +51,12 @@ public class WebController {
     private final NotificationService notificationService;
     private final OrderService orderService;
     private final CategoryService categoryService;
-
-    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final BranchRepository branchRepository;
-    private final SalesChannelRepository channelRepository;
+    private final BranchService branchService;
+    private final SalesChannelService salesChannelService;
     private final CashbookService cashbookService;
     private final WarrantyService warrantyService;
-    private final OrderRepository orderRepository;
-    private final InventoryRepository inventoryRepository;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @GetMapping("/login")
     public String login() {
@@ -73,7 +66,7 @@ public class WebController {
     @GetMapping("/profile")
     public String profile(Model model, Principal principal) {
         String username = principal.getName();
-        User user = userRepository.findByUsername(username).orElse(null);
+        User user = customUserDetailsService.findByUsername(username).orElse(null);
         model.addAttribute("user", user);
         return "profile";
     }
@@ -82,14 +75,14 @@ public class WebController {
     public ResponseEntity<?> changePassword(@RequestParam String oldPassword,
                                             @RequestParam String newPassword,
                                             Principal principal) {
-        User user = userRepository.findByUsername(principal.getName()).orElse(null);
+        User user = customUserDetailsService.findByUsername(principal.getName()).orElse(null);
 
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             return ResponseEntity.badRequest().body("Mật khẩu cũ không chính xác!");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+        customUserDetailsService.save(user);
 
         return ResponseEntity.ok("Đổi mật khẩu thành công!");
     }
@@ -100,14 +93,14 @@ public class WebController {
                                            @RequestParam(required = false) String email,
                                            @RequestParam(required = false) String phone,
                                            Principal principal) {
-        User user = userRepository.findByUsername(principal.getName())
+        User user = customUserDetailsService.findByUsername(principal.getName())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         user.setFullName(fullName);
         user.setEmail(email);
         user.setPhone(phone);
 
-        userRepository.save(user);
+        customUserDetailsService.save(user);
 
         return ResponseEntity.ok("Cập nhật thông tin thành công!");
     }
@@ -137,7 +130,7 @@ public class WebController {
         model.addAttribute("categories", categoryService.getAll());
         model.addAttribute("brands", masterDataService.getValuesByType("BRAND"));
         model.addAttribute("units", masterDataService.getValuesByType("UNIT"));
-        model.addAttribute("branches", branchRepository.findAll());
+        model.addAttribute("branches", branchService.findAll());
         return "product/product-create";
     }
 
@@ -188,7 +181,7 @@ public class WebController {
 
     @GetMapping("/ui/orders")
     public String showOrderListPage(Model model) {
-        model.addAttribute("channels", channelRepository.findAll());
+        model.addAttribute("channels", salesChannelService.findAll());
         return "order/order-list";
     }
 
@@ -197,21 +190,19 @@ public class WebController {
 
         String randomOrderCode = "DH" + LocalDate.now().toString().replace("-", "").substring(2) + "-" + (int) (Math.random() * 10000);
         model.addAttribute("defaultOrderCode", randomOrderCode);
-        model.addAttribute("users", userRepository.findAll());
-        model.addAttribute("branches", branchRepository.findAll());
-        model.addAttribute("channels", channelRepository.findAll());
+        model.addAttribute("users", customUserDetailsService.findAll());
+        model.addAttribute("branches", branchService.findAll());
+        model.addAttribute("channels", salesChannelService.findAll());
         return "order/order-create";
     }
 
     @GetMapping("/ui/orders/detail/{orderCode}")
     public String orderDetailPage(@PathVariable String orderCode, Model model) {
         model.addAttribute("orderCode", orderCode);
-        model.addAttribute("channels", channelRepository.findAll());
-        model.addAttribute("branches", branchRepository.findAll());
+        model.addAttribute("channels", salesChannelService.findAll());
+        model.addAttribute("branches", branchService.findAll());
         return "order/order-detail";
     }
-
-
 
 
     @GetMapping("/ui/categories")
@@ -253,7 +244,7 @@ public class WebController {
             @RequestParam(required = false) String dateRange,
             Model model) {
 
-        List<Branch> branches = branchRepository.findAll();
+        List<Branch> branches = branchService.findAll();
         model.addAttribute("branches", branches);
 
         Long selectedBranchId = branchId;
@@ -281,21 +272,21 @@ public class WebController {
                                 @RequestParam(required = false) String assignee) {
         model.addAttribute("suppliers", supplierService.getSuppliers(keyword));
         model.addAttribute("keyword", keyword);
-        model.addAttribute("users", userRepository.findAll());
+        model.addAttribute("users", customUserDetailsService.findAll());
         model.addAttribute("assignee", assignee);
         return "supplier/suppliers";
     }
 
     @GetMapping("/ui/suppliers/create")
     public String createSupplierPage(Model model) {
-        model.addAttribute("users", userRepository.findAll());
+        model.addAttribute("users", customUserDetailsService.findAll());
         return "supplier/supplier-create";
     }
 
     @GetMapping("/ui/suppliers/{code}")
     public String supplierDetailPage(@PathVariable String code, Model model) {
         model.addAttribute("supplier", supplierService.getSupplierByCode(code));
-        model.addAttribute("users", userRepository.findAll());
+        model.addAttribute("users", customUserDetailsService.findAll());
         return "supplier/supplier-detail";
     }
 
@@ -304,11 +295,11 @@ public class WebController {
         model.addAttribute("categories", categoryService.getAll());
         model.addAttribute("brands", masterDataService.getValuesByType("BRAND"));
         model.addAttribute("units", masterDataService.getValuesByType("UNIT"));
-        model.addAttribute("users", userRepository.findAll());
+        model.addAttribute("users", customUserDetailsService.findAll());
 
-        model.addAttribute("branches", branchRepository.findAll());
+        model.addAttribute("branches", branchService.findAll());
         if (currentUser != null) {
-            User userObj = userRepository.findByUsername(currentUser.getUsername()).orElse(null);
+            User userObj = customUserDetailsService.findByUsername(currentUser.getUsername()).orElse(null);
             model.addAttribute("currentUser", userObj);
         }
         return "import/import-create";
@@ -339,6 +330,7 @@ public class WebController {
         }
 
         model.addAttribute("order", receipt);
+        model.addAttribute("branches", branchService.findAll());
         return "import/import-edit";
     }
 
@@ -388,24 +380,24 @@ public class WebController {
 
         model.addAttribute("transactions", filteredTransactions);
         model.addAttribute("summary", cashbookService.getSummary(start, end));
-        model.addAttribute("branches", branchRepository.findAll());
+        model.addAttribute("branches", branchService.findAll());
 
         CashbookSummary summaryData = cashbookService.getSummary(start, end, branchId);
         model.addAttribute("summary", summaryData);
 
-        model.addAttribute("branches", branchRepository.findAll());
+        model.addAttribute("branches", branchService.findAll());
         return "cashbook/cashbook";
     }
 
     @GetMapping("/ui/cashbook/receipt/create")
     public String createReceiptPage(Model model) {
-        model.addAttribute("branches", branchRepository.findAll());
+        model.addAttribute("branches", branchService.findAll());
         return "cashbook/cash-receipt-create";
     }
 
     @GetMapping("/ui/cashbook/payment/create")
     public String createPaymentPage(Model model) {
-        model.addAttribute("branches", branchRepository.findAll());
+        model.addAttribute("branches", branchService.findAll());
         return "cashbook/cash-payment-create";
     }
 
@@ -433,18 +425,18 @@ public class WebController {
 
     @GetMapping("/ui/warranties/create")
     public String createWarrantyForm(Model model) {
-        model.addAttribute("branches", branchRepository.findAll());
+        model.addAttribute("branches", branchService.findAll());
         return "warranty/warranty-create";
     }
 
     @GetMapping("/ui/warranties/detail/{id}")
     public String warrantyDetail(@PathVariable Long id, Model model) {
         model.addAttribute("ticket", warrantyService.getById(id));
-        model.addAttribute("branches", branchRepository.findAll());
+        model.addAttribute("branches", branchService.findAll());
 
         WarrantyTicket ticket = warrantyService.getById(id);
         if (ticket.getBranchId() != null) {
-            branchRepository.findById(ticket.getBranchId()).ifPresent(branch -> {
+            branchService.findById(ticket.getBranchId()).ifPresent(branch -> {
                 model.addAttribute("receivingBranchName", branch.getName());
                 model.addAttribute("receivingBranchAddress", branch.getAddress());
             });
@@ -458,5 +450,5 @@ public class WebController {
         model.addAttribute("notifications", notificationService.getAll());
         return "notifications/list-noti";
     }
-    
+
 }

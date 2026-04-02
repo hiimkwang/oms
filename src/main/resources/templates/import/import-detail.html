@@ -377,47 +377,99 @@
 
     <script th:inline="javascript">
         // 1. Nhập kho - Gọi confirmImport của Service
-        function confirmReceive(id) {
-            if (!confirm("Xác nhận nhập kho? Số lượng sẽ được cộng vào: " + [[${order.branchName}]])) return;
-            postAction(`/api/v1/receipt/${id}/receive`, null, "Đã nhập hàng vào kho thành công!");
+        // 1. Nhập kho
+        async function confirmReceive(id) {
+            // Lấy biến từ Thymeleaf (Lưu ý: đoạn script này phải nằm trong thẻ <script th:inline="javascript">)
+            const branchName = /*[[${order.branchName}]]*/ 'kho hiện tại';
+
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận nhập kho',
+                text: `Số lượng sẽ được cộng vào: ${branchName}. Bạn có chắc chắn không?`,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745', // Màu xanh lá cho hành động an toàn/tích cực
+                cancelButtonColor: '#6c757d',  // Xám cho nút hủy
+                confirmButtonText: 'Xác nhận nhập',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            if (!confirmation.isConfirmed) return;
+            await postAction(`/api/v1/receipt/${id}/receive`, null, "Đã nhập hàng vào kho thành công!");
         }
 
         // 2. Hủy đơn
-        function cancelOrder(id) {
-            if (!confirm("Bạn muốn hủy đơn nhập hàng này?")) return;
-            postAction(`/api/v1/receipt/${id}/cancel`, null, "Đã hủy đơn hàng!");
+        async function cancelOrder(id) {
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận hủy đơn',
+                text: "Bạn có chắc chắn muốn hủy đơn nhập hàng này? Thao tác này không thể hoàn tác.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Đỏ cảnh báo
+                cancelButtonColor: '#3085d6', // Xanh an toàn
+                confirmButtonText: 'Xác nhận hủy',
+                cancelButtonText: 'Đóng'
+            });
+
+            if (!confirmation.isConfirmed) return;
+            await postAction(`/api/v1/receipt/${id}/cancel`, null, "Đã hủy đơn hàng thành công!");
         }
 
         // 3. Thanh toán nợ
-        function submitPaymentModal(id) {
+        async function submitPaymentModal(id) {
             const amount = parseFloat(document.getElementById('payAmountInput').value);
             const method = document.getElementById('payMethod').value;
 
             if (!amount || amount <= 0) {
-                alert("Vui lòng nhập số tiền hợp lệ!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng nhập số tiền hợp lệ!'
+                });
                 return;
             }
 
-            const payload = {amountPaid: amount, paymentMethod: method};
-            bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+            const payload = { amountPaid: amount, paymentMethod: method };
 
-            // API xử lý addPayment trong Service
-            postAction(`/api/v1/receipt/${id}/payment`, payload, "Ghi nhận thanh toán thành công!");
+            // Ẩn Bootstrap Modal
+            const modalEl = document.getElementById('paymentModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+
+            // Gọi API xử lý
+            await postAction(`/api/v1/receipt/${id}/payment`, payload, "Ghi nhận thanh toán thành công!");
         }
 
-        function postAction(url, payload, successMsg) {
-            fetch(url, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: payload ? JSON.stringify(payload) : null
-            }).then(res => {
+        // 4. Hàm Helper dùng chung (Đã tối ưu Async/Await & Fix lỗi reload)
+        async function postAction(url, payload, successMsg) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload ? JSON.stringify(payload) : null
+                });
+
                 if (res.ok) {
-                    alert(successMsg);
-                    location.reload();
+                    // Chờ Toast chạy xong rồi mới cho phép reload trang
+                    await Toast.fire({
+                        icon: 'success',
+                        title: successMsg
+                    });
+                    window.location.reload();
                 } else {
-                    res.text().then(text => alert("Lỗi hệ thống: " + text));
+                    // Lấy text báo lỗi từ server (nếu có) để hiển thị chi tiết hơn
+                    const errorText = await res.text();
+                    Toast.fire({
+                        icon: 'error',
+                        title: errorText || 'Có lỗi xảy ra từ máy chủ!'
+                    });
                 }
-            }).catch(err => alert("Lỗi kết nối!"));
+            } catch (err) {
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
+            }
         }
     </script>
 </div>

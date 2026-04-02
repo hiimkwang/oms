@@ -232,14 +232,24 @@
                             uploadedImages.push(data.url);
                             renderPreviews();
                         } else {
-                            alert(data.error || "Lỗi lưu file vào ổ cứng!");
+                            Toast.fire({
+                                icon: 'error',
+                                title: 'Lỗi lưu file vào ổ cứng!'
+                            });
                         }
                     } else {
-                        alert("Lỗi HTTP " + res.status + " khi upload ảnh!");
+                        Toast.fire({
+                            icon: 'error',
+                            title: `Lỗi HTTP ${res.status} khi upload ảnh!`
+                        });
+
                     }
                 } catch (e) {
                     console.error(e);
-                    alert("Lỗi kết nối khi upload ảnh!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối khi upload ảnh!'
+                    });
                 }
             }
         }
@@ -288,7 +298,6 @@
 
                 const data = await res.json();
 
-                // Kiểm tra data có phải mảng không trước khi map
                 if (Array.isArray(data) && data.length > 0) {
                     listEl.innerHTML = data.map(item => {
                         const name = item.fullName || item.name || 'N/A';
@@ -318,7 +327,10 @@
             const amount = document.getElementById('amount').value;
             const dateVal = document.getElementById('transactionDate').value;
             if (!amount || amount <= 0) {
-                alert("Vui lòng nhập số tiền!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng nhập số tiền!'
+                });
                 return;
             }
 
@@ -343,10 +355,17 @@
             });
 
             if (res.ok) {
-                alert("Tạo phiếu chi thành công!");
-                window.location.href = "/ui/cashbook";
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Tạo phiếu chi thành công!'
+                }).then(() => {
+                    window.location.href = "/ui/cashbook";
+                });
             } else {
-                alert("Lỗi lưu phiếu chi! Hãy kiểm tra lại các trường bắt buộc.");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi lưu phiếu chi! Hãy kiểm tra lại các trường bắt buộc.'
+                });
             }
         }
 

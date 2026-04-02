@@ -176,7 +176,6 @@
     </div>
 
     <script th:inline="javascript">
-        // Lấy danh sách ảnh cũ từ Backend
         let rawAttachments = /*[[${transaction.attachments}]]*/ '[]';
         let uploadedImages = [];
         try {
@@ -185,7 +184,6 @@
             console.error("Lỗi parse ảnh cũ");
         }
 
-        // Render ảnh ngay khi load trang
         renderPreviews();
 
         async function handleFileUpload(files) {
@@ -202,7 +200,10 @@
                         }
                     }
                 } catch (e) {
-                    alert("Lỗi upload ảnh!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi upload ảnh!'
+                    });
                 }
             }
         }
@@ -222,7 +223,6 @@
             renderPreviews();
         }
 
-        // --- GỌI API CẬP NHẬT ---
         async function updateTransaction() {
             const id = document.getElementById('txId').value;
             const payload = {
@@ -237,24 +237,64 @@
             });
 
             if (res.ok) {
-                alert("Cập nhật phiếu thu thành công!");
-                window.location.reload();
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Cập nhật phiếu thu thành công!'
+                }).then(() => {
+                    window.location.reload();
+                });
             } else {
-                alert("Lỗi khi cập nhật phiếu!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi khi cập nhật phiếu!'
+                });
             }
         }
 
-        // --- GỌI API XÓA ---
         async function deleteTransaction() {
             const id = document.getElementById('txId').value;
-            if (confirm("Hành động này không thể hoàn tác. Tiền tồn quỹ sẽ bị thay đổi. Bạn có chắc chắn muốn XÓA phiếu thu này không?")) {
-                const res = await fetch(`/api/v1/cashbook/${id}`, {method: 'DELETE'});
+
+            // 1. Hiện bảng xác nhận chuyên nghiệp, cảnh báo rõ ràng về tiền quỹ
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa phiếu thu',
+                text: 'Hành động này không thể hoàn tác. Tiền tồn quỹ sẽ bị thay đổi. Bạn có chắc chắn muốn XÓA phiếu thu này không?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Nút đỏ cảnh báo hành động nguy hiểm
+                cancelButtonColor: '#3085d6', // Nút xanh an toàn
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            // 2. Dừng lại nếu người dùng bấm Hủy
+            if (!confirmation.isConfirmed) return;
+
+            // 3. Tiến hành gọi API xóa nếu đã xác nhận
+            try {
+                const res = await fetch(`/api/v1/cashbook/${id}`, {
+                    method: 'DELETE'
+                });
+
                 if (res.ok) {
-                    alert("Đã xóa phiếu thu!");
-                    window.location.href = "/ui/cashbook";
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Đã xóa phiếu thu thành công!'
+                    }).then(() => {
+                        // Đợi thông báo chạy xong rồi mới điều hướng về trang sổ quỹ
+                        window.location.href = "/ui/cashbook";
+                    });
                 } else {
-                    alert("Lỗi khi xóa phiếu!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Có lỗi xảy ra khi xóa phiếu!'
+                    });
                 }
+            } catch (err) {
+                // Bắt lỗi khi mất mạng hoặc backend không phản hồi
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
     </script>

@@ -132,7 +132,9 @@
                 <div class="col-md-3">
                     <label class="form-label-custom">Màu sắc nhãn</label>
                     <div class="d-flex align-items-center gap-2">
-                        <input type="color" id="colorCode" class="form-control form-control-color border-0 p-0 shadow-sm" value="#0ea5e9" style="height: 36px; width: 45px; cursor: pointer; border-radius: 6px;">
+                        <input type="color" id="colorCode"
+                               class="form-control form-control-color border-0 p-0 shadow-sm" value="#0ea5e9"
+                               style="height: 36px; width: 45px; cursor: pointer; border-radius: 6px;">
                     </div>
                 </div>
                 <div class="col-md-12">
@@ -250,7 +252,10 @@
 
         async function saveGroup() {
             const name = document.getElementById('name').value.trim();
-            if (!name) return alert("Vui lòng nhập Tên nhóm!");
+            if (!name) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng nhập Tên nhóm!'
+            });
 
             const isAuto = document.getElementById('autoAdd').checked;
             const payload = {
@@ -269,14 +274,24 @@
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) {
-                    alert("Tạo nhóm thành công!");
-                    window.location.href = "/ui/customer-groups";
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Tạo nhóm thành công!'
+                    }).then(() => {
+                        window.location.href = "/ui/customer-groups";
+                    });
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Đã xảy ra lỗi"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Đã xảy ra lỗi')
+                    });
                 }
             } catch (e) {
-                alert("Lỗi kết nối máy chủ!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             }
         }
     </script>

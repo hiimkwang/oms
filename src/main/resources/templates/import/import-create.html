@@ -700,7 +700,10 @@
             const branchId = branchSelect.value;
             const branchName = branchSelect.options[branchSelect.selectedIndex].text;
             if (!sCode) {
-                alert("Vui lòng chọn Nhà cung cấp!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng chọn Nhà cung cấp!'
+                });
                 return;
             }
 
@@ -734,9 +737,16 @@
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                alert("Tạo đơn thành công!");
-                window.location.href = "/ui/imports";
-            } else alert("Lỗi khi lưu đơn!");
+                Toast.fire({
+                    icon: 'success',
+                    title: 'Tạo đơn thành công!'
+                }).then(() => {
+                    window.location.href = "/ui/imports";
+                });
+            } else Toast.fire({
+                icon: 'error',
+                title: 'Lỗi khi lưu đơn!'
+            });
         }
     </script>
 </div>

@@ -107,7 +107,10 @@
                 method: 'POST',
                 body: formData
             }).then(res => res.text()).then(msg => {
-                alert(msg);
+                Toast.fire({
+                    icon: 'success',
+                    title: msg
+                });
                 if (msg.includes("thành công")) location.reload(); // Load lại trang để Avatar và Tên cập nhật theo
             });
         };
@@ -130,9 +133,12 @@
                 method: 'POST',
                 body: formData
             }).then(res => res.text()).then(msg => {
-                alert(msg);
+                Toast.fire({
+                    icon: 'success',
+                    title: msg
+                });
                 if (msg.includes("thành công")) {
-                    this.reset(); // Đổi pass xong thì xóa trắng form cho gọn
+                    this.reset();
                 }
             });
         };

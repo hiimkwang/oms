@@ -441,10 +441,31 @@
 
         async function deleteSelectedTransactions() {
             const checkboxes = document.querySelectorAll('.tx-checkbox:checked');
-            if (checkboxes.length === 0) return;
+
+            // 1. Nhắc nhở nếu chưa chọn giao dịch nào
+            if (checkboxes.length === 0) {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng chọn ít nhất 1 giao dịch để xóa!'
+                });
+                return;
+            }
+
             const ids = Array.from(checkboxes).map(cb => cb.value);
 
-            if (!confirm(`Cảnh báo: Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} giao dịch này không?`)) return;
+            // 2. Hiện bảng xác nhận chuyên nghiệp
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa hàng loạt',
+                text: `Cảnh báo: Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} giao dịch này không? Hành động này sẽ làm thay đổi số dư tồn quỹ!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Màu đỏ cho hành động nguy hiểm
+                cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            if (!confirmation.isConfirmed) return;
 
             try {
                 const res = await fetch('/api/v1/cashbook/bulk', {
@@ -452,9 +473,26 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(ids)
                 });
-                if (res.ok) window.location.reload();
+
+                if (res.ok) {
+                    // 3. Đợi báo thành công xong mới reload trang
+                    await Toast.fire({
+                        icon: 'success',
+                        title: `Đã xóa thành công ${ids.length} giao dịch!`
+                    });
+                    window.location.reload();
+                } else {
+                    const errText = await res.text();
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (errText || 'Không thể xóa các giao dịch đã chọn!')
+                    });
+                }
             } catch (e) {
-                alert("Lỗi kết nối Server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
     </script>

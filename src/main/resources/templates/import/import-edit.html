@@ -257,9 +257,11 @@
                     <div class="mt-3 mb-3">
                         <label class="form-label-custom">Chi nhánh nhập</label>
                         <select id="branchName" class="form-select form-select-custom">
-                            <option th:value="${order.branchName}" th:text="${order.branchName}" selected></option>
-                            <option value="Cửa hàng chính">Cửa hàng chính</option>
-                            <option value="Chi nhánh 2">Chi nhánh 2</option>
+                            <option th:each="b : ${branches}"
+                                    th:value="${b.name}"
+                                    th:text="${b.name}"
+                                    th:selected="${b.name == order.branchName}">
+                            </option>
                         </select>
                     </div>
 
@@ -454,11 +456,17 @@
         async function submitImportOrder() {
             const supCode = document.getElementById('selectedSupplierCode').value;
             if (!supCode) {
-                alert("Vui lòng chọn Nhà cung cấp!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Vui lòng chọn Nhà cung cấp!'
+                });
                 return;
             }
             if (cart.length === 0) {
-                alert("Giỏ hàng không được để trống!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Giỏ hàng không được để trống!'
+                });
                 return;
             }
 
@@ -480,14 +488,24 @@
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) {
-                    alert("Lưu thay đổi thành công!");
-                    window.location.href = `/ui/imports/${orderCode}`;
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Cập nhật thành công!'
+                    }).then(() => {
+                        window.location.href = `/ui/imports/${orderCode}`;
+                    });
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Kiểm tra lại dữ liệu"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Kiểm tra lại dữ liệu')
+                    });
                 }
             } catch (e) {
-                alert("Lỗi kết nối Server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             }
         }
     </script>

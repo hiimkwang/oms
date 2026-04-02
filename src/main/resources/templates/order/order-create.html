@@ -358,16 +358,19 @@
 
                     <div id="shippingContent-PLATFORM" class="shipping-block d-none mt-3">
                         <div class="alert alert-info small mb-3"><i class="bi bi-info-circle me-1"></i> Đối với đơn qua
-                            Sàn TMĐT (Shopee, TikTok...), việc giao vận do sàn đảm nhận. Bạn cần lưu Mã đơn hàng và Mã vận đơn để đối soát doanh thu.
+                            Sàn TMĐT (Shopee, TikTok...), việc giao vận do sàn đảm nhận. Bạn cần lưu Mã đơn hàng và Mã
+                            vận đơn để đối soát doanh thu.
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label-custom text-muted small text-primary fw-bold">Mã đơn hàng Sàn</label>
+                                <label class="form-label-custom text-muted small text-primary fw-bold">Mã đơn hàng
+                                    Sàn</label>
                                 <input type="text" id="platformOrderCode" class="form-control form-control-custom"
                                        placeholder="VD: 230514ABCD...">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label-custom text-muted small text-success fw-bold">Mã vận đơn Sàn</label>
+                                <label class="form-label-custom text-muted small text-success fw-bold">Mã vận đơn
+                                    Sàn</label>
                                 <input type="text" id="platformTrackingCode" class="form-control form-control-custom"
                                        placeholder="VD: SPX123456789">
                             </div>
@@ -766,7 +769,10 @@
             const price = document.getElementById('customProductPrice').value;
             const qty = document.getElementById('customProductQty').value;
 
-            if (!name || !price) return alert("Vui lòng nhập Tên và Giá bán!");
+            if (!name || !price) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng nhập Tên và Giá bán!'
+            });
 
             cart.push({
                 sku: 'CUSTOM_' + Date.now(),
@@ -799,7 +805,10 @@
         }
 
         function showInventoryCheck() {
-            if (cart.length === 0) return alert("Giỏ hàng đang trống!");
+            if (cart.length === 0) return Toast.fire({
+                icon: 'error',
+                title: 'Giỏ hàng đang trống!'
+            });
             renderInventoryCheckBody();
             new bootstrap.Modal(document.getElementById('inventoryCheckModal')).show();
         }
@@ -1045,7 +1054,10 @@
             };
             payload.fullName = (payload.lastName ? payload.lastName + ' ' : '') + payload.firstName;
 
-            if (!payload.firstName || !payload.phone) return alert("Vui lòng nhập Tên và Số điện thoại!");
+            if (!payload.firstName || !payload.phone) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng nhập Tên và Số điện thoại!'
+            });
 
             const originalText = btn.innerHTML;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -1066,11 +1078,16 @@
                     currentSearchedCustomers = [newCus];
                     selectCustomerByIndex(0);
                 } else {
-                    // Đã xử lý cảnh báo thân thiện khi trùng SĐT
-                    alert("Tạo thất bại: Số điện thoại này đã tồn tại trong hệ thống. Vui lòng tìm kiếm bên ngoài thay vì tạo mới!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Tạo thất bại: Số điện thoại này đã tồn tại trong hệ thống. Vui lòng tìm kiếm bên ngoài thay vì tạo mới!'
+                    });
                 }
             } catch (e) {
-                alert("Lỗi kết nối máy chủ!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             }
 
             btn.innerHTML = originalText;
@@ -1081,9 +1098,15 @@
         // SUBMIT LƯU ĐƠN HÀNG
         // ============================
         async function submitOrder(orderStatus) {
-            if (cart.length === 0) return alert("Chưa có sản phẩm!");
+            if (cart.length === 0) return Toast.fire({
+                icon: 'error',
+                title: 'Chưa có sản phẩm!'
+            });
             const cusId = document.getElementById('selectedCustomerId').value;
-            if (!cusId) return alert("Vui lòng chọn khách hàng!");
+            if (!cusId) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng chọn khách hàng!'
+            });
 
             const isPaid = document.getElementById('paid').checked;
 
@@ -1147,16 +1170,26 @@
                 });
 
                 if (res.ok) {
-                    alert("Thành công!");
-                    window.location.href = "/ui/orders";
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Thành công!'
+                    }).then(() => {
+                        window.location.href = "/ui/orders";
+                    });
                 } else {
                     const err = await res.json();
-                    alert("Lỗi máy chủ: " + (err.message || "Vui lòng kiểm tra lại (Có thể thông tin Giao hàng/Chi nhánh bị trống)"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối máy chủ!'
+                    });
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }
             } catch (err) {
-                alert("Lỗi kết nối server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }

@@ -166,14 +166,12 @@
         let stats = {orderCount: 0, totalSpent: 0};
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Luôn tải danh sách nhóm trước
             await fetchGroups();
 
             if (isEditMode) {
                 document.getElementById('pageTitle').innerText = "Chỉnh sửa khách hàng";
                 await fetchCustomerData(editCustomerCode);
             } else {
-                // Nếu thêm mới: Mặc định chọn Khách lẻ và không cần chạy auto-check
                 const select = document.getElementById('customerGroup');
                 if (select.querySelector('option[value="Khách lẻ"]')) {
                     select.value = "Khách lẻ";
@@ -187,7 +185,6 @@
                 allGroups = await res.json();
                 const select = document.getElementById('customerGroup');
 
-                // Render lại danh sách nhóm
                 let html = '<option value="Khách lẻ">Khách lẻ</option>';
                 allGroups.forEach(g => {
                     if (g.name !== "Khách lẻ") {
@@ -206,7 +203,6 @@
                 if (!res.ok) return;
                 const c = await res.json();
 
-                // Fill form (Dùng Optional chaining ?. để tránh lỗi nếu thiếu trường)
                 document.getElementById('firstName').value = c.firstName || '';
                 document.getElementById('lastName').value = c.lastName || '';
                 document.getElementById('email').value = c.email || '';
@@ -220,7 +216,6 @@
                     if (genderRadio) genderRadio.checked = true;
                 }
 
-                // Fill hóa đơn
                 if (c.hasInvoice) {
                     document.getElementById('hasInvoice').checked = true;
                     document.getElementById('invBlock').classList.remove('d-none');
@@ -229,7 +224,6 @@
                     document.getElementById('companyAddress').value = c.companyAddress || '';
                 }
 
-                // Lưu stats và CHỈ chạy gợi ý khi SỬA
                 stats.orderCount = c.orderCount || 0;
                 stats.totalSpent = c.totalSpent || 0;
 
@@ -241,7 +235,6 @@
         }
 
         function autoCheckGroup(manualGroup) {
-            // Nếu không có stats thì không cần check
             if (stats.orderCount === 0 && stats.totalSpent === 0) {
                 document.getElementById('customerGroup').value = manualGroup || "Khách lẻ";
                 return;
@@ -276,7 +269,6 @@
             const select = document.getElementById('customerGroup');
             select.value = suggested;
 
-            // Chỉ highlight nếu hệ thống gợi ý nhóm KHÁC với nhóm hiện tại
             if (isAutoFound && suggested !== manualGroup) {
                 select.classList.add('auto-selected');
                 document.getElementById('autoCheckNote').classList.remove('d-none');
@@ -287,7 +279,10 @@
             const firstName = document.getElementById('firstName').value.trim();
             const phone = document.getElementById('phoneNumber').value.trim();
 
-            if (!firstName || !phone) return alert("Vui lòng nhập Tên và Số điện thoại!");
+            if (!firstName || !phone) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng nhập Tên và Số điện thoại!'
+            });
 
             const payload = {
                 firstName: firstName,
@@ -317,14 +312,25 @@
                 });
 
                 if (res.ok) {
-                    alert(isEditMode ? "Cập nhật thành công!" : "Thêm mới thành công!");
-                    window.location.href = "/ui/customers";
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Cập nhật thành công!'
+                    }).then(() => {
+                        window.location.href = "/ui/customers";
+                    });
+
                 } else {
                     const err = await res.json();
-                    alert("Lỗi: " + (err.message || "Thao tác thất bại"));
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi: ' + (err.message || 'Thao tác thất bại")')
+                    });
                 }
             } catch (e) {
-                alert("Lỗi kết nối server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối server!'
+                });
             }
         }
     </script>

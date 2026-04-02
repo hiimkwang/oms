@@ -533,7 +533,10 @@
             const unitVal = document.getElementById("unit").value.trim();
             const isManaged = document.getElementById("manageStock").checked;
 
-            if (!nameVal) return alert("Vui lòng nhập Tên sản phẩm!");
+            if (!nameVal) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng nhập Tên sản phẩm!'
+            });
 
             const payload = {
                 sku: skuVal,
@@ -573,12 +576,22 @@
                 body: JSON.stringify(payload)
             }).then(res => {
                 if (res.ok) {
-                    alert("Cập nhật sản phẩm thành công!");
-                    window.location.href = '/ui/products';
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Cập nhật sản phẩm thành công!'
+                    }).then(() => {
+                        window.location.href = '/ui/products';
+                    });
                 } else {
-                    res.json().then(err => alert("Lỗi Backend: " + (err.message || "Kiểm tra DTO Java!")));
+                    res.json().then(err => Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi Backend: ' + (err.message || 'Kiểm tra DTO Java!')
+                    }))
                 }
-            }).catch(err => alert("Lỗi kết nối: " + err));
+            }).catch(err => Toast.fire({
+                icon: 'error',
+                title: 'Lỗi kết nối máy chủ!'
+            }));
         }
 
         // Upload ảnh
@@ -600,7 +613,11 @@
                 document.getElementById('mainImagePreview').classList.remove('d-none');
                 document.getElementById('mainImagePlaceholder').classList.add('d-none');
             } catch (err) {
-                alert(err.message);
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
+
             }
         }
 
@@ -614,7 +631,11 @@
                 labelWrapper.querySelector('.variant-img-preview').classList.remove('d-none');
                 labelWrapper.querySelector('.variant-img-placeholder').classList.add('d-none');
             } catch (err) {
-                alert(err.message);
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
+
             }
         }
     </script>

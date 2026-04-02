@@ -224,13 +224,19 @@
                     modal.hide();
                     window.location.reload();
                 } else {
-                    alert("Có lỗi xảy ra khi lưu chi nhánh!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Có lỗi xảy ra khi lưu chi nhánh!'
+                    });
                     btnElement.innerHTML = originalBtnHtml;
                     btnElement.disabled = false;
                 }
             } catch (error) {
                 console.error("Lỗi:", error);
-                alert("Lỗi xử lý giao diện hoặc mất kết nối!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi xử lý giao diện hoặc mất kết nối!'
+                });
                 btnElement.innerHTML = originalBtnHtml;
                 btnElement.disabled = false;
             }

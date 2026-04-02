@@ -413,7 +413,10 @@
             const start = document.getElementById('startDate').value;
             const end = document.getElementById('endDate').value;
             const channelParam = getChannelParam();
-            if (!start || !end) return alert("Vui lòng chọn đầy đủ ngày!");
+            if (!start || !end) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng chọn đầy đủ ngày!'
+            });
             window.location.href = `/ui/reports?tab=${currentTab}&preset=custom&start=${start}T00:00:00&end=${end}T23:59:59${channelParam}`;
         }
 

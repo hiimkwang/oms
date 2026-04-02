@@ -184,15 +184,25 @@
                     });
 
                     if (res.ok) {
-                        alert("Đã lưu cấu hình chung thành công!");
-                        window.location.reload();
+                        Toast.fire({
+                            icon: 'success',
+                            title: 'Đã lưu cấu hình chung thành công!'
+                        }).then(() => {
+                            window.location.reload();
+                        });
                     } else {
-                        alert("Có lỗi xảy ra khi lưu cấu hình!");
+                        Toast.fire({
+                            icon: 'error',
+                            title: 'Có lỗi xảy ra khi lưu cấu hình!'
+                        });
                         btn.innerHTML = originalHtml;
                         btn.disabled = false;
                     }
                 } catch (error) {
-                    alert("Lỗi kết nối đến máy chủ!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối máy chủ!'
+                    });
                     btn.innerHTML = originalHtml;
                     btn.disabled = false;
                 }

@@ -524,7 +524,10 @@
 
         async function submitUpdate() {
             const payload = getCustomerPayload(true);
-            if (!payload.firstName || !payload.phoneNumber) return alert("Vui lòng nhập Tên và Số điện thoại!");
+            if (!payload.firstName || !payload.phoneNumber) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng nhập Tên và Số điện thoại!'
+            });
             try {
                 const res = await fetch(`/api/v1/customers/${customerCode}`, {
                     method: 'PUT',
@@ -532,9 +535,15 @@
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) location.reload();
-                else alert("Không thể cập nhật!");
+                else Toast.fire({
+                    icon: 'error',
+                    title: 'Không thể cập nhật!'
+                });
             } catch (e) {
-                alert("Lỗi server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi server!'
+                });
             }
         }
 
@@ -543,15 +552,50 @@
         }
 
         async function deleteCustomer() {
-            if (!confirm("Cảnh báo: Xóa khách hàng sẽ làm mất liên kết với các đơn hàng cũ. Bạn có chắc chắn không?")) return;
+            // 1. Sử dụng SweetAlert2 để đưa ra cảnh báo nghiêm trọng
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa khách hàng',
+                text: "Cảnh báo: Xóa khách hàng sẽ làm mất liên kết với các đơn hàng cũ. Bạn có chắc chắn muốn tiếp tục?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Màu đỏ cho hành động nguy hiểm
+                cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            // Nếu người dùng chọn Hủy
+            if (!confirmation.isConfirmed) return;
+
             try {
-                const res = await fetch(`/api/v1/customers/${customerCode}`, {method: 'DELETE'});
-                if (res.ok) window.location.href = "/ui/customers";
-                else alert("Không thể xóa!");
+                // Giả sử customerCode đã được định nghĩa ở phạm vi global hoặc lấy từ DOM
+                const res = await fetch(`/api/v1/customers/${customerCode}`, {
+                    method: 'DELETE'
+                });
+
+                if (res.ok) {
+                    // Hiện thông báo thành công trước khi điều hướng
+                    await Toast.fire({
+                        icon: 'success',
+                        title: 'Đã xóa khách hàng thành công!'
+                    });
+                    window.location.href = "/ui/customers";
+                } else {
+                    // Lấy thêm thông tin lỗi từ backend nếu có
+                    const errorMsg = await res.text();
+                    Toast.fire({
+                        icon: 'error',
+                        title: errorMsg || 'Không thể xóa khách hàng này!'
+                    });
+                }
             } catch (e) {
-                alert("Lỗi server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
+
     </script>
 </div>
 </body>

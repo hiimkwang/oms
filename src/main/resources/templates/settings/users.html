@@ -196,13 +196,19 @@
                     window.location.reload();
                 } else {
                     const errorText = await res.text();
-                    alert(errorText || "Có lỗi xảy ra, vui lòng thử lại!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Có lỗi xảy ra, vui lòng thử lại!'
+                    });
                     btnElement.innerHTML = originalBtnHtml;
                     btnElement.disabled = false;
                 }
             } catch (error) {
                 console.error("Lỗi:", error);
-                alert("Lỗi kết nối đến máy chủ!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
                 btnElement.innerHTML = originalBtnHtml;
                 btnElement.disabled = false;
             }

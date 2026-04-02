@@ -360,17 +360,54 @@
 
         async function bulkDelete() {
             const ids = Array.from(document.querySelectorAll('.tick-checkbox:checked')).map(cb => cb.value);
-            if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} phiếu này?`)) {
-                // Anh tạo API DELETE /api/v1/warranties/bulk tương tự Sổ quỹ nhé
+
+            // Thêm check: Báo lỗi nếu người dùng chưa chọn phiếu nào mà đã bấm xóa
+            if (ids.length === 0) {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng chọn ít nhất 1 phiếu để xóa!'
+                });
+                return;
+            }
+
+            const confirmation = await Swal.fire({
+                title: 'Bạn có chắc chắn?',
+                text: `Bạn có chắc chắn muốn xóa vĩnh viễn ${ids.length} phiếu này?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33', // Màu đỏ cảnh báo
+                cancelButtonColor: '#3085d6', // Màu xanh hủy
+                confirmButtonText: 'Vâng, xóa đi!',
+                cancelButtonText: 'Hủy'
+            });
+
+            // Nếu người dùng bấm "Vâng, xóa đi!"
+            if (confirmation.isConfirmed) {
                 try {
                     const res = await fetch('/api/v1/warranties/bulk', {
                         method: 'DELETE',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(ids)
                     });
-                    if (res.ok) window.location.reload();
+
+                    if (res.ok) {
+                        await Swal.fire(
+                            'Đã xóa!',
+                            `Đã xóa thành công ${ids.length} phiếu.`,
+                            'success'
+                        );
+                        window.location.reload();
+                    } else {
+                        Toast.fire({
+                            icon: 'error',
+                            title: 'Có lỗi xảy ra khi xóa!'
+                        });
+                    }
                 } catch (e) {
-                    alert("Lỗi kết nối Server!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối máy chủ!'
+                    });
                 }
             }
         }

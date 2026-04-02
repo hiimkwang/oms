@@ -306,7 +306,10 @@
             };
 
             if (!payload.issueDescription || !payload.customerName || !payload.customerPhone) {
-                alert("Mô tả lỗi và Thông tin khách hàng không được để trống!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Mô tả lỗi và Thông tin khách hàng không được để trống!'
+                });
                 return;
             }
 
@@ -318,36 +321,73 @@
                 });
 
                 if (res.ok) {
-                    alert("Cập nhật phiếu thành công!");
-                    window.location.reload(); // Reload lại trang để thấy thay đổi
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Cập nhật thành công!'
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 } else {
-                    alert("Có lỗi xảy ra khi cập nhật!");
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Có lỗi xảy ra khi cập nhật!'
+                    });
                 }
             } catch (e) {
-                alert("Lỗi kết nối Server!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
             }
         }
 
         // Gọi API Xóa (DELETE)
         async function deleteTicket() {
             const id = document.getElementById('ticketId').value;
-            if (confirm("Hành động này không thể hoàn tác. Bạn có chắc chắn muốn XÓA phiếu bảo hành này không?")) {
-                try {
-                    // Dùng API Xóa Bulk cho tiện, truyền mảng 1 phần tử
-                    const res = await fetch('/api/v1/warranties/bulk', {
-                        method: 'DELETE',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify([id])
+
+            // 1. Hiện bảng xác nhận chuyên nghiệp, nhấn mạnh hành động xóa
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa phiếu',
+                text: 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn XÓA phiếu bảo hành này không?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Nút đỏ cảnh báo nguy hiểm
+                cancelButtonColor: '#3085d6', // Nút xanh an toàn
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            // 2. Dừng lại nếu người dùng bấm Hủy
+            if (!confirmation.isConfirmed) return;
+
+            // 3. Tiến hành gọi API nếu đã xác nhận
+            try {
+                // Dùng API Xóa Bulk cho tiện, truyền mảng 1 phần tử
+                const res = await fetch('/api/v1/warranties/bulk', {
+                    method: 'DELETE',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify([id])
+                });
+
+                if (res.ok) {
+                    // Chờ Toast chạy thông báo xong rồi mới điều hướng sang trang danh sách
+                    await Toast.fire({
+                        icon: 'success',
+                        title: 'Đã xóa phiếu thành công!'
                     });
-                    if (res.ok) {
-                        alert("Đã xóa phiếu!");
-                        window.location.href = "/ui/warranties";
-                    } else {
-                        alert("Lỗi khi xóa phiếu!");
-                    }
-                } catch (e) {
-                    alert("Lỗi kết nối Server!");
+                    window.location.href = "/ui/warranties";
+                } else {
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Có lỗi xảy ra khi xóa phiếu!'
+                    });
                 }
+            } catch (e) {
+                // Bắt lỗi khi mất mạng hoặc backend không phản hồi
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
     </script>

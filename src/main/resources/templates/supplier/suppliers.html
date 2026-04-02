@@ -322,11 +322,32 @@
         // 3. Gọi API Xóa hàng loạt
         async function deleteSelectedSuppliers() {
             const checkedBoxes = document.querySelectorAll('.item-check:checked');
-            if (checkedBoxes.length === 0) return;
+
+            // 1. Nhắc nhở nếu người dùng chưa chọn nhà cung cấp nào
+            if (checkedBoxes.length === 0) {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'Vui lòng chọn ít nhất 1 nhà cung cấp để xóa!'
+                });
+                return;
+            }
 
             const codes = Array.from(checkedBoxes).map(cb => cb.value);
 
-            if (!confirm(`Xác nhận xóa vĩnh viễn ${codes.length} nhà cung cấp đã chọn? Việc này không thể hoàn tác.`)) return;
+            // 2. Bảng xác nhận xóa bằng SweetAlert2
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận xóa hàng loạt',
+                text: `Bạn có chắc chắn muốn xóa vĩnh viễn ${codes.length} nhà cung cấp đã chọn không? Thao tác này không thể hoàn tác.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',   // Đỏ cảnh báo nguy hiểm
+                cancelButtonColor: '#3085d6', // Xanh an toàn
+                confirmButtonText: 'Xác nhận xóa',
+                cancelButtonText: 'Hủy bỏ'
+            });
+
+            // Dừng lại nếu người dùng chọn Hủy
+            if (!confirmation.isConfirmed) return;
 
             try {
                 const res = await fetch('/api/v1/suppliers/bulk-delete', {
@@ -336,14 +357,24 @@
                 });
 
                 if (res.ok) {
-                    alert(`Đã xóa thành công ${codes.length} nhà cung cấp!`);
+                    // 3. Đợi Toast hiện xong thông báo rồi mới reload trang (Dùng await)
+                    await Toast.fire({
+                        icon: 'success',
+                        title: `Đã xóa thành công ${codes.length} nhà cung cấp!`
+                    });
                     window.location.reload();
                 } else {
                     const msg = await res.text();
-                    alert("Lỗi khi xóa: " + msg);
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi khi xóa: ' + (msg || 'Vui lòng thử lại sau.')
+                    });
                 }
             } catch (err) {
-                alert("Lỗi kết nối máy chủ!");
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối đến máy chủ!'
+                });
             }
         }
     </script>
