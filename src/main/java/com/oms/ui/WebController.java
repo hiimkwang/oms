@@ -38,7 +38,9 @@ import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -60,9 +62,19 @@ public class WebController {
     private final WarrantyService warrantyService;
     private final CustomUserDetailsService customUserDetailsService;
     private final ReturnOrderService returnOrderService;
-
     @GetMapping("/login")
-    public String login() {
+    public String login(Model model) {
+        Map<String, String> configs = masterDataService.getSystemConfigMap(Arrays.asList("STORE_NAME", "STORE_LOGO"));
+
+        String storeName = configs.getOrDefault("STORE_NAME", "OMS");
+        if (storeName == null || storeName.trim().isEmpty()) {
+            storeName = "OMS";
+        }
+
+        String storeLogo = configs.getOrDefault("STORE_LOGO", "");
+
+        model.addAttribute("storeName", storeName);
+        model.addAttribute("storeLogo", storeLogo);
         return "login";
     }
 

@@ -6,6 +6,7 @@
         quản lý</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
@@ -657,16 +658,30 @@
     }
 
 </script>
-
 <script th:inline="javascript">
     /*<![CDATA[*/
-    // 1. Cấu hình Toast dùng chung
+    // 1. Cấu hình Toast dùng chung (Đã làm đẹp và tối ưu tốc độ)
     const Toast = Swal.mixin({
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
-        timer: 3000,
+        timer: 1500, // Giảm xuống 2.5s để nhanh mất hơn
         timerProgressBar: true,
+        showCloseButton: true, // Thêm nút X để tắt nhanh nếu muốn
+        background: '#ffffff',
+        color: '#1e293b', // Màu chữ xám đen hiện đại
+        padding: '0.75rem 1rem', // Ép padding nhỏ lại cho gọn
+        width: 'auto', // Tự động co giãn theo nội dung
+        customClass: {
+            popup: 'shadow-sm border border-light', // Thêm viền và đổ bóng nhẹ của Bootstrap
+            closeButton: 'text-muted'
+        },
+        showClass: {
+            popup: 'animate__animated animate__fadeInRight animate__faster' // Bay vào siêu nhanh
+        },
+        hideClass: {
+            popup: 'animate__animated animate__fadeOutRight animate__faster' // Bay ra siêu nhanh
+        },
         didOpen: (toast) => {
             toast.addEventListener('mouseenter', Swal.stopTimer)
             toast.addEventListener('mouseleave', Swal.resumeTimer)
@@ -677,8 +692,16 @@
     var successMsg = /*[[${successMessage}]]*/ null;
     var errorMsg = /*[[${errorMessage}]]*/ null;
 
-    if (successMsg) Toast.fire({icon: 'success', title: successMsg});
-    if (errorMsg) Toast.fire({icon: 'error', title: errorMsg});
+    if (successMsg) {
+        Toast.fire({
+            icon: 'success',
+            title: `<span class="fw-medium ms-1" style="font-size:14px;">${successMsg}</span>`
+        });
+    }
+
+    if (errorMsg) {
+        Toast.fire({icon: 'error', title: `<span class="fw-medium ms-1" style="font-size:14px;">${errorMsg}</span>`});
+    }
     /*]]>*/
 </script>
 </body>
