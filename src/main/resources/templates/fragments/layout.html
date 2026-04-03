@@ -125,8 +125,6 @@
             border-left: 3px solid #3b82f6;
         }
 
-        /* Màu xanh nhạt cho tin chưa đọc */
-
         .noti-icon {
             width: 36px;
             height: 36px;
@@ -157,33 +155,28 @@
         }
 
         /* --- LÀM ĐẸP SWEETALERT2 TOÀN CỤC --- */
-
-        /* 1. Bo tròn khung Modal và đổ bóng nhẹ nhàng */
         .swal2-popup {
-            border-radius: 16px !important; /* Bo góc sâu nhìn rất êm */
+            border-radius: 16px !important;
             padding: 1.5rem !important;
             font-family: 'Inter', 'Segoe UI', Roboto, sans-serif !important;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
         }
 
-        /* 2. Chỉnh lại Tiêu đề (Title) */
         .swal2-title {
             font-size: 1.25rem !important;
             font-weight: 700 !important;
-            color: #1e293b !important; /* Màu xám đậm sang trọng */
+            color: #1e293b !important;
             padding-top: 10px !important;
         }
 
-        /* 3. Chỉnh lại Nội dung văn bản (Text) */
         .swal2-html-container {
             font-size: 0.95rem !important;
-            color: #64748b !important; /* Màu xám xanh nhẹ nhàng */
+            color: #64748b !important;
             line-height: 1.6 !important;
         }
 
-        /* 4. Làm đẹp các nút bấm (Buttons) */
         .swal2-actions {
-            gap: 12px !important; /* Khoảng cách giữa 2 nút */
+            gap: 12px !important;
             margin-top: 1.5rem !important;
         }
 
@@ -191,44 +184,36 @@
             padding: 10px 24px !important;
             font-size: 14px !important;
             font-weight: 600 !important;
-            border-radius: 8px !important; /* Bo góc nút bấm đồng bộ với UI */
+            border-radius: 8px !important;
             transition: all 0.2s ease !important;
-            box-shadow: none !important; /* Bỏ cái bóng mặc định hơi thô của Swal */
+            box-shadow: none !important;
         }
 
-        /* Hiệu ứng hover cho nút */
         .swal2-styled:hover {
             filter: brightness(90%);
         }
 
-        /* Nút xác nhận (Confirm) */
         .swal2-confirm {
-            /* Nếu bạn đang để mặc định là màu xanh lam */
             border: none !important;
         }
 
-        /* Nút hủy (Cancel) */
         .swal2-cancel {
-            background-color: #f1f5f9 !important; /* Màu nền xám nhạt */
-            color: #475569 !important; /* Màu chữ xám */
+            background-color: #f1f5f9 !important;
+            color: #475569 !important;
             border: 1px solid #e2e8f0 !important;
         }
 
-        /* 5. Chỉnh lại kích thước Icon cho cân đối */
         .swal2-icon {
             margin: 1rem auto 1.5rem !important;
             border-width: 3px !important;
         }
 
-        /* 6. Tùy chỉnh riêng cho Toast (nếu bạn có dùng Toast.fire) */
         .swal2-toast {
             border-radius: 12px !important;
             padding: 10px 15px !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
         }
     </style>
-
-
 </head>
 <body>
 <div class="d-flex">
@@ -267,6 +252,7 @@
                     <ul class="nav flex-column ms-3 ps-3 border-start border-secondary mt-1 mb-2">
                         <li><a href="/ui/orders/create" class="nav-link py-2 fs-6">Tạo đơn hàng</a></li>
                         <li><a href="/ui/orders" class="nav-link py-2 fs-6">Danh sách đơn hàng</a></li>
+                        <li><a href="/ui/returns" class="nav-link py-2 fs-6">Yêu cầu trả hàng</a></li>
                     </ul>
                 </div>
             </li>
@@ -357,8 +343,8 @@
                         <span id="notiBadge"
                               class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
                               style="font-size: 10px; padding: 3px 6px;">
-            0
-        </span>
+                            0
+                        </span>
                     </button>
 
                     <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
@@ -433,6 +419,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    // --- XỬ LÝ ACTIVE MENU KHI ĐIỀU HƯỚNG ---
     document.addEventListener("DOMContentLoaded", function () {
         const currentPath = window.location.pathname;
         const navLinks = document.querySelectorAll('.oms-sidebar .nav-link');
@@ -456,13 +443,10 @@
                 const parentCollapse = link.closest('.collapse');
 
                 if (parentCollapse) {
-                    // Item nằm trong Menu con
                     link.classList.add('fw-bold', 'text-white');
                     link.style.color = "#fff";
-
                     parentCollapse.classList.add('show');
 
-                    // Rotate icon chevron cho menu cha
                     const triggerElement = document.querySelector(`[href="#${parentCollapse.id}"]`);
                     if (triggerElement) {
                         triggerElement.setAttribute('aria-expanded', 'true');
@@ -471,13 +455,12 @@
                         if (icon) icon.style.transform = 'rotate(180deg)';
                     }
                 } else {
-                    // Item là Menu cha cấp 1 độc lập
                     link.classList.add('active');
                 }
             }
         });
 
-        // Xử lý hiệu ứng quay mũi tên khi click mở/đóng menu collapse
+        // Hiệu ứng mũi tên menu
         const collapseElements = document.querySelectorAll('.collapse');
         collapseElements.forEach(coll => {
             coll.addEventListener('show.bs.collapse', function () {
@@ -490,16 +473,16 @@
             });
         });
 
+        // Tìm kiếm toàn cục (Ctrl+K)
         document.addEventListener('keydown', function (event) {
             if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
                 event.preventDefault();
                 const searchInput = document.getElementById('searchInput');
-                if (searchInput) {
-                    searchInput.focus();
-                }
+                if (searchInput) searchInput.focus();
             }
         });
-        // XỬ LÝ TÌM KIẾM DROPDOWN AJAX
+
+        // Ajax Tìm kiếm
         const searchInput = document.getElementById('searchInput');
         const searchDropdown = document.getElementById('searchDropdown');
         let searchTimeout;
@@ -507,14 +490,10 @@
         if (searchInput) {
             searchInput.addEventListener('input', function () {
                 const keyword = this.value.trim();
-
-                // Ẩn dropdown nếu xóa hết chữ
                 if (keyword.length === 0) {
                     searchDropdown.style.display = 'none';
                     return;
                 }
-
-                // Kỹ thuật Debounce: Chờ 300ms sau khi ngừng gõ mới gọi API
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
                     fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`)
@@ -524,14 +503,12 @@
                 }, 300);
             });
 
-            // Ẩn dropdown khi click ra ngoài
             document.addEventListener('click', function (e) {
                 if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
                     searchDropdown.style.display = 'none';
                 }
             });
 
-            // Hiện lại dropdown nếu click vào ô input (và đang có chữ)
             searchInput.addEventListener('focus', function () {
                 if (this.value.trim().length > 0 && searchDropdown.innerHTML.trim() !== '') {
                     searchDropdown.style.display = 'block';
@@ -539,18 +516,14 @@
             });
         }
 
-        // Hàm render HTML cho kết quả trả về
-        // Hàm render HTML cho kết quả trả về
         function renderSearchResults(data, keyword) {
-            searchDropdown.innerHTML = ''; // Clear dữ liệu cũ
+            searchDropdown.innerHTML = '';
             let hasResults = false;
 
-            // Render Đơn hàng
             if (data.orders && data.orders.length > 0) {
                 hasResults = true;
                 let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">ĐƠN HÀNG</div>`;
                 data.orders.forEach(o => {
-                    // SỬA Ở ĐÂY: Dùng o.code thay vì o.id
                     html += `<a href="/ui/orders/${o.code}" class="dropdown-item py-2 d-flex align-items-center">
                                 <i class="bi bi-cart2 me-2 text-secondary"></i>
                                 <span>Mã: <span class="fw-medium text-dark">${o.code}</span></span>
@@ -559,14 +532,11 @@
                 searchDropdown.innerHTML += html;
             }
 
-            // Render Sản phẩm
             if (data.products && data.products.length > 0) {
                 hasResults = true;
                 let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">SẢN PHẨM</div>`;
                 data.products.forEach(p => {
                     const imgSrc = p.imageUrl ? p.imageUrl : 'https://placehold.co/100x100?text=No+Image';
-
-                    // SỬA Ở ĐÂY: Dùng p.code (chính là SKU)
                     html += `<a href="/ui/products/${p.code}" class="dropdown-item py-2">
                                 <div class="d-flex align-items-center">
                                     <div class="flex-shrink-0 me-3">
@@ -582,12 +552,10 @@
                 searchDropdown.innerHTML += html;
             }
 
-            // Render Khách hàng
             if (data.customers && data.customers.length > 0) {
                 hasResults = true;
                 let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">KHÁCH HÀNG</div>`;
                 data.customers.forEach(c => {
-                    // SỬA Ở ĐÂY: Dùng c.code thay vì c.id
                     html += `<a href="/ui/customers/${c.code}" class="dropdown-item py-2">
                                 <div class="d-flex align-items-center">
                                     <i class="bi bi-person me-2 text-secondary"></i>
@@ -609,13 +577,12 @@
         }
     });
 
+    // --- THÔNG BÁO ---
     document.addEventListener("DOMContentLoaded", function () {
         updateUnreadCount();
-        // Tự động cập nhật số đỏ sau mỗi 1 phút (60000ms) - Cảm giác real-time cho sếp
         setInterval(updateUnreadCount, 60000);
     });
 
-    // 1. Cập nhật con số đỏ trên quả chuông
     async function updateUnreadCount() {
         try {
             const res = await fetch('/api/notifications/unread-count');
@@ -632,7 +599,6 @@
         }
     }
 
-    // 2. Load danh sách thông báo khi bấm vào chuông
     async function loadNotifications() {
         const list = document.getElementById('notiList');
         try {
@@ -661,13 +627,11 @@
         }
     }
 
-    // 3. Xử lý khi bấm vào 1 thông báo
     async function handleNotiClick(id, link) {
         await fetch(`/api/notifications/mark-read/${id}`, {method: 'POST'});
-        window.location.href = link; // Chuyển hướng đến trang chi tiết (đơn hàng, sổ quỹ...)
+        window.location.href = link;
     }
 
-    // Hàm bổ trợ giao diện
     function getIcon(type) {
         if (type === 'ORDER') return 'bi-cart-check-fill';
         if (type === 'PAYMENT') return 'bi-cash-coin';
@@ -696,39 +660,25 @@
 
 <script th:inline="javascript">
     /*<![CDATA[*/
-
-    // 1. Khởi tạo một cấu hình Toast dùng chung
+    // 1. Cấu hình Toast dùng chung
     const Toast = Swal.mixin({
         toast: true,
-        position: 'top-end', // Vị trí: góc trên bên phải
-        showConfirmButton: false, // Ẩn nút OK
-        timer: 3000, // Tự động tắt sau 3 giây
-        timerProgressBar: true, // Hiện thanh thời gian chạy lùi
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
         didOpen: (toast) => {
-            // Rê chuột vào thì dừng đếm ngược, bỏ chuột ra chạy tiếp
             toast.addEventListener('mouseenter', Swal.stopTimer)
             toast.addEventListener('mouseleave', Swal.resumeTimer)
         }
     });
 
-    // 2. Bắt thông báo từ Spring Boot (RedirectAttributes)
+    // 2. Bắt thông báo từ Controller (RedirectAttributes)
     var successMsg = /*[[${successMessage}]]*/ null;
     var errorMsg = /*[[${errorMessage}]]*/ null;
 
-    if (successMsg) {
-        Toast.fire({
-            icon: 'success',
-            title: successMsg
-        });
-    }
-
-    if (errorMsg) {
-        Toast.fire({
-            icon: 'error',
-            title: errorMsg
-        });
-    }
-
+    if (successMsg) Toast.fire({icon: 'success', title: successMsg});
+    if (errorMsg) Toast.fire({icon: 'error', title: errorMsg});
     /*]]>*/
 </script>
 </body>

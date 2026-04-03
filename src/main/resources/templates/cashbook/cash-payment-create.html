@@ -25,6 +25,11 @@
             height: 38px;
         }
 
+        /* Ghi đè height cho textarea để nó to ra */
+        textarea.form-control-custom {
+            height: auto !important;
+        }
+
         .search-group-custom {
             border: 1px solid #dce0e4;
             border-radius: 6px;
@@ -137,25 +142,7 @@
                     </div>
 
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label-custom text-danger">Lý do chi*</label>
-                            <select id="reason" class="form-select form-select-custom">
-                                <option value="Trả nợ nhà cung cấp">Trả nợ nhà cung cấp</option>
-                                <option value="Chi lương nhân viên">Chi lương nhân viên</option>
-                                <option value="Chi khác">Chi khác</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label-custom text-danger">Hình thức chi*</label>
-                            <select id="paymentMethod" class="form-select form-select-custom">
-                                <option value="CASH">Tiền mặt</option>
-                                <option value="BANK">Tài khoản ngân hàng</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label-custom text-danger">Giá trị chi*</label>
                             <div class="input-group search-group-custom">
                                 <input type="number" id="amount"
@@ -164,10 +151,32 @@
                                 <span class="input-group-text fw-bold">₫</span>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label-custom text-danger">Hình thức chi*</label>
+                            <select id="paymentMethod" class="form-select form-select-custom">
+                                <option value="CASH">Tiền mặt</option>
+                                <option value="BANK">Tài khoản ngân hàng</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom text-danger">Lý do chi*</label>
+                            <select id="reason" class="form-select form-select-custom">
+                                <option value="Thanh toán đơn nhập hàng">Thanh toán đơn nhập hàng</option>
+                                <option value="Trả nợ nhà cung cấp">Trả nợ nhà cung cấp</option>
+                                <option value="Chi phí vận hành">Chi phí vận hành (Tính vào LN)</option>
+                                <option value="Chi lương nhân viên">Chi lương nhân viên</option>
+                                <option value="Hoàn tiền cho khách">Hoàn tiền cho khách</option>
+                                <option value="Nộp tiền vào Ngân hàng">Nộp tiền vào Ngân hàng</option>
+                                <option value="Chi khác">Chi khác</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
                             <label class="form-label-custom text-danger">Diễn giải*</label>
-                            <input type="text" id="description" class="form-control form-control-custom"
-                                   placeholder="Nhập nội dung chi tiết...">
+                            <textarea id="description" class="form-control form-control-custom" rows="3"
+                                      placeholder="Nhập nội dung chi tiết (Ví dụ: Thanh toán tiền điện tháng này, Chi tiền mua văn phòng phẩm...)"></textarea>
                         </div>
                     </div>
                 </div>
@@ -288,7 +297,6 @@
             const group = document.getElementById('targetGroup').value;
             const listEl = document.getElementById('searchResultList');
 
-            // Đảm bảo mapping đúng với Controller
             let groupKey = group.toLowerCase(); // 'customer', 'supplier', 'employee'
             let endpoint = `/api/v1/cashbook/search-${groupKey}?query=${query}`;
 
@@ -326,6 +334,11 @@
         async function submitPayment() {
             const amount = document.getElementById('amount').value;
             const dateVal = document.getElementById('transactionDate').value;
+
+            // Xóa chữ " (Tính vào LN)" nếu user chọn Chi phí vận hành
+            let rawReason = document.getElementById('reason').value;
+            let finalReason = rawReason.replace(" (Tính vào LN)", "");
+
             if (!amount || amount <= 0) {
                 Toast.fire({
                     icon: 'error',
@@ -339,7 +352,7 @@
                 paymentMethod: document.getElementById('paymentMethod').value,
                 targetGroup: document.getElementById('targetGroup').value,
                 targetId: document.getElementById('targetId').value,
-                reason: document.getElementById('reason').value,
+                reason: finalReason,
                 amount: parseFloat(amount),
                 description: document.getElementById('description').value,
                 branchId: document.getElementById('branchId').value,

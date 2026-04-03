@@ -105,6 +105,43 @@
             margin-bottom: 10px;
             display: block;
         }
+
+        /* CSS cho Lịch sử thao tác chuẩn hệ thống */
+        .activity-timeline {
+            border-left: 2px solid #e2e8f0;
+            margin-left: 130px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .activity-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .activity-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .activity-time {
+            position: absolute;
+            left: -150px;
+            width: 120px;
+            text-align: right;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .activity-bullet {
+            position: absolute;
+            left: -26px;
+            top: 2px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #fff;
+            border: 2px solid #0d6efd;
+        }
     </style>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -260,25 +297,27 @@
             </div>
 
             <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <div class="detail-card-title border-bottom pb-3">Lịch sử đơn nhập hàng</div>
-                    <div class="timeline" th:if="${not #lists.isEmpty(order.activities)}">
-                        <div class="timeline-item" th:each="activity : ${order.activities}">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <span class="fw-bold text-primary"
-                                          th:text="${#temporals.format(activity.createdAt, 'HH:mm')}"></span>
-                                    <span class="ms-3 fw-bold text-dark" th:text="${activity.creatorName}"></span>
-                                    <span class="ms-2 text-muted" th:text="${activity.action}"></span>
+                <div class="card-body p-0">
+                    <div class="p-3 border-bottom detail-card-title mb-0">
+                        <i class="bi bi-clock-history me-2 text-secondary"></i>Lịch sử thao tác
+                    </div>
+                    <div class="p-4">
+                        <div class="activity-timeline" th:if="${not #lists.isEmpty(order.activities)}">
+                            <div class="activity-item" th:each="act : ${order.activities}">
+                                <div class="activity-time" th:text="${#temporals.format(act.createdAt, 'dd/MM/yyyy HH:mm')}"></div>
+                                <div class="activity-bullet"></div>
+                                <div class="activity-content">
+                                    <div class="fw-bold text-dark" style="font-size: 13px;" th:text="${act.action}"></div>
+                                    <div class="text-muted mt-1" style="font-size: 11px;">
+                                        <i class="bi bi-person-circle me-1"></i>Thực hiện bởi: <span class="fw-medium" th:text="${act.creatorName ?: 'Hệ thống'}"></span>
+                                    </div>
                                 </div>
-                                <div class="text-muted small bg-light px-2 py-1 rounded"
-                                     th:text="${#temporals.format(activity.createdAt, 'dd/MM/yyyy')}"></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="empty-state" th:if="${#lists.isEmpty(order.activities)}">
-                        <i class="bi bi-journal-x"></i>
-                        <div class="text-muted small">Chưa có lịch sử thao tác.</div>
+                        <div class="empty-state py-4" th:if="${#lists.isEmpty(order.activities)}">
+                            <i class="bi bi-journal-x"></i>
+                            <div class="text-muted small mt-2">Chưa có lịch sử thao tác nào.</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -427,7 +466,7 @@
                 return;
             }
 
-            const payload = { amountPaid: amount, paymentMethod: method };
+            const payload = {amountPaid: amount, paymentMethod: method};
 
             // Ẩn Bootstrap Modal
             const modalEl = document.getElementById('paymentModal');
@@ -445,7 +484,7 @@
             try {
                 const res = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: payload ? JSON.stringify(payload) : null
                 });
 

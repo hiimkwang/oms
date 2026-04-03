@@ -13,10 +13,10 @@ import java.util.Optional;
 
 @Repository
 public interface CashTransactionRepository extends JpaRepository<CashTransaction, Long> {
-    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.type = 'THU' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
+    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.type = 'RECEIPT' AND c.reason = 'Thu nhập khác' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
     Double sumOtherIncomeByMonthAndYear(@Param("month") int month, @Param("year") int year);
 
-    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.type = 'CHI' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
+    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.type = 'PAYMENT' AND c.reason = 'Chi phí vận hành' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
     Double sumOperatingExpensesByMonthAndYear(@Param("month") int month, @Param("year") int year);
 
     boolean existsByCode(String code);
@@ -82,6 +82,15 @@ public interface CashTransactionRepository extends JpaRepository<CashTransaction
                                      @Param("branchId") Long branchId);
 
     // Tính tổng chi phí vận hành (Tổng Phiếu Chi) trong tháng
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t WHERE t.type = 'PAYMENT' AND t.transactionDate BETWEEN :start AND :end")
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t WHERE t.type = 'PAYMENT' AND t.reason = 'Chi phí vận hành' AND t.transactionDate BETWEEN :start AND :end")
     BigDecimal sumOperatingExpenses(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+
+    // Lấy TỔNG THU NHẬP KHÁC theo khoảng thời gian
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t WHERE t.type = 'RECEIPT' AND t.reason = 'Thu nhập khác' AND t.transactionDate BETWEEN :start AND :end")
+    BigDecimal sumOtherIncomeBetweenDates(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // Lấy TỔNG CHI PHÍ VẬN HÀNH theo khoảng thời gian
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t WHERE t.type = 'PAYMENT' AND t.reason = 'Chi phí vận hành' AND t.transactionDate BETWEEN :start AND :end")
+    BigDecimal sumOperatingExpensesBetweenDates(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

@@ -245,6 +245,59 @@
             background-color: #f8fafc;
             cursor: pointer;
         }
+
+        /* CSS cho Lịch sử đơn hàng */
+        .activity-timeline {
+            border-left: 2px solid #e2e8f0;
+            margin-left: 130px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .activity-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .activity-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .activity-time {
+            position: absolute;
+            left: -150px;
+            width: 120px;
+            text-align: right;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .activity-bullet {
+            position: absolute;
+            left: -26px; /* Căn giữa đè lên vạch kẻ */
+            top: 2px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #fff;
+            border: 2px solid #0d6efd;
+        }
+
+        /* Tùy chỉnh input cho Modal Hủy đơn */
+        .swal2-textarea-custom {
+            width: 100% !important;
+            margin-top: 10px !important;
+            font-size: 14px !important;
+            border-radius: 6px !important;
+            border: 1px solid #cbd5e1 !important;
+            padding: 10px !important;
+        }
+
+        .swal2-textarea-custom:focus {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 0.2rem rgba(239, 68, 68, 0.2) !important;
+            outline: none !important;
+        }
     </style>
 
     <div class="d-flex justify-content-between align-items-center mb-4 pt-3 mx-auto" style="max-width: 1200px;">
@@ -262,9 +315,13 @@
         </div>
 
         <div class="d-flex gap-2 view-element">
-            <button class="btn btn-white border fw-medium bg-white text-dark px-3 shadow-sm"
+            <button id="btnEditOrder" class="btn btn-white border fw-medium bg-white text-dark px-3 shadow-sm"
                     onclick="toggleEditMode(true)">
                 <i class="bi bi-pencil me-2"></i>Sửa thông tin
+            </button>
+            <button id="btnReturnOrder" style="display: none;" class="btn btn-warning fw-bold text-dark px-3 shadow-sm"
+                    onclick="openReturnModal()">
+                <i class="bi bi-arrow-counterclockwise me-2"></i>Trả hàng
             </button>
             <div class="dropdown">
                 <button class="btn btn-white border fw-medium bg-white text-dark dropdown-toggle px-3 shadow-sm"
@@ -428,6 +485,13 @@
                     </div>
                 </div>
             </div>
+            <div class="card-custom p-0 mt-3 view-element">
+                <div class="p-3 border-bottom card-title-custom mb-0">
+                    <div><i class="bi bi-clock-history me-2 text-secondary"></i>Lịch sử thao tác</div>
+                </div>
+                <div class="p-4" id="orderHistoryContainer">
+                </div>
+            </div>
         </div>
 
         <div class="col-md-4">
@@ -567,6 +631,77 @@
         </div>
     </div>
 
+    <div class="modal fade" id="returnOrderModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light py-3 border-bottom">
+                    <h5 class="modal-title fw-bold fs-6"><i class="bi bi-arrow-counterclockwise text-warning me-2"></i>Tạo
+                        yêu cầu trả hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label-custom text-muted">Mã đơn hàng gốc</label>
+                            <input type="text"
+                                   class="form-control form-control-custom bg-light fw-bold text-primary font-monospace"
+                                   id="returnOrderCodeOrig" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Lý do trả hàng <span class="text-danger">*</span></label>
+                            <select id="returnReason" class="form-select form-select-custom">
+                                <option value="Khách đổi ý">Khách đổi ý (Không thích nữa)</option>
+                                <option value="Hàng lỗi/Hư hỏng">Hàng lỗi / Hư hỏng do vận chuyển</option>
+                                <option value="Giao sai sản phẩm">Giao sai sản phẩm</option>
+                                <option value="Khác">Lý do khác...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="fw-bold text-dark small mb-2">Chọn sản phẩm muốn trả:</div>
+                    <div class="table-responsive border rounded mb-4">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="bg-light text-muted small">
+                            <tr>
+                                <th class="ps-3 py-2">Sản phẩm</th>
+                                <th class="text-center py-2">Đã mua</th>
+                                <th class="text-end py-2">Đơn giá</th>
+                                <th class="text-center py-2" style="width: 140px;">SL Trả</th>
+                            </tr>
+                            </thead>
+                            <tbody id="returnProductsBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-7">
+                            <label class="form-label-custom">Ghi chú (Tùy chọn)</label>
+                            <textarea id="returnNote" class="form-control form-control-custom" rows="2"
+                                      placeholder="Tình trạng hàng hóa, yêu cầu của khách..."></textarea>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label-custom text-danger">Chi phí trả hàng <i
+                                    class="bi bi-info-circle ms-1" title="Phí ship hoàn, phí bồi thường..."></i></label>
+                            <div class="input-group">
+                                <input type="number" id="returnFee"
+                                       class="form-control form-control-custom text-end text-danger fw-bold" value="0">
+                                <span class="input-group-text bg-light text-muted">₫</span>
+                            </div>
+                            <small class="text-muted d-block mt-1" style="font-size:11px;">*Khoản phí do khách hàng chịu, sẽ tự động khấu trừ vào <b>số tiền hoàn</b> cho khách hàng.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-3 border-top">
+                    <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="button" class="btn btn-warning fw-bold px-4 text-dark shadow-sm"
+                            onclick="submitReturnOrder()"><i class="bi bi-check-circle me-1"></i> Xác nhận tạo phiếu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <input type="hidden" id="hiddenOrderCode" th:value="${orderCode}">
 
     <script th:inline="javascript">
@@ -689,7 +824,6 @@
             // Cột phải
             document.getElementById('rightSource').innerText = currentOrder.salesChannelCode || 'Hệ thống';
 
-            // FIX LỖI TÌM CHI NHÁNH Ở ĐÂY
             const branchSelect = document.getElementById('editBranch');
             let branchName = 'Hệ thống';
             if (currentOrder.branchId && branchSelect) {
@@ -710,9 +844,49 @@
                 cusNameEl.href = `/ui/customers/${cusCode}`;
             }
 
+            // Ẩn hiện Nút Sửa / Trả hàng
+            if (st === 'Hoàn thành') {
+                document.getElementById('btnEditOrder').style.display = 'none';
+                document.getElementById('btnReturnOrder').style.display = 'block';
+            } else if (st === 'Đã hủy') {
+                document.getElementById('btnEditOrder').style.display = 'none';
+                document.getElementById('btnReturnOrder').style.display = 'none';
+            } else {
+                document.getElementById('btnEditOrder').style.display = 'block';
+                document.getElementById('btnReturnOrder').style.display = 'none';
+            }
+
             // Render Các Nút Thao Tác (Workflow)
             renderActionButtons(st, currentOrder.paymentStatus);
             renderProductTable(currentOrder.details, false);
+            renderOrderHistory(currentOrder.activities);
+        }
+
+        function renderOrderHistory(activities) {
+            const container = document.getElementById('orderHistoryContainer');
+            if (!activities || activities.length === 0) {
+                container.innerHTML = '<div class="text-muted small text-center py-2">Chưa có lịch sử thao tác nào.</div>';
+                return;
+            }
+
+            let html = '<div class="activity-timeline">';
+            activities.forEach(act => {
+                html += `
+                    <div class="activity-item">
+                        <div class="activity-time">${formatDateTime(act.createdAt)}</div>
+                        <div class="activity-bullet"></div>
+                        <div class="activity-content">
+                            <div class="fw-bold text-dark" style="font-size: 13px;">${act.action}</div>
+                            <div class="text-muted small mt-1">${act.description}</div>
+                            <div class="text-muted mt-1" style="font-size: 11px;">
+                                <i class="bi bi-person-circle me-1"></i>Thực hiện bởi: <span class="fw-medium">${act.createdBy || 'Hệ thống'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         function renderActionButtons(status, paymentStatus) {
@@ -919,7 +1093,6 @@
         }
 
         // 3. API LƯU CẬP NHẬT
-        // 3. API LƯU CẬP NHẬT
         async function submitFullOrderUpdate() {
             const cartToSave = editCart.length > 0 ? editCart : currentOrder.details;
             const subTotal = cartToSave.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
@@ -937,16 +1110,12 @@
             const totalAmt = subTotal - discount + shippingFee;
             const finalTotalAmount = totalAmt > 0 ? totalAmt : 0;
 
-            // --- LOGIC KIỂM TRA LẠI TRẠNG THÁI THANH TOÁN ---
             let currentPaid = parseFloat(currentOrder.amountPaid) || 0;
             let newPaymentStatus = currentOrder.paymentStatus;
 
-            // Nếu tổng tiền mới lớn hơn số tiền khách đã trả -> Về trạng thái Chưa thanh toán
             if (finalTotalAmount > currentPaid) {
                 newPaymentStatus = 'UNPAID';
-            }
-            // Nếu khách bớt sản phẩm, tổng tiền mới nhỏ hơn hoặc bằng số tiền đã trả -> Vẫn là Đã thanh toán (có thể cần thối lại tiền)
-            else if (finalTotalAmount > 0 && finalTotalAmount <= currentPaid) {
+            } else if (finalTotalAmount > 0 && finalTotalAmount <= currentPaid) {
                 newPaymentStatus = 'PAID';
             }
 
@@ -968,7 +1137,6 @@
                 codAmount: currentOrder.codAmount,
                 shipWeight: currentOrder.shipWeight,
 
-                // Gửi trạng thái và số tiền đã tính toán lại
                 paymentStatus: newPaymentStatus,
                 paymentMethod: currentOrder.paymentMethod,
                 amountPaid: currentPaid,
@@ -1016,39 +1184,59 @@
             submitFullOrderUpdate();
         }
 
-        // 4. API WORKFLOW
+        // 4. API WORKFLOW (CÓ BOX HỦY ĐƠN)
         async function changeOrderStatus(newStatus) {
-            // 1. Hiện bảng xác nhận với màu sắc linh hoạt theo trạng thái
-            const confirmation = await Swal.fire({
-                title: 'Xác nhận đổi trạng thái',
-                text: `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng thành: "${newStatus}"?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: newStatus === 'Hoàn thành' ? '#28a745' : '#3085d6',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Xác nhận',
-                cancelButtonText: 'Hủy bỏ'
-            });
+            // NẾU LÀ HỦY ĐƠN THÌ HIỆN BOX CUSTOM
+            if (newStatus === 'Đã hủy') {
+                const {value: cancelReason, isConfirmed} = await Swal.fire({
+                    title: 'Hủy đơn hàng',
+                    html: `Bạn đang thực hiện hủy đơn <b>#${currentOrder.orderCode}</b>. Vui lòng nhập lý do hủy:
+                           <textarea id="swal-cancel-note" class="swal2-textarea-custom" rows="3" placeholder="VD: Khách đổi ý, Hết hàng, Sai thông tin..."></textarea>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Xác nhận hủy đơn',
+                    cancelButtonText: 'Đóng',
+                    preConfirm: () => {
+                        const note = document.getElementById('swal-cancel-note').value.trim();
+                        if (!note) {
+                            Swal.showValidationMessage('Vui lòng nhập lý do hủy đơn hàng!');
+                        }
+                        return note;
+                    }
+                });
 
-            if (!confirmation.isConfirmed) return;
+                if (!isConfirmed) return;
+                currentOrder.status = newStatus;
+                currentOrder.note = currentOrder.note ? (currentOrder.note + " | Hủy do: " + cancelReason) : ("Hủy do: " + cancelReason);
 
-            // 2. Cập nhật logic đơn hàng
-            currentOrder.status = newStatus;
+            } else {
+                // TRẠNG THÁI BÌNH THƯỜNG
+                const confirmation = await Swal.fire({
+                    title: 'Xác nhận đổi trạng thái',
+                    text: `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng thành: "${newStatus}"?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: newStatus === 'Hoàn thành' ? '#28a745' : '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Xác nhận',
+                    cancelButtonText: 'Hủy bỏ'
+                });
+                if (!confirmation.isConfirmed) return;
+                currentOrder.status = newStatus;
+            }
 
-            // Logic tự động: Nếu hoàn thành thì coi như đã thanh toán đủ
             if (newStatus === 'Hoàn thành' && currentOrder.paymentStatus !== 'PAID') {
                 currentOrder.paymentStatus = 'PAID';
                 if (!currentOrder.paymentMethod) currentOrder.paymentMethod = 'CASH';
                 currentOrder.amountPaid = currentOrder.totalAmount;
-
-                // Thông báo nhẹ cho user biết hệ thống đã tự động thu tiền
                 Toast.fire({
                     icon: 'info',
                     title: 'Hệ thống đã tự động ghi nhận thanh toán đủ cho đơn hàng này.'
                 });
             }
 
-            // 3. Gọi hàm update (giả sử submitFullOrderUpdate đã có try-catch và Toast bên trong)
             try {
                 await submitFullOrderUpdate();
             } catch (e) {
@@ -1074,49 +1262,117 @@
         }
 
         async function deleteOrder() {
-            // 1. Sử dụng SweetAlert2 để đưa ra cảnh báo xóa vĩnh viễn
             const confirmation = await Swal.fire({
                 title: 'Xác nhận xóa đơn hàng',
                 text: `CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn đơn hàng #${currentOrder.orderCode}? Thao tác này không thể hoàn tác!`,
-                icon: 'error', // Dùng icon lỗi để tăng tính cảnh báo
+                icon: 'error',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',   // Màu đỏ cho hành động xóa
-                cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Tôi hiểu, xóa ngay!',
                 cancelButtonText: 'Hủy bỏ'
             });
 
-            // Nếu người dùng chọn Hủy
             if (!confirmation.isConfirmed) return;
 
             try {
-                // Lưu ý: Sử dụng đúng biến chứa mã đơn hàng (ở đây tôi dùng orderCode theo code gốc của bạn)
-                const res = await fetch('/api/v1/orders/' + orderCode, {
-                    method: 'DELETE'
+                const res = await fetch('/api/v1/orders/' + orderCode, {method: 'DELETE'});
+                if (res.ok) {
+                    await Toast.fire({icon: 'success', title: 'Đã xóa đơn hàng thành công!'});
+                    window.location.href = '/ui/orders';
+                } else {
+                    const errorMsg = await res.text();
+                    Toast.fire({icon: 'error', title: 'Không thể xóa: ' + (errorMsg || 'Vui lòng kiểm tra lại!')});
+                }
+            } catch (e) {
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối đến máy chủ!'});
+            }
+        }
+
+        // --- TRẢ HÀNG ---
+        function openReturnModal() {
+            document.getElementById('returnOrderCodeOrig').value = currentOrder.orderCode;
+            document.getElementById('returnFee').value = 0;
+
+            let html = '';
+            currentOrder.details.forEach((item) => {
+                html += `
+                    <tr>
+                        <td class="fw-medium text-dark ps-3 py-2" style="font-size:13px;">
+                            ${item.productName || item.name}
+                            <div class="text-muted" style="font-size:11px;">SKU: ${item.sku}</div>
+                        </td>
+                        <td class="text-center py-2">${item.quantity}</td>
+                        <td class="text-end py-2">${formatMoney(item.unitPrice)}</td>
+                        <td class="text-center py-2 pe-3">
+                            <input type="number" class="form-control form-control-sm text-center fw-bold return-qty-input"
+                                   data-sku="${item.sku}" data-name="${item.productName || item.name}"
+                                   data-price="${item.unitPrice}" max="${item.quantity}" min="0" value="0">
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('returnProductsBody').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('returnOrderModal')).show();
+        }
+
+        async function submitReturnOrder() {
+            const items = [];
+            let isOverQty = false;
+
+            document.querySelectorAll('.return-qty-input').forEach(input => {
+                const qty = parseInt(input.value) || 0;
+                const maxQty = parseInt(input.getAttribute('max'));
+
+                if (qty > maxQty) isOverQty = true;
+                if (qty > 0 && qty <= maxQty) {
+                    items.push({
+                        sku: input.getAttribute('data-sku'),
+                        productName: input.getAttribute('data-name'),
+                        quantity: qty,
+                        unitPrice: parseFloat(input.getAttribute('data-price'))
+                    });
+                }
+            });
+
+            if (isOverQty) return Toast.fire({
+                icon: 'error',
+                title: 'Số lượng trả không được vượt quá số lượng đã mua!'
+            });
+            if (items.length === 0) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng điền số lượng trả cho ít nhất 1 sản phẩm!'
+            });
+
+            const fee = parseFloat(document.getElementById('returnFee').value) || 0;
+
+            const payload = {
+                originalOrderCode: currentOrder.orderCode,
+                reason: document.getElementById('returnReason').value,
+                note: document.getElementById('returnNote').value,
+                returnFee: fee,
+                details: items
+            };
+
+            try {
+                const res = await fetch('/api/v1/returns', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
                 });
 
                 if (res.ok) {
-                    // Hiện thông báo thành công trước khi điều hướng về danh sách
-                    await Toast.fire({
-                        icon: 'success',
-                        title: 'Đã xóa đơn hàng thành công!'
+                    const data = await res.json();
+                    hideModalSafe('returnOrderModal');
+                    Toast.fire({icon: 'success', title: 'Tạo yêu cầu trả hàng thành công!'}).then(() => {
+                        window.location.href = '/ui/returns/' + data.returnCode;
                     });
-                    window.location.href = '/ui/orders';
                 } else {
-                    // Trường hợp server trả về lỗi (về phân quyền hoặc logic nghiệp vụ)
-                    const errorMsg = await res.text();
-                    Toast.fire({
-                        icon: 'error',
-                        title: 'Không thể xóa: ' + (errorMsg || 'Vui lòng kiểm tra lại!')
-                    });
+                    const err = await res.json();
+                    Toast.fire({icon: 'error', title: err.message || 'Lỗi tạo phiếu trả hàng'});
                 }
             } catch (e) {
-                // Bắt lỗi kết nối mạng hoặc server sập
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối đến máy chủ!'
-                });
-                console.error("Delete order error:", e);
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ'});
             }
         }
     </script>

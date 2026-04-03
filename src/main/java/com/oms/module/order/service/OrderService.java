@@ -7,6 +7,7 @@ import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.order.dto.OrderDetailRequest;
 import com.oms.module.order.dto.OrderRequest;
 import com.oms.module.order.entity.Order;
+import com.oms.module.order.entity.OrderActivity;
 import com.oms.module.order.entity.OrderDetail;
 import com.oms.module.order.repository.OrderRepository;
 import com.oms.module.product.entity.Product;
@@ -15,6 +16,8 @@ import com.oms.module.product.repository.ProductVariantRepository; // BỔ SUNG 
 import com.oms.module.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,7 +76,7 @@ public class OrderService {
                 .invoiceCompanyAddress(request.getInvoiceCompanyAddress())
                 .discountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO)
                 .details(new ArrayList<>())
-                .createdAt(LocalDateTime.now())
+                .createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now())
                 .build();
 
         // BƯỚC 1: Xây dựng danh sách chi tiết đơn hàng (Lúc này order.getDetails() đã có dữ liệu)
@@ -81,6 +84,8 @@ public class OrderService {
 
         // BƯỚC 2: Lưu đơn hàng xuống DB (kèm theo details nhờ Cascade)
         Order savedOrder = orderRepository.save(order);
+
+        addActivityLog(order, "Tạo mới đơn hàng", "Khởi tạo đơn hàng thành công");
 
         // BƯỚC 3: Áp dụng trừ kho (Lúc này savedOrder đã có đầy đủ Details và BranchId)
         applyInventory(savedOrder, savedOrder.getStatus());
@@ -143,6 +148,13 @@ public class OrderService {
                     detail.setWarrantyEndDate(LocalDateTime.now().plusMonths(detail.getWarrantyMonths()));
                 }
             }
+        }
+        if (!oldStatus.equals(newStatus)) {
+            addActivityLog(order, "Cập nhật trạng thái", "Chuyển trạng thái từ [" + oldStatus + "] sang [" + newStatus + "]");
+        } else if (order.getAmountPaid().compareTo(request.getAmountPaid()) != 0) {
+            addActivityLog(order, "Thanh toán", "Cập nhật số tiền đã thanh toán: " + request.getAmountPaid() + "đ");
+        } else {
+            addActivityLog(order, "Cập nhật thông tin", "Thay đổi thông tin chi tiết đơn hàng");
         }
 
         // BƯỚC 2: ÁP DỤNG LẠI TỒN KHO MỚI
@@ -253,13 +265,29 @@ public class OrderService {
                 throw new RuntimeException("Sản phẩm [" + detail.getProductName() + "] chỉ còn " + inv.getAvailableStock() + " chiếc có thể bán tại kho này!");
             }
 
-            // Trừ Có thể bán
+            // Trừ Có thể bán (Ở chi nhánh)
             inv.setAvailableStock(Math.max(0, inv.getAvailableStock() - detail.getQuantity()));
 
             // Nếu Hoàn thành thì trừ Tồn thực tế
             if (isCompleted) {
+                // 1. Trừ tồn kho vật lý ở chi nhánh
                 inv.setStock(Math.max(0, inv.getStock() - detail.getQuantity()));
+
+                // ==========================================
+                // THÊM MỚI: ĐỒNG BỘ TỒN KHO LÊN PRODUCT VARIANT VÀ PRODUCT
+                // ==========================================
+                // 2. Trừ tổng tồn kho toàn hệ thống của Biến thể (ProductVariant)
+                int currentVariantStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
+                variant.setStockQuantity(Math.max(0, currentVariantStock - detail.getQuantity()));
+                variantRepository.save(variant);
+
+                // 3. Gọi hàm đồng bộ tổng tồn kho lên Sản phẩm cha (Product)
+                if (variant.getProduct() != null) {
+                    productService.syncProductTotalStock(variant.getProduct().getId());
+                }
+                // ==========================================
             }
+
             inventoryRepository.save(inv);
         }
     }
@@ -287,13 +315,58 @@ public class OrderService {
                     inv.setAvailableStock(inv.getStock());
                 }
 
+                // Nhả Có thể bán
                 inv.setAvailableStock(inv.getAvailableStock() + detail.getQuantity());
 
+                // Nếu đơn đã Hoàn thành mà bị Hủy/Sửa, nhả Tồn thực tế
                 if (isCompleted) {
+                    // 1. Nhả tồn kho ở chi nhánh
                     inv.setStock(inv.getStock() + detail.getQuantity());
+
+                    // ==========================================
+                    // THÊM MỚI: NHẢ KHO CHO BIẾN THỂ VÀ ĐỒNG BỘ SẢN PHẨM CHA
+                    // ==========================================
+                    // 2. Nhả tổng tồn kho toàn hệ thống của Biến thể (ProductVariant)
+                    int currentVariantStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
+                    variant.setStockQuantity(currentVariantStock + detail.getQuantity());
+                    variantRepository.save(variant);
+
+                    // 3. Gọi hàm đồng bộ tổng tồn kho lên Sản phẩm cha (Product)
+                    if (variant.getProduct() != null) {
+                        productService.syncProductTotalStock(variant.getProduct().getId());
+                    }
+                    // ==========================================
                 }
                 inventoryRepository.save(inv);
             }
         }
+    }
+
+    private String getCurrentUser() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+                if (auth.getPrincipal() instanceof com.oms.module.account.entity.User) {
+                    return ((com.oms.module.account.entity.User) auth.getPrincipal()).getFullName();
+                }
+                return auth.getName();
+            }
+        } catch (Exception e) {
+        }
+        return "Hệ thống";
+    }
+
+    private void addActivityLog(Order order, String action, String description) {
+        OrderActivity activity = OrderActivity.builder()
+                .order(order)
+                .action(action)
+                .description(description)
+                .createdBy(getCurrentUser())
+                .createdAt(LocalDateTime.now())
+                .build();
+        if (order.getActivities() == null) {
+            order.setActivities(new ArrayList<>());
+        }
+        order.getActivities().add(activity);
     }
 }

@@ -237,8 +237,7 @@
 
                     <div class="mb-3">
                         <label class="form-label-custom">Ngày nhận máy</label>
-                        <input type="datetime-local" id="receiveDate" class="form-control form-control-custom bg-light"
-                               readonly>
+                        <input type="datetime-local" id="receiveDate" class="form-control form-control-custom bg-light">
                     </div>
 
                     <div class="mb-3">
@@ -361,6 +360,7 @@
                 type: document.querySelector('input[name="ticketType"]:checked').value,
                 repairCost: parseFloat(document.getElementById('repairCost').value || 0),
                 productName: document.getElementById('productName').value.trim(),
+                receiveDate : document.getElementById('receiveDate').value,
                 serialNumber: document.getElementById('serialNumber').value.trim(),
                 issueDescription: document.getElementById('issueDescription').value.trim(),
                 customerName: document.getElementById('customerName').value.trim(),

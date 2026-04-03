@@ -199,11 +199,15 @@ public class ReportController {
         BigDecimal grossProfit = netRev.subtract(cogs);
 
         // 3. TỔNG CHI PHÍ VẬN HÀNH (Lấy toàn bộ Phiếu Chi từ Sổ Quỹ)
-        BigDecimal operatingExpenses = cashTransactionRepository.sumAmountByTypeBetween(CashTransaction.TransactionType.PAYMENT, start, end);
+        BigDecimal operatingExpenses = cashTransactionRepository.sumOperatingExpensesBetweenDates(start, end);
         if (operatingExpenses == null) operatingExpenses = BigDecimal.ZERO;
 
+        // 4. BỔ SUNG: Lấy CHÍNH XÁC Thu nhập khác (Phiếu thu)
+        BigDecimal otherIncome = cashTransactionRepository.sumOtherIncomeBetweenDates(start, end);
+        if (otherIncome == null) otherIncome = BigDecimal.ZERO;
+
         // 4. LỢI NHUẬN RÒNG (Lợi nhuận gộp - Chi phí vận hành)
-        BigDecimal netProfit = grossProfit.subtract(operatingExpenses);
+        BigDecimal netProfit = grossProfit.add(otherIncome).subtract(operatingExpenses);
 
         // 5. Ném ra View
         model.addAttribute("netRevenue", netRev);

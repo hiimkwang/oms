@@ -13,6 +13,7 @@
             height: 36px;
             display: flex;
             align-items: center;
+            border-radius: 4px;
         }
 
         .filter-btn:hover {
@@ -46,6 +47,7 @@
             font-size: 14px;
             position: relative;
             cursor: pointer;
+            border-radius: 0;
         }
 
         .nav-tabs-custom .nav-link.active {
@@ -93,7 +95,7 @@
             box-shadow: none;
             padding-left: 0;
             font-size: 13px;
-            height: 36px;
+            height: 34px;
         }
 
         /* Style cho các Badge Trạng thái */
@@ -178,15 +180,34 @@
                     <input type="text" id="orderSearchInput" class="form-control"
                            placeholder="Tìm kiếm theo mã đơn hàng, tên KH, SĐT...">
                 </div>
-                <div class="d-flex gap-2">
-                    <select class="form-select filter-btn w-auto" id="channelFilter">
+
+                <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select filter-btn w-auto" id="channelFilter" onchange="applyFilters()">
                         <option value="ALL">Tất cả Kênh bán</option>
                         <option th:each="c : ${channels}" th:value="${c.code}" th:text="${c.name}"></option>
                     </select>
-                    <input type="date" class="form-control filter-btn w-auto text-muted" id="dateFilter"
-                           title="Ngày đặt hàng">
-                    <button class="btn filter-btn" onclick="clearAllFilters()"><i
-                            class="bi bi-arrow-counterclockwise me-2"></i>Xóa bộ lọc
+
+                    <select class="form-select filter-btn w-auto fw-bold text-dark" id="datePreset"
+                            onchange="handleDatePresetChange()">
+                        <option value="all">Toàn thời gian</option>
+                        <option value="today">Hôm nay</option>
+                        <option value="yesterday">Hôm qua</option>
+                        <option value="7days">7 ngày qua</option>
+                        <option value="thisMonth">Tháng này</option>
+                        <option value="lastMonth">Tháng trước</option>
+                        <option value="custom">Tùy chọn...</option>
+                    </select>
+
+                    <div id="customDateContainer" class="gap-2 align-items-center d-none">
+                        <input type="date" class="form-control filter-btn w-auto text-muted" id="startDate"
+                               onchange="applyFilters()">
+                        <span class="text-muted">-</span>
+                        <input type="date" class="form-control filter-btn w-auto text-muted" id="endDate"
+                               onchange="applyFilters()">
+                    </div>
+
+                    <button class="btn filter-btn" onclick="clearAllFilters()" title="Xóa bộ lọc">
+                        <i class="bi bi-arrow-counterclockwise"></i>
                     </button>
                 </div>
             </div>
@@ -269,14 +290,12 @@
                 });
             });
 
-            // Lắng nghe sự kiện Search & Dropdown (Debounce 300ms)
+            // Lắng nghe sự kiện Search (Debounce 300ms)
             let searchTimeout;
             document.getElementById('orderSearchInput').addEventListener('input', () => {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(applyFilters, 300);
             });
-            document.getElementById('channelFilter').addEventListener('change', applyFilters);
-            document.getElementById('dateFilter').addEventListener('change', applyFilters);
 
             // Lắng nghe Checkbox Chọn tất cả
             document.getElementById('checkAll').addEventListener('change', function () {
@@ -300,11 +319,67 @@
             }
         }
 
+        // --- HÀM XỬ LÝ LỌC NGÀY (CÓ PRESET) ---
+        function handleDatePresetChange() {
+            const preset = document.getElementById('datePreset').value;
+            const customContainer = document.getElementById('customDateContainer');
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
+
+            // Format YYYY-MM-DD
+            const formatDate = (date) => date.toISOString().split('T')[0];
+            const today = new Date();
+
+            if (preset === 'custom') {
+                customContainer.classList.remove('d-none');
+                customContainer.classList.add('d-flex');
+                return; // Nếu chọn Custom thì dừng ở đây, chờ user tự nhập Start/End rồi applyFilters()
+            } else {
+                customContainer.classList.remove('d-flex');
+                customContainer.classList.add('d-none');
+            }
+
+            // Xử lý các Preset tự động tính ngày
+            if (preset === 'all') {
+                startInput.value = '';
+                endInput.value = '';
+            } else if (preset === 'today') {
+                startInput.value = formatDate(today);
+                endInput.value = formatDate(today);
+            } else if (preset === 'yesterday') {
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                startInput.value = formatDate(yesterday);
+                endInput.value = formatDate(yesterday);
+            } else if (preset === '7days') {
+                const last7 = new Date(today);
+                last7.setDate(last7.getDate() - 6);
+                startInput.value = formatDate(last7);
+                endInput.value = formatDate(today);
+            } else if (preset === 'thisMonth') {
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                startInput.value = formatDate(firstDay);
+                endInput.value = formatDate(today);
+            } else if (preset === 'lastMonth') {
+                const firstDayPrev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                const lastDayPrev = new Date(today.getFullYear(), today.getMonth(), 0);
+                startInput.value = formatDate(firstDayPrev);
+                endInput.value = formatDate(lastDayPrev);
+            }
+
+            applyFilters();
+        }
+
         // 2. LOGIC LỌC (FILTER) CLIENT-SIDE
         function applyFilters() {
             const keyword = document.getElementById('orderSearchInput').value.toLowerCase().trim();
             const channel = document.getElementById('channelFilter').value;
-            const date = document.getElementById('dateFilter').value; // YYYY-MM-DD
+
+            // Lấy khoảng thời gian từ 2 ô input ẩn/hiện
+            const startDateStr = document.getElementById('startDate').value;
+            const endDateStr = document.getElementById('endDate').value;
+            const startTimestamp = startDateStr ? new Date(startDateStr + 'T00:00:00').getTime() : null;
+            const endTimestamp = endDateStr ? new Date(endDateStr + 'T23:59:59').getTime() : null;
 
             const filteredOrders = allOrders.filter(o => {
                 // Lọc theo Tab Trạng thái
@@ -313,11 +388,16 @@
                 // Lọc theo Kênh bán
                 const matchChannel = (channel === 'ALL') || (o.salesChannelCode === channel) || (!o.salesChannelCode && channel === 'ALL');
 
-                // Lọc theo Ngày (Cắt lấy phần ngày YYYY-MM-DD từ chuỗi ISO LocalDateTime)
+                // Lọc theo Khoảng thời gian (Từ ngày - Đến ngày)
                 let matchDate = true;
-                if (date) {
-                    const orderDate = o.createdAt ? o.createdAt.split('T')[0] : '';
-                    matchDate = (orderDate === date);
+                if (startTimestamp || endTimestamp) {
+                    if (o.createdAt) {
+                        const orderTime = new Date(o.createdAt).getTime();
+                        if (startTimestamp && orderTime < startTimestamp) matchDate = false;
+                        if (endTimestamp && orderTime > endTimestamp) matchDate = false;
+                    } else {
+                        matchDate = false;
+                    }
                 }
 
                 // Lọc theo Từ khóa (Mã đơn, Tên KH, SĐT KH)
@@ -339,7 +419,13 @@
         function clearAllFilters() {
             document.getElementById('orderSearchInput').value = '';
             document.getElementById('channelFilter').value = 'ALL';
-            document.getElementById('dateFilter').value = '';
+            document.getElementById('datePreset').value = 'all';
+
+            // Ẩn khung custom date và clear data
+            document.getElementById('customDateContainer').classList.replace('d-flex', 'd-none');
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+
             applyFilters();
         }
 
@@ -357,7 +443,6 @@
 
             let html = '';
             dataList.forEach(o => {
-                // Format Ngày tháng
                 let formattedDate = '---';
                 if (o.createdAt) {
                     const d = new Date(o.createdAt);
@@ -367,29 +452,24 @@
                     });
                 }
 
-                // Format Tiền
                 const totalAmount = new Intl.NumberFormat('vi-VN').format(o.totalAmount || 0) + '₫';
 
-                // Lấy thông tin KH
                 const cusName = o.customer ? (o.customer.fullName || o.customer.lastName + ' ' + o.customer.firstName || 'Khách lẻ') : 'Khách lẻ';
                 const cusCode = o.customer ? (o.customer.code || o.customer.id || '') : '';
                 const cusLink = cusCode ? `/ui/customers/${cusCode}` : 'javascript:void(0)';
 
-                // Kênh bán (Nếu code là rỗng thì hiện chữ ---)
                 const channelText = o.salesChannelCode || '---';
 
-                // Format Badge Thanh toán
                 let paymentBadge = '';
                 if (o.paymentStatus === 'PAID') paymentBadge = '<span class="status-badge badge-paid"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>';
                 else paymentBadge = '<span class="status-badge badge-unpaid"><i class="bi bi-clock me-1"></i>Chưa thanh toán</span>';
 
-                // Format Badge Trạng thái Đơn hàng
                 let statusBadge = '';
                 const st = o.status || 'Khởi tạo';
                 if (st === 'Khởi tạo' || st === 'Nháp') statusBadge = `<span class="status-badge badge-init">${st}</span>`;
                 else if (st === 'Hoàn thành' || st === 'Đã giao') statusBadge = `<span class="status-badge badge-success">${st}</span>`;
                 else if (st === 'Đã hủy' || st === 'Hủy') statusBadge = `<span class="status-badge badge-cancel">${st}</span>`;
-                else statusBadge = `<span class="status-badge badge-processing">${st}</span>`; // Đang giao dịch, Đang giao hàng...
+                else statusBadge = `<span class="status-badge badge-processing">${st}</span>`;
 
                 html += `
                     <tr>
@@ -413,7 +493,7 @@
 
             tbody.innerHTML = html;
             info.innerText = `Hiển thị ${dataList.length} đơn hàng`;
-            clearSelection(); // Reset thanh công cụ khi render lại bảng
+            clearSelection();
         }
 
         // 4. XỬ LÝ THAO TÁC XÓA NHIỀU ĐƠN (BULK ACTION)
@@ -421,7 +501,6 @@
             const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
             const bulkBar = document.getElementById('bulkActionBar');
 
-            // Xử lý logic checkAll
             const allCheckboxes = document.querySelectorAll('.order-checkbox');
             document.getElementById('checkAll').checked = (checkedBoxes.length > 0 && checkedBoxes.length === allCheckboxes.length);
 
@@ -443,7 +522,6 @@
         async function deleteSelectedOrders() {
             const checkboxes = document.querySelectorAll('.order-checkbox:checked');
 
-            // 1. Cảnh báo nếu chưa chọn đơn nào
             if (checkboxes.length === 0) {
                 Toast.fire({
                     icon: 'warning',
@@ -452,11 +530,10 @@
                 return;
             }
 
-            // 2. Hiện bảng xác nhận cực kỳ chuyên nghiệp và nghiêm túc
             const confirmation = await Swal.fire({
                 title: 'Xác nhận xóa vĩnh viễn',
                 text: `CẢNH BÁO: Bạn có chắc chắn muốn xóa vĩnh viễn ${checkboxes.length} đơn hàng đã chọn không? Thao tác này không thể hoàn tác!`,
-                icon: 'error', // Dùng icon error (dấu X đỏ) để nhấn mạnh mức độ nguy hiểm
+                icon: 'error',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
@@ -466,7 +543,6 @@
 
             if (!confirmation.isConfirmed) return;
 
-            // 3. Logic xử lý UI loading
             let successCount = 0;
             const btn = document.querySelector('#bulkActionBar button');
             const originalText = btn.innerHTML;
@@ -474,7 +550,6 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
             btn.disabled = true;
 
-            // 4. Lặp qua từng đơn để gọi API Xóa
             for (let cb of checkboxes) {
                 try {
                     const res = await fetch(`/api/v1/orders/${cb.value}`, {method: 'DELETE'});
@@ -484,7 +559,6 @@
                 }
             }
 
-            // 5. Thông báo kết quả tổng quát
             if (successCount > 0) {
                 await Swal.fire({
                     title: 'Hoàn tất!',
@@ -498,7 +572,6 @@
                 });
             }
 
-            // 6. Reset UI và tải lại danh sách mượt mà
             btn.innerHTML = originalText;
             btn.disabled = false;
             await loadOrders();

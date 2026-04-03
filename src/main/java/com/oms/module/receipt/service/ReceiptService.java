@@ -4,6 +4,7 @@ import com.oms.module.inventory.entity.Inventory;
 import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.product.entity.ProductVariant;
 import com.oms.module.product.repository.ProductVariantRepository;
+import com.oms.module.product.service.ProductService;
 import com.oms.module.receipt.dto.ReceiptRequest;
 import com.oms.module.receipt.dto.SupplierStatsResponse;
 import com.oms.module.receipt.entity.Receipt;
@@ -35,6 +36,7 @@ public class ReceiptService {
     private final ReceiptActivityRepository activityRepository;
     private final InventoryRepository inventoryRepository;
     private final BranchRepository branchRepository;
+    private final ProductService productService;
 
     private String getCurrentUserName() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -68,6 +70,7 @@ public class ReceiptService {
                 .totalAmount(request.getTotalAmount())
                 .amountPaid(request.getAmountPaid())
                 .paymentStatus(request.getPaymentStatus())
+                .createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now())
                 .status("TRADING")
                 .importStatus("PENDING")
                 .creatorName(currentWorker)
@@ -173,8 +176,18 @@ public class ReceiptService {
             // CẬP NHẬT KHO: Trừ Inbound, Cộng Tồn thực tế & Có thể bán
             updateBranchInventoryForImport(receipt.getBranchId(), variant.getId(), detail.getQuantity());
 
-            variant.setStockQuantity(variant.getStockQuantity() + detail.getQuantity());
+            // Cập nhật tồn kho vật lý của Biến thể
+            int currentVariantStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
+            variant.setStockQuantity(currentVariantStock + detail.getQuantity());
             variantRepository.save(variant);
+
+            // ==========================================
+            // THÊM MỚI: ĐỒNG BỘ TỒN KHO LÊN SẢN PHẨM CHA
+            // ==========================================
+            if (variant.getProduct() != null) {
+                productService.syncProductTotalStock(variant.getProduct().getId());
+            }
+            // ==========================================
         }
 
         receipt.setImportStatus("COMPLETED");

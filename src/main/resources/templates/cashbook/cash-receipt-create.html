@@ -25,6 +25,11 @@
             height: 38px;
         }
 
+        /* Ghi đè height cho textarea để nó to ra */
+        textarea.form-control-custom {
+            height: auto !important;
+        }
+
         .search-group-custom {
             border: 1px solid #dce0e4;
             border-radius: 6px;
@@ -137,25 +142,7 @@
                     </div>
 
                     <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label-custom text-primary">Lý do thu*</label>
-                            <select id="reason" class="form-select form-select-custom">
-                                <option value="Thu nợ khách hàng">Thu nợ khách hàng</option>
-                                <option value="Khách đặt cọc">Khách đặt cọc</option>
-                                <option value="Thu khác">Thu khác</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label-custom text-primary">Hình thức thu*</label>
-                            <select id="paymentMethod" class="form-select form-select-custom">
-                                <option value="CASH">Tiền mặt</option>
-                                <option value="BANK">Tài khoản ngân hàng</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label-custom text-primary">Giá trị thu*</label>
                             <div class="input-group search-group-custom">
                                 <input type="number" id="amount"
@@ -164,10 +151,32 @@
                                 <span class="input-group-text fw-bold">₫</span>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label-custom text-primary">Hình thức thu*</label>
+                            <select id="paymentMethod" class="form-select form-select-custom">
+                                <option value="CASH">Tiền mặt</option>
+                                <option value="BANK">Tài khoản ngân hàng</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom text-primary">Lý do thu*</label>
+                            <select id="reason" class="form-select form-select-custom">
+                                <option value="Thu nợ khách hàng">Thu nợ khách hàng</option>
+                                <option value="Khách đặt cọc">Khách đặt cọc</option>
+                                <option value="Thu nhập khác">Thu nhập khác (Tính vào LN)</option>
+                                <option value="Thanh lý tài sản">Thanh lý tài sản</option>
+                                <option value="Nhận vốn góp">Nhận vốn góp</option>
+                                <option value="Rút tiền từ Ngân hàng">Rút tiền từ Ngân hàng</option>
+                                <option value="Thu khác">Thu khác</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
                             <label class="form-label-custom text-primary">Diễn giải*</label>
-                            <input type="text" id="description" class="form-control form-control-custom"
-                                   placeholder="Nhập nội dung chi tiết...">
+                            <textarea id="description" class="form-control form-control-custom" rows="3"
+                                      placeholder="Nhập nội dung chi tiết (Ví dụ: Thu tiền cọc đơn hàng A, Thanh lý lô hàng B...)"></textarea>
                         </div>
                     </div>
                 </div>
@@ -319,6 +328,10 @@
         async function submitReceipt() {
             const amount = document.getElementById('amount').value;
             const dateVal = document.getElementById('transactionDate').value;
+            // Clean up reason text if you selected the 'Thu nhập khác (Tính vào LN)' one to match backend DB text
+            let rawReason = document.getElementById('reason').value;
+            let finalReason = rawReason.replace(" (Tính vào LN)", "");
+
             if (!amount || amount <= 0) {
                 Toast.fire({
                     icon: 'error',
@@ -332,7 +345,7 @@
                 paymentMethod: document.getElementById('paymentMethod').value,
                 targetGroup: document.getElementById('targetGroup').value,
                 targetId: document.getElementById('targetId').value,
-                reason: document.getElementById('reason').value,
+                reason: finalReason,
                 amount: parseFloat(amount),
                 description: document.getElementById('description').value,
                 branchId: document.getElementById('branchId').value,

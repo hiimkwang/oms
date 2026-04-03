@@ -91,14 +91,14 @@ public class DashboardController {
         BigDecimal grossProfit = totalRevenue.subtract(cogs);
 
         // D. CHI PHÍ BÁN HÀNG & QUẢN LÝ (Operating Expenses từ Sổ Quỹ)
-        BigDecimal operatingExpenses = cashRepo.sumAmountByTypeBetween(CashTransaction.TransactionType.PAYMENT, start, end);
+        BigDecimal operatingExpenses = cashRepo.sumOperatingExpensesBetweenDates(start, end);
+        if (operatingExpenses == null) operatingExpenses = BigDecimal.ZERO;
 
-        if (operatingExpenses == null) {
-            operatingExpenses = BigDecimal.ZERO;
-        }
+        BigDecimal otherIncome = cashRepo.sumOtherIncomeBetweenDates(start, end);
+        if (otherIncome == null) otherIncome = BigDecimal.ZERO;
 
         // E. LỢI NHUẬN TRƯỚC THUẾ
-        BigDecimal profitBeforeTax = grossProfit.subtract(operatingExpenses);
+        BigDecimal profitBeforeTax = grossProfit.add(otherIncome).subtract(operatingExpenses);
 
         // F. THUẾ TNDN (Tạm tính 20% nếu có lãi, theo đúng ví dụ của anh)
         BigDecimal tax = BigDecimal.ZERO;
@@ -158,13 +158,17 @@ public class DashboardController {
                 BigDecimal dCogs = orderRepo.sumTotalCOGS(dayStart, dayEnd);
                 if (dCogs == null) dCogs = BigDecimal.ZERO;
 
-                BigDecimal dExp = cashRepo.sumAmountByTypeBetween(CashTransaction.TransactionType.PAYMENT, dayStart, dayEnd);
+                // Sửa đoạn tính chi phí và lợi nhuận ở vòng lặp < 35 ngày
+                BigDecimal dExp = cashRepo.sumOperatingExpensesBetweenDates(dayStart, dayEnd);
                 if (dExp == null) dExp = BigDecimal.ZERO;
+
+                BigDecimal dOther = cashRepo.sumOtherIncomeBetweenDates(dayStart, dayEnd);
+                if (dOther == null) dOther = BigDecimal.ZERO;
 
                 chartLabels.add(dayStart.getDayOfMonth() + "/" + dayStart.getMonthValue());
                 chartRevenue.add(dRev);
-                chartExpenses.add(dExp); // Đẩy chi phí vào mảng
-                chartProfit.add(dRev.subtract(dCogs).subtract(dExp));
+                chartExpenses.add(dExp);
+                chartProfit.add(dRev.subtract(dCogs).add(dOther).subtract(dExp)); // Cập nhật công thức Chart
             }
         }
         // NẾU LỌC DÀI HƠN -> VẼ THEO TỪNG THÁNG
@@ -182,13 +186,17 @@ public class DashboardController {
                 BigDecimal mCogs = orderRepo.sumTotalCOGS(mStart, mEnd);
                 if (mCogs == null) mCogs = BigDecimal.ZERO;
 
-                BigDecimal mExp = cashRepo.sumAmountByTypeBetween(CashTransaction.TransactionType.PAYMENT, mStart, mEnd);
+                // Sửa đoạn tính chi phí và lợi nhuận ở vòng lặp Tháng
+                BigDecimal mExp = cashRepo.sumOperatingExpensesBetweenDates(mStart, mEnd);
                 if (mExp == null) mExp = BigDecimal.ZERO;
+
+                BigDecimal mOther = cashRepo.sumOtherIncomeBetweenDates(mStart, mEnd);
+                if (mOther == null) mOther = BigDecimal.ZERO;
 
                 chartLabels.add("T" + startMonth.getMonthValue());
                 chartRevenue.add(mRev);
-                chartExpenses.add(mExp); // Đẩy chi phí vào mảng
-                chartProfit.add(mRev.subtract(mCogs).subtract(mExp));
+                chartExpenses.add(mExp);
+                chartProfit.add(mRev.subtract(mCogs).add(mOther).subtract(mExp)); // Cập nhật công thức Chart
 
                 startMonth = startMonth.plusMonths(1);
             }

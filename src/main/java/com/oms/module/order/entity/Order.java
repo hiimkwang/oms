@@ -102,6 +102,11 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderDetail> details = new ArrayList<>();
 
+    @Builder.Default
+    @OrderBy("createdAt DESC") // Tự động sắp xếp mới nhất lên đầu
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderActivity> activities = new ArrayList<>();
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -49,7 +50,7 @@ public class OrderRequest {
 
     @NotNull(message = "Tổng tiền không được để trống")
     private BigDecimal totalAmount;
-
+    private LocalDateTime createdAt;
     // --- Chi tiết sản phẩm ---
     @NotEmpty(message = "Giỏ hàng không được để trống")
     private List<OrderDetailRequest> details;

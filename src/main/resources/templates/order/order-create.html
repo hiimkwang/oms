@@ -1126,6 +1126,7 @@
                 shippingPartner: document.getElementById('shipPartner').value || null,
                 trackingCode: shippingType === 'PLATFORM' ? document.getElementById('platformTrackingCode').value : document.getElementById('trackingCode').value,
                 shippingAddress: document.getElementById('displayShippingAddress').value,
+                createdAt: document.getElementById('orderDate').value || null,
                 expectedDeliveryDate: document.getElementById('expectedDeliveryDate').value || null,
                 shippingFee: parseFloat(document.getElementById('shippingFeeInput').value) || 0,
                 codAmount: parseFloat(document.getElementById('codAmount').value) || 0,

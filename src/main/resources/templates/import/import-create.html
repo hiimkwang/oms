@@ -319,7 +319,7 @@
                                placeholder="Ví dụ: HD-NCC-001">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label-custom">Ngày nhập dự kiến</label>
+                        <label class="form-label-custom">Ngày nhập </label>
                         <input type="date" id="expectedDate" class="form-control form-control-custom"
                                th:value="${#calendars.format(#calendars.createNow(), 'yyyy-MM-dd')}">
                     </div>
@@ -713,7 +713,7 @@
                 branchName: branchName,
                 assigneeId: document.getElementById('assigneeId').value,
                 referenceCode: document.getElementById('referenceCode').value,
-                expectedDate: document.getElementById('expectedDate').value,
+                createdAt: document.getElementById('expectedDate').value || null,
                 note: document.getElementById('orderNote').value,
                 itemsAmount: totalItemsAmount,
                 discount: parseFloat(document.getElementById('discountInput').value) || 0,

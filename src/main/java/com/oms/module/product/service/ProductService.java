@@ -291,6 +291,20 @@ public class ProductService {
     }
 
     @Transactional
+    public void syncProductTotalStock(Long productId) {
+        Product product = productRepository.findById(productId).orElse(null);
+        if (product != null) {
+            // Cộng tổng số lượng từ tất cả các biến thể
+            int totalStock = product.getVariants().stream()
+                    .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
+                    .sum();
+
+            product.setStockQuantity(totalStock);
+            productRepository.save(product);
+        }
+    }
+
+    @Transactional
     public void deleteProductsBulk(List<Long> ids) {
         productVariantRepository.deleteByProductIdIn(ids);
         productRepository.deleteAllByIdInBatch(ids);

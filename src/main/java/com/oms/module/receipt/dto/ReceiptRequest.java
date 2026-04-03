@@ -3,6 +3,7 @@ package com.oms.module.receipt.dto;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -26,7 +27,7 @@ public class ReceiptRequest {
     private Long assigneeId;      // Nhân viên phụ trách (Nếu cần)
 
     private List<ItemRequest> items;
-
+    private LocalDateTime createdAt;
     @Data
     public static class ItemRequest {
         private String sku;

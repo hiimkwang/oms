@@ -15,6 +15,8 @@ import com.oms.module.order.service.OrderService;
 import com.oms.module.product.service.ProductService;
 import com.oms.module.receipt.entity.Receipt;
 import com.oms.module.receipt.service.ReceiptService;
+import com.oms.module.returnorder.entity.ReturnOrder;
+import com.oms.module.returnorder.service.ReturnOrderService;
 import com.oms.module.setting.entity.Branch;
 import com.oms.module.setting.service.BranchService;
 import com.oms.module.setting.service.MasterDataService;
@@ -57,6 +59,7 @@ public class WebController {
     private final CashbookService cashbookService;
     private final WarrantyService warrantyService;
     private final CustomUserDetailsService customUserDetailsService;
+    private final ReturnOrderService returnOrderService;
 
     @GetMapping("/login")
     public String login() {
@@ -451,4 +454,23 @@ public class WebController {
         return "notifications/list-noti";
     }
 
+    @GetMapping("/ui/returns")
+    public String getReturnList(@RequestParam(required = false) String keyword,
+                                @RequestParam(required = false) String status,
+                                Model model) {
+        List<ReturnOrder> returns = returnOrderService.getAllReturns(keyword, status);
+        model.addAttribute("returns", returns);
+        return "returnorder/return-list";
+    }
+
+    @GetMapping("/ui/returns/{code}")
+    public String getReturnDetail(@PathVariable String code, Model model) {
+        ReturnOrder returnOrder = returnOrderService.getByCode(code);
+
+        model.addAttribute("returnOrder", returnOrder);
+
+        model.addAttribute("branches", branchService.findAll());
+
+        return "returnorder/return-detail";
+    }
 }

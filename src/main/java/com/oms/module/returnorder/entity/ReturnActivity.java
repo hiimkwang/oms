@@ -1,29 +1,32 @@
-package com.oms.module.receipt.entity;
+package com.oms.module.returnorder.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "receipt_activities")
-@Data
-@Builder
+@Table(name = "return_activities")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReceiptActivity {
+@Builder
+public class ReturnActivity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "receipt_id")
-    private Receipt receipt;
+    @JoinColumn(name = "return_order_id")
+    private ReturnOrder returnOrder;
 
-    private String action; // Ví dụ: "Tạo đơn", "Nhập kho", "Thanh toán", "Hủy đơn"
-    private String creatorName;
+    private String action;
+    private String description;
+    private String createdBy;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

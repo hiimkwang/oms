@@ -52,6 +52,5 @@ public class Receipt {
     private BigDecimal shippingFee;
     private BigDecimal amountPaid;
 
-    @CreationTimestamp
     private LocalDateTime createdAt;
 }

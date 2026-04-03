@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "warranty_tickets")
@@ -45,6 +46,10 @@ public class WarrantyTicket {
 
     @Enumerated(EnumType.STRING)
     private TicketStatus status;
+
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt DESC") // Tự động sắp xếp mới nhất lên đầu
+    private List<WarrantyActivity> activities;
 
     public enum TicketType {
         WARRANTY, // Bảo hành
