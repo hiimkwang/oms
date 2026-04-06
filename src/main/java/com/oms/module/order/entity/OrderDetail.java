@@ -23,10 +23,9 @@ public class OrderDetail {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
-    @JsonIgnore // Tránh lỗi lặp vô hạn (Infinite Recursion) khi trả JSON
+    @JsonIgnore
     private Order order;
 
-    // Cho phép null để lưu sản phẩm tùy chỉnh (Custom Product)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = true)
     private Product product;

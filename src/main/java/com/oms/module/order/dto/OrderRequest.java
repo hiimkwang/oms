@@ -29,7 +29,7 @@ public class OrderRequest {
     private String shippingPartner;
     private String trackingCode;
     private String shippingAddress;
-    private LocalDate expectedDeliveryDate; // Chú ý kiểu dữ liệu ngày tháng
+    private LocalDate expectedDeliveryDate;
     private BigDecimal shippingFee;
     private BigDecimal codAmount;
     private Double shipWeight;

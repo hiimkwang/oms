@@ -4,7 +4,6 @@
 <body>
 <div class="oms-container pb-5">
     <style>
-        /* Thống nhất style chuẩn hệ thống */
         .filter-btn {
             background: white;
             border: 1px solid #dce0e4;
@@ -126,11 +125,10 @@
                 <div class="d-flex gap-2">
                     <select name="status" class="form-select filter-btn w-auto" onchange="this.form.submit()">
                         <option value="">Tất cả trạng thái</option>
-                        <option value="PROCESSING"
-                                th:selected="${#strings.equals(param.status, 'PROCESSING')}">Đang xử lý
-                        </option>
-                        <option value="COMPLETED"
-                                th:selected="${#strings.equals(param.status, 'COMPLETED')}">Đã hoàn tất
+                        <option th:each="entry : ${returnStatusMap}"
+                                th:value="${entry.key}"
+                                th:text="${entry.value}"
+                                th:selected="${#strings.equals(param.status, entry.key)}">
                         </option>
                     </select>
 
@@ -204,8 +202,8 @@
                         th:text="${#numbers.formatDecimal(r.totalRefundAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></td>
                     <td class="text-center pe-4">
                         <span class="badge-status"
-                              th:classappend="${r.status == 'COMPLETED' ? 'bg-success text-white' : 'bg-warning text-dark'}"
-                              th:text="${r.status == 'COMPLETED' ? 'Đã hoàn tất' : 'Đang xử lý'}">
+                              th:classappend="${r.status == 'COMPLETED' ? 'bg-success text-white' : (r.status == 'REJECTED' ? 'bg-danger text-white' : 'bg-warning text-dark')}"
+                              th:text="${returnStatusMap != null ? returnStatusMap[r.status] : r.status}">
                         </span>
                     </td>
                 </tr>
@@ -248,7 +246,6 @@
     </div>
 
     <script th:inline="javascript">
-        // Xử lý Checkbox & Bulk Actions
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('.item-check');
             checkboxes.forEach(cb => cb.checked = source.checked);
@@ -282,10 +279,7 @@
             const checkedBoxes = document.querySelectorAll('.item-check:checked');
 
             if (checkedBoxes.length === 0) {
-                Toast.fire({
-                    icon: 'warning',
-                    title: 'Vui lòng chọn ít nhất 1 phiếu trả hàng để xóa!'
-                });
+                Toast.fire({icon: 'warning', title: 'Vui lòng chọn ít nhất 1 phiếu trả hàng để xóa!'});
                 return;
             }
 
@@ -312,23 +306,14 @@
                 });
 
                 if (res.ok) {
-                    await Toast.fire({
-                        icon: 'success',
-                        title: `Đã xóa thành công ${ids.length} phiếu!`
-                    });
+                    await Toast.fire({icon: 'success', title: `Đã xóa thành công ${ids.length} phiếu!`});
                     window.location.reload();
                 } else {
                     const errText = await res.text();
-                    Toast.fire({
-                        icon: 'error',
-                        title: 'Lỗi: ' + (errText || 'Không thể xóa phiếu!')
-                    });
+                    Toast.fire({icon: 'error', title: 'Lỗi: ' + (errText || 'Không thể xóa phiếu!')});
                 }
             } catch (err) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối đến máy chủ!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối đến máy chủ!'});
             }
         }
     </script>

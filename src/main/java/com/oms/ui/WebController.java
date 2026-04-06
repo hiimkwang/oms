@@ -157,7 +157,7 @@ public class WebController {
         model.addAttribute("brands", masterDataService.getValuesByType("BRAND"));
         model.addAttribute("units", masterDataService.getValuesByType("UNIT"));
 
-        return "product/product-edit";
+        return "product/product-detail";
     }
 
     @GetMapping("/ui/customers")
@@ -175,7 +175,7 @@ public class WebController {
         model.addAttribute("customer", customerService.getCustomerByCode(code));
         List<Order> customerOrders = orderService.findTop10ByCustomer_CodeOrderByCreatedAtDescByCode(code);
         model.addAttribute("orders", customerOrders);
-        return "customer/customer-edit";
+        return "customer/customer-detail";
     }
 
     @GetMapping("/ui/customer-groups")
@@ -191,7 +191,7 @@ public class WebController {
     @GetMapping("/ui/customer-groups/{code}")
     public String editCustomerGroupPage(@PathVariable String code, Model model) {
         model.addAttribute("groupCode", code);
-        return "customer/customer-group-edit";
+        return "customer/customer-group-detail";
     }
 
     @GetMapping("/ui/orders")
@@ -235,7 +235,7 @@ public class WebController {
     public String editCategoryPage(@PathVariable Long id, Model model) {
         model.addAttribute("category", categoryService.getById(id));
 
-        return "category/category-edit";
+        return "category/category-detail";
     }
 
     @PostMapping("/ui/categories/bulk-delete")

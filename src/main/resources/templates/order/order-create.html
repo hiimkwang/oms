@@ -154,10 +154,10 @@
         <div class="d-flex gap-2">
             <a th:href="@{/ui/orders}" class="btn btn-white border fw-medium bg-white text-dark px-4">Hủy</a>
             <button type="button" class="btn btn-white border fw-medium bg-white text-dark px-4"
-                    onclick="submitOrder('Nháp')">Lưu nháp
+                    onclick="submitOrder('DRAFT')">Lưu nháp
             </button>
             <button type="button" class="btn btn-primary fw-bold px-4" id="btnSubmitOrder"
-                    onclick="submitOrder('Khởi tạo')">Tạo đơn và giao hàng
+                    onclick="submitOrder('CREATED')">Tạo đơn hàng
             </button>
         </div>
     </div>
@@ -311,9 +311,8 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label-custom text-muted small d-flex justify-content-between">
-                                Địa chỉ khách nhận hàng
-                            </label>
+                            <label class="form-label-custom text-muted small d-flex justify-content-between">Địa chỉ
+                                khách nhận hàng</label>
                             <textarea id="displayShippingAddress" class="form-control form-control-custom" rows="2"
                                       placeholder="Vui lòng chọn khách hàng hoặc tự nhập địa chỉ..."></textarea>
                         </div>
@@ -358,8 +357,8 @@
 
                     <div id="shippingContent-PLATFORM" class="shipping-block d-none mt-3">
                         <div class="alert alert-info small mb-3"><i class="bi bi-info-circle me-1"></i> Đối với đơn qua
-                            Sàn TMĐT (Shopee, TikTok...), việc giao vận do sàn đảm nhận. Bạn cần lưu Mã đơn hàng và Mã
-                            vận đơn để đối soát doanh thu.
+                            Sàn TMĐT, việc giao vận do sàn đảm nhận. Bạn cần lưu Mã đơn hàng và Mã vận đơn để đối soát
+                            doanh thu.
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -711,9 +710,6 @@
             renderCart();
         });
 
-        // ============================
-        // LOGIC SẢN PHẨM & TỒN KHO
-        // ============================
         async function searchProducts(keyword) {
             const listEl = document.getElementById('productDropdownList');
             if (!keyword.trim()) {
@@ -724,8 +720,6 @@
             try {
                 const res = await fetch('/api/v1/products/variants/search?keyword=' + encodeURIComponent(keyword));
                 const productSearchResults = await res.json();
-
-                // Gắn dữ liệu vào window object để lấy theo index
                 window.currentProductResults = productSearchResults;
 
                 let html = '';
@@ -769,10 +763,7 @@
             const price = document.getElementById('customProductPrice').value;
             const qty = document.getElementById('customProductQty').value;
 
-            if (!name || !price) return Toast.fire({
-                icon: 'error',
-                title: 'Vui lòng nhập Tên và Giá bán!'
-            });
+            if (!name || !price) return Toast.fire({icon: 'error', title: 'Vui lòng nhập Tên và Giá bán!'});
 
             cart.push({
                 sku: 'CUSTOM_' + Date.now(),
@@ -805,10 +796,7 @@
         }
 
         function showInventoryCheck() {
-            if (cart.length === 0) return Toast.fire({
-                icon: 'error',
-                title: 'Giỏ hàng đang trống!'
-            });
+            if (cart.length === 0) return Toast.fire({icon: 'error', title: 'Giỏ hàng đang trống!'});
             renderInventoryCheckBody();
             new bootstrap.Modal(document.getElementById('inventoryCheckModal')).show();
         }
@@ -829,17 +817,10 @@
                         const res = await fetch(`/api/v1/inventory/check?branchId=${branchId}&sku=${item.sku}`);
                         if (res.ok) {
                             const data = await res.json();
-
-                            // FIX TẠI ĐÂY: Xử lý thông minh mọi định dạng trả về từ Backend
-                            if (typeof data === 'number') {
-                                branchStock = data; // Nếu backend trả về số trần trụi (VD: 15)
-                            } else if (data) {
-                                // Nếu backend trả về DTO/Map, vét hết các key có thể có
-                                branchStock = data.stock || data.quantity || data.stockQuantity || data.available || 0;
-                            }
+                            if (typeof data === 'number') branchStock = data;
+                            else if (data) branchStock = data.stock || data.quantity || data.stockQuantity || data.available || 0;
                         }
                     } catch (e) {
-                        console.error("Lỗi khi fetch tồn kho chi nhánh:", e);
                     }
                 }
 
@@ -914,10 +895,8 @@
                     <td>
                         <div class="fw-bold text-dark">${item.name} ${customBadge}</div>
                         <div class="small text-muted">${item.sku}</div>
-
                         ${warrantyHtml}
                         ${noteHtml}
-
                         <div class="mt-1 d-flex gap-3">
                             <a href="javascript:void(0)" onclick="toggleWarrantyInput(${index})" class="text-link" style="font-size:11px;"><i class="bi bi-shield-check me-1"></i>${item.showWarranty ? 'Ẩn bảo hành' : 'Thêm S/N & Bảo hành'}</a>
                             <a href="javascript:void(0)" onclick="openLineNoteModal(${index})" class="text-link" style="font-size:11px;"><i class="bi bi-pencil-square me-1"></i>Ghi chú</a>
@@ -944,9 +923,6 @@
             if (document.getElementById('paid').checked) document.getElementById('amountPaidInput').value = finalAmountToPay;
         }
 
-        // ============================
-        // LOGIC HÓA ĐƠN ĐIỆN TỬ
-        // ============================
         function saveInvoiceData() {
             const taxCode = document.getElementById('invTaxCode').value.trim();
             if (!taxCode) return;
@@ -964,9 +940,6 @@
             document.getElementById('invoiceBadge').classList.add('d-none');
         }
 
-        // ============================
-        // LOGIC KHÁCH HÀNG (BỌC THÉP)
-        // ============================
         async function searchCustomers(keyword) {
             const listEl = document.getElementById('customerDropdownList');
             if (!keyword) {
@@ -991,7 +964,6 @@
                 });
                 listEl.innerHTML = html;
             } catch (e) {
-                console.error("Lỗi tìm khách hàng", e);
             }
         }
 
@@ -1027,11 +999,8 @@
             document.getElementById('invCompanyName').value = company;
             document.getElementById('invCompanyAddress').value = company ? address : '';
 
-            if (taxCode && taxCode !== '') {
-                saveInvoiceData();
-            } else {
-                clearInvoiceData();
-            }
+            if (taxCode && taxCode !== '') saveInvoiceData();
+            else clearInvoiceData();
         }
 
         function clearCustomer() {
@@ -1047,10 +1016,10 @@
                 firstName: document.getElementById('newCusFirstName').value,
                 lastName: document.getElementById('newCusLastName').value,
                 phone: document.getElementById('newCusPhone').value,
-                phoneNumber: document.getElementById('newCusPhone').value, // Dự phòng cho DTO
+                phoneNumber: document.getElementById('newCusPhone').value,
                 gender: document.getElementById('newCusGender').value,
                 dob: document.getElementById('newCusDob').value,
-                shipAddressDetail: document.getElementById('newCusFullAddress').value // Đã thêm lấy địa chỉ
+                shipAddressDetail: document.getElementById('newCusFullAddress').value
             };
             payload.fullName = (payload.lastName ? payload.lastName + ' ' : '') + payload.firstName;
 
@@ -1073,43 +1042,24 @@
                 if (res.ok) {
                     const newCus = await res.json();
                     hideModalSafe('addCustomerModal');
-                    const newCode = newCus.customerCode || newCus.code || newCus.id;
-                    // Mock data để fill thẳng vào form thay vì gọi lại server
                     currentSearchedCustomers = [newCus];
                     selectCustomerByIndex(0);
                 } else {
-                    Toast.fire({
-                        icon: 'error',
-                        title: 'Tạo thất bại: Số điện thoại này đã tồn tại trong hệ thống. Vui lòng tìm kiếm bên ngoài thay vì tạo mới!'
-                    });
+                    Toast.fire({icon: 'error', title: 'Tạo thất bại: Số điện thoại này đã tồn tại!'});
                 }
             } catch (e) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối máy chủ!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ!'});
             }
-
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
 
-        // ============================
-        // SUBMIT LƯU ĐƠN HÀNG
-        // ============================
         async function submitOrder(orderStatus) {
-            if (cart.length === 0) return Toast.fire({
-                icon: 'error',
-                title: 'Chưa có sản phẩm!'
-            });
+            if (cart.length === 0) return Toast.fire({icon: 'error', title: 'Chưa có sản phẩm!'});
             const cusId = document.getElementById('selectedCustomerId').value;
-            if (!cusId) return Toast.fire({
-                icon: 'error',
-                title: 'Vui lòng chọn khách hàng!'
-            });
+            if (!cusId) return Toast.fire({icon: 'error', title: 'Vui lòng chọn khách hàng!'});
 
             const isPaid = document.getElementById('paid').checked;
-
             const rawBranchId = document.getElementById('branchId').value;
             const rawShipFromId = document.getElementById('shipFromBranch').value;
 
@@ -1120,7 +1070,7 @@
                 status: orderStatus,
                 note: document.getElementById('orderNote').value,
                 referenceCode: shippingType === 'PLATFORM' ? document.getElementById('platformOrderCode').value : null,
-                // Giao hàng
+
                 shippingType: shippingType,
                 shipFromBranchId: rawShipFromId ? parseInt(rawShipFromId) : null,
                 shippingPartner: document.getElementById('shipPartner').value || null,
@@ -1132,12 +1082,10 @@
                 codAmount: parseFloat(document.getElementById('codAmount').value) || 0,
                 shipWeight: parseFloat(document.getElementById('shipWeight').value) || 0,
 
-                // Thanh toán
                 paymentStatus: document.querySelector('input[name="paymentStatus"]:checked').value,
                 paymentMethod: isPaid ? document.getElementById('paymentMethod').value : null,
                 amountPaid: isPaid ? parseFloat(document.getElementById('amountPaidInput').value) : 0,
 
-                // Hóa đơn
                 invoiceTaxCode: invoiceData ? invoiceData.taxCode : null,
                 invoiceCompanyName: invoiceData ? invoiceData.companyName : null,
                 invoiceCompanyAddress: invoiceData ? invoiceData.companyAddress : null,
@@ -1145,7 +1093,6 @@
                 discountAmount: parseFloat(document.getElementById('discountInput').value) || 0,
                 totalAmount: finalAmountToPay,
 
-                // Chi tiết
                 details: cart.map(i => ({
                     sku: i.sku,
                     name: i.productName || i.name,
@@ -1171,26 +1118,17 @@
                 });
 
                 if (res.ok) {
-                    Toast.fire({
-                        icon: 'success',
-                        title: 'Thành công!'
-                    }).then(() => {
+                    Toast.fire({icon: 'success', title: 'Thành công!'}).then(() => {
                         window.location.href = "/ui/orders";
                     });
                 } else {
                     const err = await res.json();
-                    Toast.fire({
-                        icon: 'error',
-                        title: 'Lỗi kết nối máy chủ!'
-                    });
+                    Toast.fire({icon: 'error', title: 'Lỗi: ' + (err.message || 'Kiểm tra dữ liệu')});
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }
             } catch (err) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối máy chủ!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ!'});
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }

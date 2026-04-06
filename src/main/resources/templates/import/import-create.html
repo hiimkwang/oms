@@ -437,6 +437,12 @@
     </div>
 
     <script th:inline="javascript">
+        /*<![CDATA[*/
+        const paymentStatusMapJsonString = /*[[${paymentStatusMapJson}]]*/ '{}';
+        const paymentStatusLabelMap = JSON.parse(paymentStatusMapJsonString || '{}');
+        /*]]>*/
+    </script>
+    <script th:inline="none">
         let cart = [];
         let totalItemsAmount = 0;
         let finalAmountToPay = 0;
@@ -697,56 +703,96 @@
         async function submitImportOrder() {
             const sCode = document.getElementById('selectedSupplierCode').value;
             const branchSelect = document.getElementById('branchId');
-            const branchId = branchSelect.value;
-            const branchName = branchSelect.options[branchSelect.selectedIndex].text;
+            const rawBranchId = branchSelect.value;
+            const branchName = branchSelect.options[branchSelect.selectedIndex]?.text || "Kho mặc định";
+
             if (!sCode) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Vui lòng chọn Nhà cung cấp!'
-                });
+                Toast.fire({icon: 'error', title: 'Vui lòng chọn Nhà cung cấp!'});
+                return;
+            }
+            if (cart.length === 0) {
+                Toast.fire({icon: 'error', title: 'Giỏ hàng đang trống!'});
                 return;
             }
 
+            // 1. Xử lý chuẩn format LocalDateTime cho Java (Thêm T00:00:00)
+            let rawDate = document.getElementById('expectedDate').value;
+            let formattedDate = null;
+            if (rawDate) {
+                formattedDate = rawDate + "T00:00:00";
+            }
+
+            // 2. Xử lý parse số Long/Int để tránh lỗi chuỗi rỗng ""
+            const rawAssigneeId = document.getElementById('assigneeId').value;
+            const isPayLater = document.getElementById('payLater').checked;
+
             const payload = {
                 supplierCode: sCode,
-                branchId: document.getElementById('branchId').value,
+                branchId: rawBranchId ? parseInt(rawBranchId) : null,
                 branchName: branchName,
-                assigneeId: document.getElementById('assigneeId').value,
+                assigneeId: rawAssigneeId ? parseInt(rawAssigneeId) : null,
                 referenceCode: document.getElementById('referenceCode').value,
-                createdAt: document.getElementById('expectedDate').value || null,
+                createdAt: formattedDate, // Đã fix format
                 note: document.getElementById('orderNote').value,
+
+                // Tiền nong
                 itemsAmount: totalItemsAmount,
                 discount: parseFloat(document.getElementById('discountInput').value) || 0,
                 shippingFee: parseFloat(document.getElementById('shippingFeeInput').value) || 0,
                 totalAmount: finalAmountToPay,
+
+                // Trạng thái nhập & thanh toán
                 isImportStock: document.getElementById('importStock').checked,
-                paymentStatus: document.getElementById('payLater').checked ? 'UNPAID' : 'PAID',
+                paymentStatus: isPayLater ? 'UNPAID' : 'PAID',
                 paymentMethod: document.getElementById('paymentMethod').value,
-                amountPaid: parseFloat(document.getElementById('paymentAmountInput').value) || 0,
+                amountPaid: isPayLater ? 0 : (parseFloat(document.getElementById('paymentAmountInput').value) || 0),
+
+                // Ép kiểu mảng Details cho chắc chắn
                 items: cart.map(i => ({
                     sku: i.sku,
-                    quantity: i.quantity,
-                    importPrice: i.importPrice,
-                    warrantyMonths: i.warrantyMonths
+                    quantity: parseInt(i.quantity) || 1,
+                    importPrice: parseFloat(i.importPrice) || 0,
+                    warrantyMonths: parseInt(i.warrantyMonths) || 0
                 }))
             };
 
-            const res = await fetch('/api/v1/receipt', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
-                Toast.fire({
-                    icon: 'success',
-                    title: 'Tạo đơn thành công!'
-                }).then(() => {
-                    window.location.href = "/ui/imports";
+            const btn = document.getElementById('btnCreateOrderTop');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/v1/receipt', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
                 });
-            } else Toast.fire({
-                icon: 'error',
-                title: 'Lỗi khi lưu đơn!'
-            });
+
+                if (res.ok) {
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Tạo đơn thành công!'
+                    }).then(() => {
+                        window.location.href = "/ui/imports";
+                    });
+                } else {
+                    // Cố gắng đọc text lỗi từ backend gửi về để dễ debug
+                    const errText = await res.text();
+                    console.error("Lỗi 400 Bad Request chi tiết:", errText);
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi lưu đơn: Kiểm tra lại các trường bắt buộc!'
+                    });
+                }
+            } catch (err) {
+                Toast.fire({
+                    icon: 'error',
+                    title: 'Lỗi kết nối máy chủ!'
+                });
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         }
     </script>
 </div>

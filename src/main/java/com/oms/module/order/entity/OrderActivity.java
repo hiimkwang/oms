@@ -19,7 +19,6 @@ public class OrderActivity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Dùng JsonIgnore để tránh lỗi lặp vô hạn (Infinite Recursion) khi trả JSON về Frontend
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)

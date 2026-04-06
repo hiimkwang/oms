@@ -22,6 +22,9 @@ public class MasterData {
     @Column(name = "data_value", nullable = false)
     private String dataValue; // Ví dụ: "Aula", "Bàn phím cơ", "Chiếc", "6 Tháng"
 
+    @Column(name = "data_label")
+    private String dataLabel;
+
     @Column(name = "sort_order")
     private Integer sortOrder; // Để sắp xếp thứ tự hiển thị trên Dropdown
 }

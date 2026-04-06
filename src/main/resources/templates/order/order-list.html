@@ -98,7 +98,6 @@
             height: 34px;
         }
 
-        /* Style cho các Badge Trạng thái */
         .status-badge {
             padding: 4px 10px;
             border-radius: 20px;
@@ -108,7 +107,6 @@
             text-align: center;
         }
 
-        /* Trạng thái Thanh toán */
         .badge-unpaid {
             background-color: #fff3cd;
             color: #856404;
@@ -121,7 +119,6 @@
             border: 1px solid #c3e6cb;
         }
 
-        /* Trạng thái Đơn hàng */
         .badge-init {
             background-color: #e2e8f0;
             color: #475569;
@@ -165,10 +162,9 @@
         <div class="card-header bg-white border-0 p-0">
             <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3" id="orderTabs">
                 <li class="nav-item"><a class="nav-link active" data-status="ALL">Tất cả</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Khởi tạo">Mới đặt</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Nháp">Nháp</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Hoàn thành">Hoàn thành</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Đã hủy">Đã hủy</a></li>
+                <li class="nav-item" th:each="status : ${orderStatuses}">
+                    <a class="nav-link" th:data-status="${status.dataValue}" th:text="${status.dataLabel}"></a>
+                </li>
             </ul>
         </div>
 
@@ -272,14 +268,27 @@
         </div>
     </div>
 
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const statusMapJsonString = /*[[${orderStatusMapJson}]]*/ '{}';
+        const statusLabelMap = JSON.parse(statusMapJsonString || '{}');
+        /*]]>*/
+    </script>
+
     <script th:inline="none">
         let allOrders = [];
         let currentTabStatus = 'ALL';
 
+        const paymentLabelMap = {
+            'UNPAID': 'Chưa thanh toán',
+            'PARTIAL': 'Thanh toán một phần',
+            'PAID': 'Đã thanh toán',
+            'REFUNDED': 'Đã hoàn tiền'
+        };
+
         document.addEventListener('DOMContentLoaded', async () => {
             await loadOrders();
 
-            // Lắng nghe sự kiện chuyển Tab
             document.querySelectorAll('#orderTabs .nav-link').forEach(tab => {
                 tab.addEventListener('click', function (e) {
                     document.querySelectorAll('#orderTabs .nav-link').forEach(t => t.classList.remove('active'));
@@ -289,14 +298,12 @@
                 });
             });
 
-            // Lắng nghe sự kiện Search (Debounce 300ms)
             let searchTimeout;
             document.getElementById('orderSearchInput').addEventListener('input', () => {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(applyFilters, 300);
             });
 
-            // Lắng nghe Checkbox Chọn tất cả
             document.getElementById('checkAll').addEventListener('change', function () {
                 document.querySelectorAll('.order-checkbox').forEach(cb => {
                     cb.checked = this.checked;
@@ -305,40 +312,36 @@
             });
         });
 
-        // 1. GỌI API LẤY DANH SÁCH ĐƠN HÀNG
         async function loadOrders() {
             try {
                 const res = await fetch('/api/v1/orders');
                 if (!res.ok) throw new Error("Lỗi mạng");
                 allOrders = await res.json();
-                applyFilters(); // Render mặc định
+                applyFilters();
             } catch (e) {
                 console.error(e);
                 document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
             }
         }
 
-        // --- HÀM XỬ LÝ LỌC NGÀY (CÓ PRESET) ---
         function handleDatePresetChange() {
             const preset = document.getElementById('datePreset').value;
             const customContainer = document.getElementById('customDateContainer');
             const startInput = document.getElementById('startDate');
             const endInput = document.getElementById('endDate');
 
-            // Format YYYY-MM-DD
             const formatDate = (date) => date.toISOString().split('T')[0];
             const today = new Date();
 
             if (preset === 'custom') {
                 customContainer.classList.remove('d-none');
                 customContainer.classList.add('d-flex');
-                return; // Nếu chọn Custom thì dừng ở đây, chờ user tự nhập Start/End rồi applyFilters()
+                return;
             } else {
                 customContainer.classList.remove('d-flex');
                 customContainer.classList.add('d-none');
             }
 
-            // Xử lý các Preset tự động tính ngày
             if (preset === 'all') {
                 startInput.value = '';
                 endInput.value = '';
@@ -369,25 +372,19 @@
             applyFilters();
         }
 
-        // 2. LOGIC LỌC (FILTER) CLIENT-SIDE
         function applyFilters() {
             const keyword = document.getElementById('orderSearchInput').value.toLowerCase().trim();
             const channel = document.getElementById('channelFilter').value;
 
-            // Lấy khoảng thời gian từ 2 ô input ẩn/hiện
             const startDateStr = document.getElementById('startDate').value;
             const endDateStr = document.getElementById('endDate').value;
             const startTimestamp = startDateStr ? new Date(startDateStr + 'T00:00:00').getTime() : null;
             const endTimestamp = endDateStr ? new Date(endDateStr + 'T23:59:59').getTime() : null;
 
             const filteredOrders = allOrders.filter(o => {
-                // Lọc theo Tab Trạng thái
                 const matchTab = (currentTabStatus === 'ALL') || (o.status === currentTabStatus);
-
-                // Lọc theo Kênh bán
                 const matchChannel = (channel === 'ALL') || (o.salesChannelCode === channel) || (!o.salesChannelCode && channel === 'ALL');
 
-                // Lọc theo Khoảng thời gian (Từ ngày - Đến ngày)
                 let matchDate = true;
                 if (startTimestamp || endTimestamp) {
                     if (o.createdAt) {
@@ -399,7 +396,6 @@
                     }
                 }
 
-                // Lọc theo Từ khóa (Mã đơn, Tên KH, SĐT KH)
                 const cusName = o.customer ? (o.customer.fullName || o.customer.name || '').toLowerCase() : '';
                 const cusPhone = o.customer ? (o.customer.phone || o.customer.phoneNumber || '') : '';
                 const orderCode = o.orderCode ? o.orderCode.toLowerCase() : '';
@@ -420,7 +416,6 @@
             document.getElementById('channelFilter').value = 'ALL';
             document.getElementById('datePreset').value = 'all';
 
-            // Ẩn khung custom date và clear data
             document.getElementById('customDateContainer').classList.replace('d-flex', 'd-none');
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
@@ -428,7 +423,6 @@
             applyFilters();
         }
 
-        // 3. RENDER DỮ LIỆU RA BẢNG
         function renderTable(dataList) {
             const tbody = document.getElementById('orderTableBody');
             const info = document.getElementById('recordInfo');
@@ -456,19 +450,31 @@
                 const cusName = o.customer ? (o.customer.fullName || o.customer.lastName + ' ' + o.customer.firstName || 'Khách lẻ') : 'Khách lẻ';
                 const cusCode = o.customer ? (o.customer.code || o.customer.id || '') : '';
                 const cusLink = cusCode ? `/ui/customers/${cusCode}` : 'javascript:void(0)';
-
                 const channelText = o.salesChannelCode || '---';
 
+                const pStatus = o.paymentStatus || 'UNPAID';
+                const pLabel = paymentLabelMap[pStatus] || pStatus;
                 let paymentBadge = '';
-                if (o.paymentStatus === 'PAID') paymentBadge = '<span class="status-badge badge-paid"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>';
-                else paymentBadge = '<span class="status-badge badge-unpaid"><i class="bi bi-clock me-1"></i>Chưa thanh toán</span>';
+                if (pStatus === 'PAID') {
+                    paymentBadge = `<span class="status-badge badge-paid"><i class="bi bi-check-circle me-1"></i>${pLabel}</span>`;
+                } else if (pStatus === 'PARTIAL') {
+                    paymentBadge = `<span class="status-badge bg-warning bg-opacity-25 text-dark border border-warning"><i class="bi bi-pie-chart me-1"></i>${pLabel}</span>`;
+                } else {
+                    paymentBadge = `<span class="status-badge badge-unpaid"><i class="bi bi-clock me-1"></i>${pLabel}</span>`;
+                }
 
+                const st = o.status || 'CREATED';
+                const stLabel = statusLabelMap[st] || st;
                 let statusBadge = '';
-                const st = o.status || 'Khởi tạo';
-                if (st === 'Khởi tạo' || st === 'Nháp') statusBadge = `<span class="status-badge badge-init">${st}</span>`;
-                else if (st === 'Hoàn thành' || st === 'Đã giao') statusBadge = `<span class="status-badge badge-success">${st}</span>`;
-                else if (st === 'Đã hủy' || st === 'Hủy') statusBadge = `<span class="status-badge badge-cancel">${st}</span>`;
-                else statusBadge = `<span class="status-badge badge-processing">${st}</span>`;
+                if (st === 'CREATED' || st === 'CONFIRMED') {
+                    statusBadge = `<span class="status-badge badge-init">${stLabel}</span>`;
+                } else if (st === 'COMPLETED') {
+                    statusBadge = `<span class="status-badge badge-success">${stLabel}</span>`;
+                } else if (st === 'CANCELLED' || st === 'RETURNED') {
+                    statusBadge = `<span class="status-badge badge-cancel">${stLabel}</span>`;
+                } else {
+                    statusBadge = `<span class="status-badge badge-processing">${stLabel}</span>`;
+                }
 
                 html += `
                     <tr>
@@ -495,12 +501,11 @@
             clearSelection();
         }
 
-        // 4. XỬ LÝ THAO TÁC XÓA NHIỀU ĐƠN (BULK ACTION)
         function toggleBulkActionBar() {
             const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
             const bulkBar = document.getElementById('bulkActionBar');
-
             const allCheckboxes = document.querySelectorAll('.order-checkbox');
+
             document.getElementById('checkAll').checked = (checkedBoxes.length > 0 && checkedBoxes.length === allCheckboxes.length);
 
             if (checkedBoxes.length > 0) {
@@ -522,10 +527,7 @@
             const checkboxes = document.querySelectorAll('.order-checkbox:checked');
 
             if (checkboxes.length === 0) {
-                Toast.fire({
-                    icon: 'warning',
-                    title: 'Vui lòng chọn ít nhất 1 đơn hàng để xóa!'
-                });
+                Toast.fire({icon: 'warning', title: 'Vui lòng chọn ít nhất 1 đơn hàng để xóa!'});
                 return;
             }
 
@@ -565,10 +567,7 @@
                     icon: 'success'
                 });
             } else {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Không có đơn hàng nào được xóa. Vui lòng kiểm tra lại!'
-                });
+                Toast.fire({icon: 'error', title: 'Không có đơn hàng nào được xóa. Vui lòng kiểm tra lại!'});
             }
 
             btn.innerHTML = originalText;

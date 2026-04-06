@@ -1,5 +1,6 @@
 package com.oms.module.receipt.service;
 
+import com.oms.module.account.entity.User;
 import com.oms.module.inventory.entity.Inventory;
 import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.product.entity.ProductVariant;
@@ -15,7 +16,6 @@ import com.oms.module.receipt.repository.ReceiptRepository;
 import com.oms.module.setting.repository.BranchRepository;
 import com.oms.module.supplier.entity.Supplier;
 import com.oms.module.supplier.repository.SupplierRepository;
-import com.oms.module.account.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -26,6 +26,10 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.oms.constant.CommonConstants.PaymentStatusConstant.*;
+import static com.oms.constant.CommonConstants.ReceiptStatusConstant.*;
+import static com.oms.constant.CommonConstants.ReceiptStatusConstant.PENDING;
 
 @Service
 @RequiredArgsConstructor
@@ -39,11 +43,15 @@ public class ReceiptService {
     private final ProductService productService;
 
     private String getCurrentUserName() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof User) {
-            return ((User) principal).getFullName();
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof User) {
+                return ((User) principal).getFullName();
+            }
+            return SecurityContextHolder.getContext().getAuthentication().getName();
+        } catch (Exception e) {
+            return "Hệ thống";
         }
-        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
     @Transactional
@@ -58,6 +66,7 @@ public class ReceiptService {
                     .map(b -> b.getName())
                     .orElse("Kho mặc định");
         }
+
         Receipt receipt = Receipt.builder()
                 .code("REI" + System.currentTimeMillis())
                 .supplier(supplier)
@@ -71,8 +80,8 @@ public class ReceiptService {
                 .amountPaid(request.getAmountPaid())
                 .paymentStatus(request.getPaymentStatus())
                 .createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now())
-                .status("TRADING")
-                .importStatus("PENDING")
+                .status(TRADING)
+                .importStatus(PENDING)
                 .creatorName(currentWorker)
                 .build();
 
@@ -91,12 +100,10 @@ public class ReceiptService {
 
         logActivity(savedReceipt, "Tạo mới phiếu nhập hàng", currentWorker);
 
-        // NẾU CHƯA NHẬP KHO (PENDING): Ghi nhận hàng đang đi trên đường (Inbound)
         if (!Boolean.TRUE.equals(request.getIsImportStock())) {
             addInboundStock(savedReceipt, details);
         }
 
-        // NẾU TẠO ĐƠN VÀ BẤM NHẬP KHO LUÔN
         if (Boolean.TRUE.equals(request.getIsImportStock())) {
             this.confirmImport(savedReceipt.getId());
         }
@@ -109,14 +116,13 @@ public class ReceiptService {
         Receipt receipt = receiptRepository.findByCode(code)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu mã: " + code));
 
-        if ("COMPLETED".equals(receipt.getStatus()) || "COMPLETED".equals(receipt.getImportStatus())) {
+        if (COMPLETED.equals(receipt.getStatus()) || COMPLETED.equals(receipt.getImportStatus())) {
             throw new RuntimeException("Đã nhập kho hoặc hoàn thành không được sửa!");
         }
 
         Supplier supplier = supplierRepository.findByCode(request.getSupplierCode())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy NCC"));
 
-        // 1. TRƯỚC KHI SỬA: Xóa bỏ lượng Inbound cũ khỏi kho
         removeInboundStock(receipt, receipt.getDetails());
 
         receipt.setSupplier(supplier);
@@ -129,9 +135,9 @@ public class ReceiptService {
         receipt.setTotalAmount(request.getTotalAmount());
 
         BigDecimal paid = receipt.getAmountPaid() != null ? receipt.getAmountPaid() : BigDecimal.ZERO;
-        if (paid.compareTo(receipt.getTotalAmount()) >= 0) receipt.setPaymentStatus("PAID");
-        else if (paid.compareTo(BigDecimal.ZERO) > 0) receipt.setPaymentStatus("PARTIAL");
-        else receipt.setPaymentStatus("UNPAID");
+        if (paid.compareTo(receipt.getTotalAmount()) >= 0) receipt.setPaymentStatus(PAID);
+        else if (paid.compareTo(BigDecimal.ZERO) > 0) receipt.setPaymentStatus(PARTIAL);
+        else receipt.setPaymentStatus(UNPAID);
 
         receipt.getDetails().clear();
         List<ReceiptDetail> newDetails = request.getItems().stream().map(item ->
@@ -148,7 +154,6 @@ public class ReceiptService {
         Receipt savedReceipt = receiptRepository.save(receipt);
         logActivity(receipt, "Cập nhật thông tin phiếu nhập", getCurrentUserName());
 
-        // 2. SAU KHI SỬA: Cộng lượng Inbound mới (từ chi tiết đơn mới sửa) vào kho
         addInboundStock(savedReceipt, newDetails);
 
         return savedReceipt;
@@ -157,7 +162,7 @@ public class ReceiptService {
     @Transactional
     public Receipt confirmImport(Long id) {
         Receipt receipt = receiptRepository.findById(id).orElseThrow();
-        if ("COMPLETED".equals(receipt.getImportStatus())) {
+        if (COMPLETED.equals(receipt.getImportStatus())) {
             throw new RuntimeException("Đơn này đã nhập kho rồi!");
         }
 
@@ -172,25 +177,18 @@ public class ReceiptService {
             BigDecimal actualImportPrice = detail.getImportPrice().add(extraCostPerItem);
 
             updateMAC(variant, detail.getQuantity(), actualImportPrice);
-
-            // CẬP NHẬT KHO: Trừ Inbound, Cộng Tồn thực tế & Có thể bán
             updateBranchInventoryForImport(receipt.getBranchId(), variant.getId(), detail.getQuantity());
 
-            // Cập nhật tồn kho vật lý của Biến thể
             int currentVariantStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
             variant.setStockQuantity(currentVariantStock + detail.getQuantity());
             variantRepository.save(variant);
 
-            // ==========================================
-            // THÊM MỚI: ĐỒNG BỘ TỒN KHO LÊN SẢN PHẨM CHA
-            // ==========================================
             if (variant.getProduct() != null) {
                 productService.syncProductTotalStock(variant.getProduct().getId());
             }
-            // ==========================================
         }
 
-        receipt.setImportStatus("COMPLETED");
+        receipt.setImportStatus(COMPLETED);
         logActivity(receipt, "Xác nhận nhập kho vào: " + receipt.getBranchName(), currentWorker);
 
         checkAndCompleteReceipt(receipt);
@@ -200,22 +198,15 @@ public class ReceiptService {
     @Transactional
     public void cancelReceipt(Long id) {
         Receipt receipt = receiptRepository.findById(id).orElseThrow();
-        if ("COMPLETED".equals(receipt.getImportStatus())) throw new RuntimeException("Không thể hủy đơn đã nhập kho");
+        if (COMPLETED.equals(receipt.getImportStatus())) throw new RuntimeException("Không thể hủy đơn đã nhập kho");
 
-        receipt.setStatus("CANCELLED");
-
-        // HỦY ĐƠN THÌ PHẢI XÓA LƯỢNG INBOUND KHỎI KHO
+        receipt.setStatus(CANCELLED);
         removeInboundStock(receipt, receipt.getDetails());
 
         receiptRepository.save(receipt);
         logActivity(receipt, "Hủy phiếu nhập hàng", getCurrentUserName());
     }
 
-    // =========================================================================
-    // CÁC HÀM XỬ LÝ LOGIC TỒN KHO GIAO DỊCH (INBOUND & ACTUAL STOCK)
-    // =========================================================================
-
-    // 1. Thêm lượng hàng đang về kho (Inbound)
     private void addInboundStock(Receipt receipt, List<ReceiptDetail> details) {
         if (receipt.getBranchId() == null) return;
         for (ReceiptDetail detail : details) {
@@ -232,7 +223,6 @@ public class ReceiptService {
         }
     }
 
-    // 2. Xóa lượng hàng đang về kho (Dùng khi Sửa đơn / Hủy đơn)
     private void removeInboundStock(Receipt receipt, List<ReceiptDetail> details) {
         if (receipt.getBranchId() == null) return;
         for (ReceiptDetail detail : details) {
@@ -247,7 +237,6 @@ public class ReceiptService {
         }
     }
 
-    // 3. Chốt nhập kho (Trừ Inbound, Cộng Tồn thực tế & Có thể bán)
     private void updateBranchInventoryForImport(Long branchId, Long variantId, Integer qty) {
         if (branchId == null) return;
 
@@ -255,25 +244,16 @@ public class ReceiptService {
                 .orElse(Inventory.builder().variantId(variantId).branchId(branchId)
                         .stock(0).availableStock(0).inboundStock(0).build());
 
-        // Xóa khỏi cột "Đang về kho"
         int currentInbound = inv.getInboundStock() != null ? inv.getInboundStock() : 0;
         inv.setInboundStock(Math.max(0, currentInbound - qty));
-
-        // Cộng vào Tồn kho thực tế
-        inv.setStock(inv.getStock() + qty);
-
-        // Cộng vào Có thể bán
-        inv.setAvailableStock(inv.getAvailableStock() + qty);
+        inv.setStock((inv.getStock() != null ? inv.getStock() : 0) + qty);
+        inv.setAvailableStock((inv.getAvailableStock() != null ? inv.getAvailableStock() : 0) + qty);
 
         inventoryRepository.save(inv);
     }
 
-    // =========================================================================
-    // CÁC HÀM TIỆN ÍCH KHÁC (GIỮ NGUYÊN NHƯ CŨ)
-    // =========================================================================
-
     private void updateMAC(ProductVariant variant, int importQty, BigDecimal actualPrice) {
-        int oldStock = variant.getStockQuantity();
+        int oldStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
         BigDecimal oldCost = variant.getCostPrice() != null ? variant.getCostPrice() : BigDecimal.ZERO;
 
         if (oldStock + importQty > 0) {
@@ -281,6 +261,8 @@ public class ReceiptService {
             BigDecimal totalNewValue = actualPrice.multiply(new BigDecimal(importQty));
             BigDecimal newCost = totalOldValue.add(totalNewValue).divide(new BigDecimal(oldStock + importQty), 2, RoundingMode.HALF_UP);
             variant.setCostPrice(newCost);
+        } else {
+            variant.setCostPrice(actualPrice);
         }
     }
 
@@ -306,10 +288,10 @@ public class ReceiptService {
         receipt.setAmountPaid(newPaidAmount);
 
         if (newPaidAmount.compareTo(totalAmount) >= 0) {
-            receipt.setPaymentStatus("PAID");
-            if ("COMPLETED".equals(receipt.getImportStatus())) receipt.setStatus("COMPLETED");
+            receipt.setPaymentStatus(PAID);
+            if (COMPLETED.equals(receipt.getImportStatus())) receipt.setStatus(COMPLETED);
         } else {
-            receipt.setPaymentStatus("PARTIAL");
+            receipt.setPaymentStatus(PARTIAL);
         }
 
         receiptRepository.save(receipt);
@@ -317,8 +299,8 @@ public class ReceiptService {
     }
 
     private void checkAndCompleteReceipt(Receipt receipt) {
-        if ("COMPLETED".equals(receipt.getImportStatus()) && "PAID".equals(receipt.getPaymentStatus())) {
-            receipt.setStatus("COMPLETED");
+        if (COMPLETED.equals(receipt.getImportStatus()) && PAID.equals(receipt.getPaymentStatus())) {
+            receipt.setStatus(COMPLETED);
         }
     }
 

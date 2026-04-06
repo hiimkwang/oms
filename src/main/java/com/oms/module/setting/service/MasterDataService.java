@@ -33,24 +33,29 @@ public class MasterDataService {
     /**
      * Thêm nhanh một danh mục mới nếu chưa tồn tại (Dùng cho nút "+" ngoài giao diện)
      */
+    // 1. Cập nhật hàm tạo mới
     @Transactional
-    public MasterData createIfNotExist(String dataType, String dataValue) {
-        // Kiểm tra xem đã có chưa (VD: Đã có 'Aula' thì không thêm 'aula' nữa)
+    public MasterData createIfNotExist(String dataType, String dataValue, String dataLabel) {
         if (masterDataRepository.existsByDataTypeAndDataValueIgnoreCase(dataType, dataValue)) {
             return masterDataRepository.findByDataTypeAndDataValueIgnoreCase(dataType, dataValue).get();
         }
 
-        // Tìm thứ tự (sortOrder) lớn nhất hiện tại để xếp cái mới xuống cuối cùng
         List<MasterData> existingList = masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType);
         int nextSortOrder = existingList.isEmpty() ? 1 : existingList.get(existingList.size() - 1).getSortOrder() + 1;
 
         MasterData newData = MasterData.builder()
-                .dataType(dataType.toUpperCase()) // Chuẩn hóa Type luôn viết hoa (VD: BRAND)
-                .dataValue(dataValue.trim())      // Cắt khoảng trắng 2 đầu
+                .dataType(dataType.toUpperCase())
+                .dataValue(dataValue.trim().toUpperCase()) // Ép dataValue luôn viết hoa
+                .dataLabel(dataLabel != null ? dataLabel.trim() : dataValue.trim())
                 .sortOrder(nextSortOrder)
                 .build();
 
         return masterDataRepository.save(newData);
+    }
+
+    // 2. Thêm hàm lấy dữ liệu cho Dropdown ngoài Frontend
+    public List<MasterData> getMasterDataByType(String dataType) {
+        return masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType);
     }
 
     // ==========================================

@@ -4,7 +4,6 @@
 <body>
 <div class="oms-container pb-5">
     <style>
-        /* Thống nhất style chuẩn hệ thống */
         .filter-btn {
             background: white;
             border: 1px solid #dce0e4;
@@ -107,28 +106,23 @@
             border-color: #cbd5e1;
         }
 
-        /* Đang giao dịch */
         .status-completed {
             background-color: #e6f6ee;
             color: #008a47;
             border-color: #c2ebd5;
         }
 
-        /* Hoàn thành / Đã nhập */
         .status-unreceived {
             background-color: #fff4e5;
             color: #ff9800;
             border-color: #ffe5cc;
         }
 
-        /* Chưa nhập */
         .status-cancelled {
             background-color: #fef2f2;
             color: #dc2626;
             border-color: #fecaca;
         }
-
-        /* Đã hủy */
     </style>
 
     <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
@@ -142,12 +136,13 @@
 
     <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
 
-        <div class="card-header bg-white border-0 p-0">
+        <div class="card-header bg-white border-0 p-0"
+             th:with="statusMap=${receiptStatusMap != null and !receiptStatusMap.isEmpty() ? receiptStatusMap : {'TRADING':'Đang giao dịch', 'COMPLETED':'Hoàn thành', 'CANCELLED':'Đã hủy'}}">
             <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3" id="statusTabs">
-                <li class="nav-item"><a class="nav-link active" data-status="all">Tất cả</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Đang giao dịch">Đang giao dịch</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Hoàn thành">Hoàn thành</a></li>
-                <li class="nav-item"><a class="nav-link" data-status="Đã hủy">Đã hủy</a></li>
+                <li class="nav-item"><a class="nav-link active" data-status="ALL">Tất cả</a></li>
+                <li class="nav-item" th:each="entry : ${statusMap}">
+                    <a class="nav-link" th:data-status="${entry.key}" th:text="${entry.value}"></a>
+                </li>
             </ul>
         </div>
 
@@ -162,9 +157,9 @@
 
                 <div class="d-flex gap-2">
                     <select id="filterImportStatus" class="form-select filter-btn w-auto">
-                        <option value="all">Tất cả trạng thái nhập</option>
-                        <option value="Chưa nhập">Chưa nhập</option>
-                        <option value="Đã nhập hàng">Đã nhập hàng</option>
+                        <option value="ALL">Tất cả trạng thái nhập</option>
+                        <option value="PENDING">Chưa nhập</option>
+                        <option value="COMPLETED">Đã nhập hàng</option>
                     </select>
                     <button class="btn filter-btn px-3" onclick="window.location.reload()">
                         <i class="bi bi-arrow-clockwise me-2"></i>Làm mới
@@ -199,19 +194,20 @@
                         </th>
                         <th class="text-start">Mã đơn nhập</th>
                         <th>Ngày tạo</th>
-                        <th>Trạng thái</th>
-                        <th>Trạng thái nhập</th>
+                        <th>Trạng thái chung</th>
+                        <th>Trạng thái nhập kho</th>
                         <th>Nhà cung cấp</th>
                         <th class="text-center">Số lượng</th>
                         <th class="pe-4 text-end">Giá trị đơn</th>
                     </tr>
                     </thead>
                     <tbody id="importTableBody">
+
                     <tr th:each="order : ${importOrders}"
                         class="import-row"
                         th:data-search="|${order.code} ${order.supplier != null ? order.supplier.name : ''}|"
-                        th:data-trading-status="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}"
-                        th:data-import-status="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập'}">
+                        th:data-trading-status="${order.status}"
+                        th:data-import-status="${order.importStatus}">
 
                         <td class="ps-4">
                             <input class="form-check-input item-check" type="checkbox" th:value="${order.id}"
@@ -224,16 +220,16 @@
                         <td class="text-muted small"
                             th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
 
-                        <td>
+                        <td th:with="statusMap=${receiptStatusMap != null and !receiptStatusMap.isEmpty() ? receiptStatusMap : {'TRADING':'Đang giao dịch', 'COMPLETED':'Hoàn thành', 'CANCELLED':'Đã hủy'}}">
                             <span class="status-badge"
                                   th:classappend="${order.status == 'CANCELLED' ? 'status-cancelled' : (order.status == 'COMPLETED' ? 'status-completed' : 'status-trading')}"
-                                  th:text="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}"></span>
+                                  th:text="${statusMap[order.status] ?: order.status}"></span>
                         </td>
 
-                        <td>
+                        <td th:with="impMap=${ {'PENDING':'Chưa nhập kho', 'COMPLETED':'Đã nhập kho'} }">
                             <span class="status-badge"
                                   th:classappend="${order.importStatus == 'COMPLETED' ? 'status-completed' : 'status-unreceived'}"
-                                  th:text="${order.importStatus == 'COMPLETED' ? 'Đã nhập hàng' : 'Chưa nhập'}"></span>
+                                  th:text="${impMap[order.importStatus] ?: 'Chưa nhập kho'}"></span>
                         </td>
 
                         <td class="fw-medium text-dark"
@@ -264,14 +260,6 @@
                           th:text="'Hiển thị 1 - ' + ${#lists.size(importOrders)} + ' trên tổng số ' + ${#lists.size(importOrders)} + ' đơn hàng'"></span>
                     <span th:unless="${not #lists.isEmpty(importOrders)}">Hiển thị 0 đơn hàng</span>
                 </div>
-                <nav th:if="${not #lists.isEmpty(importOrders)}">
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>
-                        </li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
-                    </ul>
-                </nav>
             </div>
         </div>
     </div>
@@ -284,35 +272,43 @@
             const rows = document.querySelectorAll('.import-row');
             const emptyRow = document.getElementById('emptySearchRow');
 
-            // 1. Hàm Lọc dữ liệu (Client-side)
             function applyFilters() {
-                const searchTerm = searchInput.value.trim().toLowerCase();
-                const importStatusTerm = filterImportStatus.value;
-                const activeTab = document.querySelector('#statusTabs .nav-link.active').getAttribute('data-status');
+                const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+                const importStatusTerm = filterImportStatus ? filterImportStatus.value : 'ALL';
+
+                const activeTabEl = document.querySelector('#statusTabs .nav-link.active');
+                const activeTab = activeTabEl ? activeTabEl.getAttribute('data-status') : 'ALL';
+
                 let hasVisible = false;
 
                 rows.forEach(row => {
-                    const searchData = row.getAttribute('data-search').toLowerCase();
+                    const searchData = (row.getAttribute('data-search') || '').toLowerCase();
                     const tradingStatus = row.getAttribute('data-trading-status');
                     const importStatus = row.getAttribute('data-import-status');
 
                     const matchSearch = searchData.includes(searchTerm);
-                    const matchTab = (activeTab === "all" || tradingStatus === activeTab);
-                    const matchSelect = (importStatusTerm === "all" || importStatus === importStatusTerm);
+                    const matchTab = (activeTab === "ALL" || tradingStatus === activeTab);
+                    const matchSelect = (importStatusTerm === "ALL" || importStatus === importStatusTerm);
 
                     if (matchSearch && matchTab && matchSelect) {
-                        row.style.setProperty('display', '', 'important');
+                        // SỬ DỤNG .d-none CỦA BOOTSTRAP THAY VÌ setProperty
+                        row.classList.remove('d-none');
                         hasVisible = true;
                     } else {
-                        row.style.setProperty('display', 'none', 'important');
+                        row.classList.add('d-none');
                     }
                 });
 
-                if (emptyRow) emptyRow.style.display = (!hasVisible && rows.length > 0) ? "" : "none";
-                updateBulkAction(); // Reset bulk action bar if rows hidden
+                if (emptyRow) {
+                    if (!hasVisible && rows.length > 0) {
+                        emptyRow.style.display = '';
+                    } else {
+                        emptyRow.style.display = 'none';
+                    }
+                }
+                updateBulkAction();
             }
 
-            // 2. Gán sự kiện cho các ô Lọc
             if (searchInput) searchInput.addEventListener('input', applyFilters);
             if (filterImportStatus) filterImportStatus.addEventListener('change', applyFilters);
 
@@ -326,11 +322,11 @@
             });
         });
 
-        // 3. Xử lý Checkbox & Bulk Actions
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('.item-check');
             checkboxes.forEach(cb => {
-                if (cb.closest('tr').style.display !== 'none') {
+                // Tránh check những row đang bị ẩn bởi bộ lọc
+                if (!cb.closest('tr').classList.contains('d-none')) {
                     cb.checked = source.checked;
                 }
             });
@@ -359,11 +355,9 @@
             }
         }
 
-        // 4. Hàm xóa đơn hàng hàng loạt (Giả định Backend đã có API)
         async function deleteSelected() {
             const checkedBoxes = document.querySelectorAll('.item-check:checked');
 
-            // 1. Nhắc nhở nếu người dùng chưa chọn đơn hàng nào
             if (checkedBoxes.length === 0) {
                 Toast.fire({
                     icon: 'warning',
@@ -374,14 +368,13 @@
 
             const ids = Array.from(checkedBoxes).map(cb => Number(cb.value));
 
-            // 2. Bảng xác nhận xóa bằng SweetAlert2
             const confirmation = await Swal.fire({
                 title: 'Xác nhận xóa hàng loạt',
                 text: `Bạn có chắc chắn muốn xóa ${ids.length} đơn nhập hàng đã chọn không? Thao tác này không thể hoàn tác.`,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',   // Đỏ cảnh báo nguy hiểm
-                cancelButtonColor: '#3085d6', // Xanh an toàn
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Xác nhận xóa',
                 cancelButtonText: 'Hủy bỏ'
             });
@@ -389,7 +382,6 @@
             if (!confirmation.isConfirmed) return;
 
             try {
-                // Thay đổi URL API cho khớp với Backend của bạn
                 const res = await fetch('/api/v1/imports/bulk-delete', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -397,7 +389,6 @@
                 });
 
                 if (res.ok) {
-                    // 3. Đợi Toast hiện xong thông báo rồi mới reload trang
                     await Toast.fire({
                         icon: 'success',
                         title: `Đã xóa thành công ${ids.length} đơn nhập hàng!`

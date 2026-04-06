@@ -4,7 +4,6 @@
 <body>
 <div class="oms-container pb-5" style="background-color: #f3f4f6; min-height: 100vh;">
     <style>
-        /* --- CSS CHUẨN SAPO/OMS --- */
         .card-custom {
             background: #fff;
             border: 1px solid #e2e8f0;
@@ -185,26 +184,6 @@
             color: #2b3445;
         }
 
-        .img-placeholder {
-            width: 45px;
-            height: 45px;
-            background: #f1f5f9;
-            border: 1px dashed #cbd5e1;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #94a3b8;
-        }
-
-        .img-placeholder img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 4px;
-        }
-
-        /* View/Edit Toggle Classes */
         .edit-element {
             display: none !important;
         }
@@ -246,7 +225,6 @@
             cursor: pointer;
         }
 
-        /* CSS cho Lịch sử đơn hàng */
         .activity-timeline {
             border-left: 2px solid #e2e8f0;
             margin-left: 130px;
@@ -274,7 +252,7 @@
 
         .activity-bullet {
             position: absolute;
-            left: -26px; /* Căn giữa đè lên vạch kẻ */
+            left: -26px;
             top: 2px;
             width: 10px;
             height: 10px;
@@ -283,7 +261,6 @@
             border: 2px solid #0d6efd;
         }
 
-        /* Tùy chỉnh input cho Modal Hủy đơn */
         .swal2-textarea-custom {
             width: 100% !important;
             margin-top: 10px !important;
@@ -346,24 +323,29 @@
 
             <div class="card-custom py-4 view-element">
                 <div class="order-timeline">
-                    <div class="timeline-step completed">
+                    <div class="timeline-step completed" id="tsCreated">
                         <div class="step-icon"></div>
-                        <div class="step-title">Khởi tạo</div>
+                        <div class="step-title" id="lblCreated">Khởi tạo</div>
                         <div class="step-time" id="tlPlaced">...</div>
+                    </div>
+                    <div class="timeline-step" id="tsConfirmed">
+                        <div class="step-icon"></div>
+                        <div class="step-title" id="lblConfirmed">Xác nhận</div>
+                        <div class="step-time"></div>
                     </div>
                     <div class="timeline-step" id="tsShipping">
                         <div class="step-icon"></div>
-                        <div class="step-title">Giao hàng</div>
+                        <div class="step-title" id="lblShipping">Giao hàng</div>
                         <div class="step-time"></div>
                     </div>
                     <div class="timeline-step" id="tsCompleted">
                         <div class="step-icon"></div>
-                        <div class="step-title">Hoàn thành</div>
+                        <div class="step-title" id="lblCompleted">Hoàn thành</div>
                         <div class="step-time"></div>
                     </div>
                     <div class="timeline-step" id="tsCancel" style="display: none;">
                         <div class="step-icon"></div>
-                        <div class="step-title text-danger">Đã hủy</div>
+                        <div class="step-title text-danger" id="lblCancelled">Đã hủy</div>
                         <div class="step-time"></div>
                     </div>
                 </div>
@@ -407,8 +389,7 @@
                 </div>
 
                 <div class="p-3 bg-light border-top d-flex justify-content-end gap-2 view-element"
-                     id="workflowActionBar">
-                </div>
+                     id="workflowActionBar"></div>
             </div>
 
             <div class="card-custom p-0">
@@ -489,8 +470,7 @@
                 <div class="p-3 border-bottom card-title-custom mb-0">
                     <div><i class="bi bi-clock-history me-2 text-secondary"></i>Lịch sử thao tác</div>
                 </div>
-                <div class="p-4" id="orderHistoryContainer">
-                </div>
+                <div class="p-4" id="orderHistoryContainer"></div>
             </div>
         </div>
 
@@ -510,30 +490,27 @@
 
             <div class="card-custom p-3">
                 <div class="card-title-custom">Khách hàng & Giao vận</div>
-
                 <a href="#" class="text-decoration-none fw-bold text-primary hover-primary view-element"
                    id="rightCusName">...</a>
                 <div class="text-muted small mb-3 view-element"><i class="bi bi-telephone me-1"></i><span
                         id="rightCusPhone">---</span></div>
-
                 <div class="fw-bold text-dark small mb-1">Địa chỉ nhận hàng</div>
                 <div class="text-dark small lh-base view-element" id="rightShippingAddress">Khách mua tại quầy</div>
                 <textarea id="editShippingAddress" class="form-control form-control-custom edit-element"
                           rows="2"></textarea>
+
                 <div class="edit-element">
                     <hr class="my-3 text-muted">
                     <div class="row g-2">
                         <div class="col-12">
                             <div class="fw-bold text-dark small mb-1">Mã đơn Sàn (Reference)</div>
                             <input type="text" id="editReferenceCode"
-                                   class="form-control form-control-custom text-primary font-monospace"
-                                   placeholder="VD: 230514ABCD...">
+                                   class="form-control form-control-custom text-primary font-monospace">
                         </div>
                         <div class="col-12">
                             <div class="fw-bold text-dark small mb-1">Mã vận đơn (Tracking)</div>
                             <input type="text" id="editTrackingCode"
-                                   class="form-control form-control-custom text-success font-monospace"
-                                   placeholder="VD: SPX12345...">
+                                   class="form-control form-control-custom text-success font-monospace">
                         </div>
                     </div>
                 </div>
@@ -555,7 +532,6 @@
 
             <div class="card-custom p-3">
                 <div class="card-title-custom mb-3">Chi tiết bổ sung</div>
-
                 <div class="mb-3">
                     <div class="fw-bold text-dark small mb-1">Nguồn đơn</div>
                     <div class="text-muted small view-element" id="rightSource">Hệ thống</div>
@@ -564,7 +540,6 @@
                         <option th:each="c : ${channels}" th:value="${c.code}" th:text="${c.name}"></option>
                     </select>
                 </div>
-
                 <div class="mb-3">
                     <div class="fw-bold text-dark small mb-1">Chi nhánh bán</div>
                     <div class="text-muted small view-element" id="rightBranch">Hệ thống</div>
@@ -669,8 +644,7 @@
                                 <th class="text-center py-2" style="width: 140px;">SL Trả</th>
                             </tr>
                             </thead>
-                            <tbody id="returnProductsBody">
-                            </tbody>
+                            <tbody id="returnProductsBody"></tbody>
                         </table>
                     </div>
 
@@ -682,13 +656,14 @@
                         </div>
                         <div class="col-md-5">
                             <label class="form-label-custom text-danger">Chi phí trả hàng <i
-                                    class="bi bi-info-circle ms-1" title="Phí ship hoàn, phí bồi thường..."></i></label>
+                                    class="bi bi-info-circle ms-1"></i></label>
                             <div class="input-group">
                                 <input type="number" id="returnFee"
                                        class="form-control form-control-custom text-end text-danger fw-bold" value="0">
                                 <span class="input-group-text bg-light text-muted">₫</span>
                             </div>
-                            <small class="text-muted d-block mt-1" style="font-size:11px;">*Khoản phí do khách hàng chịu, sẽ tự động khấu trừ vào <b>số tiền hoàn</b> cho khách hàng.</small>
+                            <small class="text-muted d-block mt-1" style="font-size:11px;">*Khoản phí do khách hàng
+                                chịu, sẽ tự động khấu trừ vào <b>số tiền hoàn</b> cho khách hàng.</small>
                         </div>
                     </div>
                 </div>
@@ -705,19 +680,28 @@
     <input type="hidden" id="hiddenOrderCode" th:value="${orderCode}">
 
     <script th:inline="javascript">
+        /*<![CDATA[*/
+        const statusMapJsonString = /*[[${orderStatusMapJson}]]*/ '{}';
+        const statusLabelMap = JSON.parse(statusMapJsonString || '{}');
+        /*]]>*/
+    </script>
+
+    <script th:inline="none">
         const orderCode = document.getElementById('hiddenOrderCode').value.trim();
         let currentOrder = null;
         let editCart = [];
 
+        const paymentLabelMap = {
+            'UNPAID': 'Chưa thanh toán',
+            'PARTIAL': 'Thanh toán một phần',
+            'PAID': 'Đã thanh toán',
+            'REFUNDED': 'Đã hoàn tiền'
+        };
+
         document.addEventListener('DOMContentLoaded', async () => {
-            if (!orderCode) return Toast.fire({
-                icon: 'error',
-                title: 'Lỗi ID đơn hàng!'
-            });
+            if (!orderCode) return Toast.fire({icon: 'error', title: 'Lỗi ID đơn hàng!'});
             const isSuccess = await loadOrder();
-            if (isSuccess) {
-                setupSearchProduct();
-            }
+            if (isSuccess) setupSearchProduct();
         });
 
         function formatMoney(amount) {
@@ -728,8 +712,7 @@
             if (!isoString) return '--/--/---- --:--';
             const d = new Date(isoString);
             return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', {
-                hour: '2-digit',
-                minute: '2-digit'
+                hour: '2-digit', minute: '2-digit'
             });
         }
 
@@ -741,73 +724,91 @@
             }
         }
 
-        // 1. TẢI ĐƠN HÀNG VÀ VẼ LÊN UI
         async function loadOrder() {
             try {
                 const res = await fetch('/api/v1/orders/' + orderCode);
                 if (!res.ok) throw new Error("API_ERROR");
                 currentOrder = await res.json();
-
-                try {
-                    renderViewMode(); // Nếu vẽ UI lỗi thì catch ở dưới
-                } catch (renderError) {
-                    console.error("Lỗi khi Render giao diện JS:", renderError);
-                    document.getElementById('orderContainer').innerHTML = `<div class="alert alert-warning w-100 text-center py-4 fw-bold"><i class="bi bi-exclamation-triangle fs-4 d-block mb-2"></i>Lỗi mã Javascript khi xử lý dữ liệu. Vui lòng check F12 Console!</div>`;
-                    return false;
-                }
-
+                renderViewMode();
                 return true;
             } catch (e) {
-                console.error("Lỗi lấy dữ liệu API:", e);
-                document.getElementById('orderContainer').innerHTML = `<div class="alert alert-danger w-100 text-center py-4 fw-bold"><i class="bi bi-cloud-slash fs-4 d-block mb-2"></i>Không tìm thấy dữ liệu đơn hàng. Vui lòng kiểm tra lại Backend!</div>`;
+                document.getElementById('orderContainer').innerHTML = `<div class="alert alert-danger w-100 text-center py-4 fw-bold">Không tìm thấy dữ liệu đơn hàng. Vui lòng kiểm tra lại Backend!</div>`;
                 return false;
             }
         }
 
         function renderViewMode() {
-            const st = currentOrder.status || 'Khởi tạo';
+            const st = currentOrder.status || 'CREATED';
+            const stLabel = statusLabelMap[st] || st;
 
-            // Header
             document.getElementById('headerOrderCode').innerText = `#${currentOrder.orderCode}`;
             document.getElementById('headerEditOrderCode').innerText = `#${currentOrder.orderCode}`;
-            document.getElementById('panelOrderStatus').innerText = st;
+            document.getElementById('panelOrderStatus').innerText = stLabel;
 
-            // Badges
-            document.getElementById('headerPaymentStatus').innerHTML = currentOrder.paymentStatus === 'PAID'
-                ? '<span class="status-badge badge-paid"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>'
-                : '<span class="status-badge badge-unpaid"><i class="bi bi-clock me-1"></i>Chưa thanh toán</span>';
+            const pStatus = currentOrder.paymentStatus || 'UNPAID';
+            const pLabel = paymentLabelMap[pStatus] || pStatus;
 
-            let stBadge = `<span class="status-badge badge-init">${st}</span>`;
-            if (st === 'Hoàn thành') stBadge = '<span class="status-badge badge-success">Hoàn thành</span>';
-            else if (st === 'Đang giao hàng') stBadge = '<span class="status-badge badge-processing">Đang giao hàng</span>';
-            else if (st === 'Đã hủy') stBadge = '<span class="status-badge badge-cancel">Đã hủy</span>';
+            if (pStatus === 'PAID') {
+                document.getElementById('headerPaymentStatus').innerHTML = `<span class="status-badge badge-paid"><i class="bi bi-check-circle me-1"></i>${pLabel}</span>`;
+            } else if (pStatus === 'PARTIAL') {
+                document.getElementById('headerPaymentStatus').innerHTML = `<span class="status-badge bg-warning bg-opacity-25 text-dark border border-warning"><i class="bi bi-pie-chart me-1"></i>${pLabel}</span>`;
+            } else {
+                document.getElementById('headerPaymentStatus').innerHTML = `<span class="status-badge badge-unpaid"><i class="bi bi-clock me-1"></i>${pLabel}</span>`;
+            }
+
+            let stBadge = `<span class="status-badge badge-init">${stLabel}</span>`;
+            if (st === 'COMPLETED') stBadge = `<span class="status-badge badge-success">${stLabel}</span>`;
+            else if (st === 'SHIPPING' || st === 'PROCESSING') stBadge = `<span class="status-badge badge-processing">${stLabel}</span>`;
+            else if (st === 'CANCELLED' || st === 'RETURNED') stBadge = `<span class="status-badge badge-cancel">${stLabel}</span>`;
             document.getElementById('headerOrderStatus').innerHTML = stBadge;
 
-            // Payment Panel
-            document.getElementById('panelPaymentStatus').innerText = currentOrder.paymentStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán';
-            document.getElementById('viewPaymentMethod').innerText = currentOrder.paymentMethod === 'CASH' ? 'Tiền mặt' : (currentOrder.paymentMethod === 'TRANSFER' ? 'Chuyển khoản' : (currentOrder.paymentMethod === 'SWIPE' ? 'Quẹt thẻ' : 'Thanh toán sau'));
+            document.getElementById('panelPaymentStatus').innerText = pLabel;
 
-            // Timeline
+            const pMethodMap = {'CASH': 'Tiền mặt', 'TRANSFER': 'Chuyển khoản', 'SWIPE': 'Quẹt thẻ'};
+            document.getElementById('viewPaymentMethod').innerText = pMethodMap[currentOrder.paymentMethod] || 'Thanh toán sau';
+
+            // Cập nhật nhãn Timeline theo Master Data
+            document.getElementById('lblCreated').innerText = statusLabelMap['CREATED'] || 'Khởi tạo';
+            document.getElementById('lblConfirmed').innerText = statusLabelMap['CONFIRMED'] || 'Đã xác nhận';
+            document.getElementById('lblShipping').innerText = statusLabelMap['SHIPPING'] || 'Giao hàng';
+            document.getElementById('lblCompleted').innerText = statusLabelMap['COMPLETED'] || 'Hoàn thành';
+            document.getElementById('lblCancelled').innerText = statusLabelMap['CANCELLED'] || 'Đã hủy';
+
             document.getElementById('tlPlaced').innerText = formatDateTime(currentOrder.createdAt);
+
+            // Đặt mặc định Class cho Timeline (Sẽ có 4 step hiển thị)
+            document.getElementById('tsCreated').className = 'timeline-step';
+            document.getElementById('tsConfirmed').className = 'timeline-step';
             document.getElementById('tsShipping').className = 'timeline-step';
             document.getElementById('tsCompleted').className = 'timeline-step';
             document.getElementById('tsCancel').style.display = 'none';
 
-            if (st === 'Đang giao hàng' || st === 'Hoàn thành') {
+            // Xử lý Timeline cho trạng thái DRAFT (Nháp)
+            if (st === 'DRAFT') {
+                document.getElementById('lblCreated').innerText = statusLabelMap['DRAFT'] || 'Nháp';
+                document.getElementById('tsCreated').classList.add('active');
+            } else if (st === 'CREATED') {
+                document.getElementById('tsCreated').classList.add('completed');
+            } else if (st === 'CONFIRMED' || st === 'PROCESSING') {
+                document.getElementById('tsCreated').classList.add('completed');
+                document.getElementById('tsConfirmed').classList.add('active');
+            } else if (st === 'SHIPPING') {
+                document.getElementById('tsCreated').classList.add('completed');
+                document.getElementById('tsConfirmed').classList.add('completed');
                 document.getElementById('tsShipping').classList.add('active');
-            }
-            if (st === 'Hoàn thành') {
+            } else if (st === 'COMPLETED') {
+                document.getElementById('tsCreated').classList.add('completed');
+                document.getElementById('tsConfirmed').classList.add('completed');
                 document.getElementById('tsShipping').classList.add('completed');
-                document.getElementById('tsShipping').classList.remove('active');
                 document.getElementById('tsCompleted').classList.add('completed');
-            }
-            if (st === 'Đã hủy') {
+            } else if (st === 'CANCELLED' || st === 'RETURNED') {
+                document.getElementById('tsConfirmed').style.display = 'none';
                 document.getElementById('tsShipping').style.display = 'none';
                 document.getElementById('tsCompleted').style.display = 'none';
                 document.getElementById('tsCancel').style.display = 'flex';
+                document.getElementById('tsCancel').classList.add('active');
             }
 
-            // Tiền nong
             const totalItemAmount = (currentOrder.details || []).reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
             const totalQty = (currentOrder.details || []).reduce((sum, i) => sum + i.quantity, 0);
 
@@ -821,9 +822,7 @@
             document.getElementById('viewReferenceCode').innerText = currentOrder.referenceCode || '---';
             document.getElementById('viewTrackingCode').innerText = currentOrder.trackingCode || '---';
 
-            // Cột phải
             document.getElementById('rightSource').innerText = currentOrder.salesChannelCode || 'Hệ thống';
-
             const branchSelect = document.getElementById('editBranch');
             let branchName = 'Hệ thống';
             if (currentOrder.branchId && branchSelect) {
@@ -831,7 +830,6 @@
                 if (opt) branchName = opt.text;
             }
             document.getElementById('rightBranch').innerText = branchName;
-
             document.getElementById('rightNote').innerText = currentOrder.note || 'Không có ghi chú';
             document.getElementById('rightShippingAddress').innerText = currentOrder.shippingAddress || 'Khách lấy tại quầy';
 
@@ -839,16 +837,13 @@
             if (cus) {
                 document.getElementById('rightCusName').innerText = cus.fullName || cus.name || 'Khách lẻ';
                 document.getElementById('rightCusPhone').innerText = cus.phone || cus.phoneNumber || '---';
-                const cusNameEl = document.getElementById('rightCusName');
-                const cusCode = cus.code;
-                cusNameEl.href = `/ui/customers/${cusCode}`;
+                document.getElementById('rightCusName').href = `/ui/customers/${cus.code}`;
             }
 
-            // Ẩn hiện Nút Sửa / Trả hàng
-            if (st === 'Hoàn thành') {
+            if (st === 'COMPLETED') {
                 document.getElementById('btnEditOrder').style.display = 'none';
                 document.getElementById('btnReturnOrder').style.display = 'block';
-            } else if (st === 'Đã hủy') {
+            } else if (st === 'CANCELLED' || st === 'RETURNED') {
                 document.getElementById('btnEditOrder').style.display = 'none';
                 document.getElementById('btnReturnOrder').style.display = 'none';
             } else {
@@ -856,8 +851,7 @@
                 document.getElementById('btnReturnOrder').style.display = 'none';
             }
 
-            // Render Các Nút Thao Tác (Workflow)
-            renderActionButtons(st, currentOrder.paymentStatus);
+            renderActionButtons(st, pStatus);
             renderProductTable(currentOrder.details, false);
             renderOrderHistory(currentOrder.activities);
         }
@@ -895,32 +889,39 @@
             workflowBar.innerHTML = '';
             paymentBar.innerHTML = '';
 
-            if (paymentStatus !== 'PAID' && status !== 'Đã hủy') {
+            if (paymentStatus !== 'PAID' && status !== 'CANCELLED' && status !== 'RETURNED') {
                 paymentBar.innerHTML = `<button class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="openPaymentModal()"><i class="bi bi-check-circle me-1"></i>Xác nhận thanh toán</button>`;
             } else if (paymentStatus === 'PAID') {
                 paymentBar.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success border border-success px-2 py-1"><i class="bi bi-check-all me-1"></i>Đã thu ${formatMoney(currentOrder.amountPaid)}</span>`;
             }
 
-            if (status === 'Khởi tạo' || status === 'Nháp') {
+            const lblCancel = statusLabelMap['CANCELLED'] || 'Hủy đơn';
+            const lblShipping = statusLabelMap['SHIPPING'] || 'Giao hàng';
+            const lblCompleted = statusLabelMap['COMPLETED'] || 'Hoàn thành';
+
+            if (status === 'DRAFT') {
                 workflowBar.innerHTML = `
-                    <button class="btn btn-white border fw-bold text-danger px-4 shadow-sm" onclick="changeOrderStatus('Đã hủy')">Hủy đơn</button>
-                    <button class="btn btn-primary fw-bold px-4 shadow-sm" onclick="changeOrderStatus('Đang giao hàng')">Giao hàng</button>
+                    <button class="btn btn-white border fw-bold text-danger px-4 shadow-sm" onclick="changeOrderStatus('CANCELLED')">${lblCancel}</button>
+                    <button class="btn btn-primary fw-bold px-4 shadow-sm" onclick="changeOrderStatus('CREATED')">Tạo đơn hàng</button>
                 `;
-            } else if (status === 'Đang giao hàng') {
+            } else if (status === 'CREATED' || status === 'CONFIRMED' || status === 'PROCESSING') {
                 workflowBar.innerHTML = `
-                    <button class="btn btn-white border fw-bold text-danger px-4 shadow-sm" onclick="changeOrderStatus('Đã hủy')">Hủy giao</button>
-                    <button class="btn btn-primary fw-bold px-4 shadow-sm" onclick="changeOrderStatus('Hoàn thành')">Hoàn thành đơn</button>
+                    <button class="btn btn-white border fw-bold text-danger px-4 shadow-sm" onclick="changeOrderStatus('CANCELLED')">${lblCancel}</button>
+                    <button class="btn btn-primary fw-bold px-4 shadow-sm" onclick="changeOrderStatus('SHIPPING')">${lblShipping}</button>
+                `;
+            } else if (status === 'SHIPPING') {
+                workflowBar.innerHTML = `
+                    <button class="btn btn-white border fw-bold text-danger px-4 shadow-sm" onclick="changeOrderStatus('CANCELLED')">${lblCancel}</button>
+                    <button class="btn btn-primary fw-bold px-4 shadow-sm" onclick="changeOrderStatus('COMPLETED')">${lblCompleted}</button>
                 `;
             }
         }
 
-        // 2. CHẾ ĐỘ SỬA ĐƠN
         function toggleEditMode(isEdit) {
             const container = document.getElementById('orderContainer');
             if (isEdit) {
-                if (currentOrder.status === 'Hoàn thành' || currentOrder.status === 'Đã hủy') return Toast.fire({
-                    icon: 'error',
-                    title: 'Không thể sửa đơn đã đóng!'
+                if (currentOrder.status === 'COMPLETED' || currentOrder.status === 'CANCELLED' || currentOrder.status === 'RETURNED') return Toast.fire({
+                    icon: 'error', title: 'Không thể sửa đơn đã đóng!'
                 });
                 container.classList.add('is-editing');
 
@@ -933,7 +934,6 @@
                 document.getElementById('editShippingFeeInput').value = currentOrder.shippingFee || 0;
                 document.getElementById('editShippingAddress').value = currentOrder.shippingAddress || '';
                 document.getElementById('editNote').value = currentOrder.note || '';
-
                 document.getElementById('editSource').value = currentOrder.salesChannelCode || '';
                 document.getElementById('editBranch').value = currentOrder.branchId ? String(currentOrder.branchId) : '';
                 document.getElementById('editReferenceCode').value = currentOrder.referenceCode || '';
@@ -1061,12 +1061,8 @@
             const exist = editCart.findIndex(i => i.sku === sku);
             if (exist > -1) editCart[exist].quantity++;
             else editCart.push({
-                sku: sku,
-                name: name,
-                productName: name,
-                unitPrice: price || 0,
-                quantity: 1,
-                showWarranty: false
+                sku: sku, name: name, productName: name, unitPrice: price || 0,
+                quantity: 1, showWarranty: false
             });
             renderProductTable(editCart, true);
             calcEditTotals();
@@ -1092,7 +1088,6 @@
             document.getElementById('viewFinalTotal').innerText = formatMoney(final > 0 ? final : 0);
         }
 
-        // 3. API LƯU CẬP NHẬT
         async function submitFullOrderUpdate() {
             const cartToSave = editCart.length > 0 ? editCart : currentOrder.details;
             const subTotal = cartToSave.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
@@ -1107,6 +1102,7 @@
             const exDate = isEditing ? document.getElementById('editExpectedDeliveryDate').value : currentOrder.expectedDeliveryDate;
             const refCode = isEditing ? document.getElementById('editReferenceCode').value : currentOrder.referenceCode;
             const trackCode = isEditing ? document.getElementById('editTrackingCode').value : currentOrder.trackingCode;
+
             const totalAmt = subTotal - discount + shippingFee;
             const finalTotalAmount = totalAmt > 0 ? totalAmt : 0;
 
@@ -1136,11 +1132,9 @@
                 shippingFee: shippingFee,
                 codAmount: currentOrder.codAmount,
                 shipWeight: currentOrder.shipWeight,
-
                 paymentStatus: newPaymentStatus,
                 paymentMethod: currentOrder.paymentMethod,
                 amountPaid: currentPaid,
-
                 invoiceTaxCode: currentOrder.invoiceTaxCode,
                 invoiceCompanyName: currentOrder.invoiceCompanyName,
                 invoiceCompanyAddress: currentOrder.invoiceCompanyAddress,
@@ -1160,23 +1154,14 @@
                     body: JSON.stringify(payload)
                 });
                 if (res.ok) {
-                    Toast.fire({
-                        icon: 'success',
-                        title: 'Cập nhật đơn hàng thành công!'
-                    });
+                    Toast.fire({icon: 'success', title: 'Cập nhật đơn hàng thành công!'});
                     toggleEditMode(false);
                 } else {
                     const err = await res.json();
-                    Toast.fire({
-                        icon: 'error',
-                        title: 'Lỗi: ' + (err.message || 'Kiểm tra dữ liệu')
-                    });
+                    Toast.fire({icon: 'error', title: 'Lỗi: ' + (err.message || 'Kiểm tra dữ liệu')});
                 }
             } catch (e) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối máy chủ!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ!'});
             }
         }
 
@@ -1184,10 +1169,10 @@
             submitFullOrderUpdate();
         }
 
-        // 4. API WORKFLOW (CÓ BOX HỦY ĐƠN)
         async function changeOrderStatus(newStatus) {
-            // NẾU LÀ HỦY ĐƠN THÌ HIỆN BOX CUSTOM
-            if (newStatus === 'Đã hủy') {
+            const labelStr = statusLabelMap[newStatus] || newStatus;
+
+            if (newStatus === 'CANCELLED') {
                 const {value: cancelReason, isConfirmed} = await Swal.fire({
                     title: 'Hủy đơn hàng',
                     html: `Bạn đang thực hiện hủy đơn <b>#${currentOrder.orderCode}</b>. Vui lòng nhập lý do hủy:
@@ -1200,9 +1185,7 @@
                     cancelButtonText: 'Đóng',
                     preConfirm: () => {
                         const note = document.getElementById('swal-cancel-note').value.trim();
-                        if (!note) {
-                            Swal.showValidationMessage('Vui lòng nhập lý do hủy đơn hàng!');
-                        }
+                        if (!note) Swal.showValidationMessage('Vui lòng nhập lý do hủy đơn hàng!');
                         return note;
                     }
                 });
@@ -1212,13 +1195,12 @@
                 currentOrder.note = currentOrder.note ? (currentOrder.note + " | Hủy do: " + cancelReason) : ("Hủy do: " + cancelReason);
 
             } else {
-                // TRẠNG THÁI BÌNH THƯỜNG
                 const confirmation = await Swal.fire({
                     title: 'Xác nhận đổi trạng thái',
-                    text: `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng thành: "${newStatus}"?`,
+                    text: `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng thành: "${labelStr}"?`,
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: newStatus === 'Hoàn thành' ? '#28a745' : '#3085d6',
+                    confirmButtonColor: newStatus === 'COMPLETED' ? '#28a745' : '#3085d6',
                     cancelButtonColor: '#6c757d',
                     confirmButtonText: 'Xác nhận',
                     cancelButtonText: 'Hủy bỏ'
@@ -1227,24 +1209,17 @@
                 currentOrder.status = newStatus;
             }
 
-            if (newStatus === 'Hoàn thành' && currentOrder.paymentStatus !== 'PAID') {
+            if (newStatus === 'COMPLETED' && currentOrder.paymentStatus !== 'PAID') {
                 currentOrder.paymentStatus = 'PAID';
                 if (!currentOrder.paymentMethod) currentOrder.paymentMethod = 'CASH';
                 currentOrder.amountPaid = currentOrder.totalAmount;
-                Toast.fire({
-                    icon: 'info',
-                    title: 'Hệ thống đã tự động ghi nhận thanh toán đủ cho đơn hàng này.'
-                });
+                Toast.fire({icon: 'info', title: 'Hệ thống đã tự động ghi nhận thanh toán đủ cho đơn hàng này.'});
             }
 
             try {
                 await submitFullOrderUpdate();
             } catch (e) {
-                console.error("Lỗi cập nhật đơn hàng:", e);
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi khi cập nhật trạng thái đơn hàng!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi khi cập nhật trạng thái đơn hàng!'});
             }
         }
 
@@ -1289,7 +1264,6 @@
             }
         }
 
-        // --- TRẢ HÀNG ---
         function openReturnModal() {
             document.getElementById('returnOrderCodeOrig').value = currentOrder.orderCode;
             document.getElementById('returnFee').value = 0;

@@ -20,13 +20,16 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.oms.constant.CommonConstants.PaymentStatusConstant.*;
+import static com.oms.constant.CommonConstants.ReturnStatusConstant.*;
+import static com.oms.constant.CommonConstants.ReturnStatusConstant.PENDING;
+
 @Service
 @RequiredArgsConstructor
 public class ReturnOrderService {
 
     private final ReturnOrderRepository returnRepo;
     private final OrderRepository orderRepo;
-    // KHAI BÁO THÊM CÁC REPOSITORY NÀY
     private final CashTransactionRepository cashRepo;
     private final ProductVariantRepository variantRepo;
     private final InventoryRepository inventoryRepo;
@@ -55,9 +58,9 @@ public class ReturnOrderService {
                 .reason(request.getReason())
                 .note(request.getNote())
                 .returnFee(request.getReturnFee() != null ? request.getReturnFee() : BigDecimal.ZERO)
-                .refundStatus("UNPAID")
-                .restockStatus("PENDING")
-                .status("PROCESSING")
+                .refundStatus(UNPAID)
+                .restockStatus(RESTOCK_PENDING)
+                .status(PENDING) // ĐÃ SỬA: Khớp với Master Data RETURN_STATUS
                 .createdBy(user)
                 .build();
 
@@ -117,7 +120,7 @@ public class ReturnOrderService {
         ReturnOrder returnOrder = returnRepo.findById(returnOrderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
 
-        if ("REFUNDED".equals(returnOrder.getRefundStatus())) {
+        if (REFUNDED.equals(returnOrder.getRefundStatus())) {
             throw new RuntimeException("Phiếu này đã được hoàn tiền!");
         }
 
@@ -130,14 +133,14 @@ public class ReturnOrderService {
                 .targetId(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getId() : null)
                 .targetName(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getFullName() : "Khách trả hàng")
                 .amount(returnOrder.getTotalRefundAmount())
-                .reason("Hoàn tiền cho khách") // Bạn có thể cấu hình reason này khớp với reason tính Lợi nhuận nếu muốn
+                .reason("Hoàn tiền cho khách")
                 .description("Hoàn tiền phiếu trả hàng " + returnOrder.getReturnCode() + " (Đơn gốc: " + returnOrder.getOriginalOrder().getOrderCode() + ")")
                 .transactionDate(java.time.LocalDateTime.now())
                 .creatorName(getCurrentUserName())
                 .build();
         cashRepo.save(payment);
 
-        returnOrder.setRefundStatus("REFUNDED");
+        returnOrder.setRefundStatus(REFUNDED);
         checkAndCompleteReturn(returnOrder);
 
         logActivity(returnOrder, "Xác nhận hoàn tiền", "Đã hoàn " + returnOrder.getTotalRefundAmount() + "đ qua " + method);
@@ -150,7 +153,7 @@ public class ReturnOrderService {
         ReturnOrder returnOrder = returnRepo.findById(returnOrderId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
 
-        if ("RESTOCKED".equals(returnOrder.getRestockStatus())) {
+        if (RESTOCK_RESTOCKED.equals(returnOrder.getRestockStatus())) {
             throw new RuntimeException("Phiếu này đã được nhập kho!");
         }
 
@@ -172,7 +175,7 @@ public class ReturnOrderService {
             }
         }
 
-        returnOrder.setRestockStatus("RESTOCKED");
+        returnOrder.setRestockStatus(RESTOCK_RESTOCKED);
         checkAndCompleteReturn(returnOrder);
 
         logActivity(returnOrder, "Nhận hàng vào kho", "Đã cất lại hàng vào kho chi nhánh ID: " + branchId);
@@ -181,8 +184,8 @@ public class ReturnOrderService {
 
     // 3. KIỂM TRA XONG CẢ 2 BƯỚC THÌ CHỐT PHIẾU
     private void checkAndCompleteReturn(ReturnOrder returnOrder) {
-        if ("REFUNDED".equals(returnOrder.getRefundStatus()) && "RESTOCKED".equals(returnOrder.getRestockStatus())) {
-            returnOrder.setStatus("COMPLETED");
+        if (REFUNDED.equals(returnOrder.getRefundStatus()) && RESTOCK_RESTOCKED.equals(returnOrder.getRestockStatus())) {
+            returnOrder.setStatus(COMPLETED);
             logActivity(returnOrder, "Hoàn tất phiếu trả hàng", "Đã xử lý xong các bước hoàn tiền và nhập kho.");
         }
     }
