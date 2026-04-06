@@ -121,8 +121,6 @@
     <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
         <h4 class="fw-bold mb-0 text-dark">Nhà cung cấp</h4>
         <div class="d-flex gap-2">
-            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-upload me-2"></i>Xuất file</button>
-            <button class="btn filter-btn px-3 shadow-sm"><i class="bi bi-download me-2"></i>Nhập file</button>
             <a th:href="@{/ui/suppliers/create}" class="btn btn-primary fw-bold px-3 shadow-sm">
                 <i class="bi bi-plus-circle me-2"></i>Thêm nhà cung cấp
             </a>
@@ -151,11 +149,12 @@
                     <div class="input-group search-box flex-grow-1">
                         <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
                         <input type="text" name="keyword" th:value="${keyword}" class="form-control"
-                               placeholder="Tìm theo tên, mã, SĐT nhà cung cấp...">
+                               placeholder="Tìm theo tên, mã, SĐT nhà cung cấp..."
+                               onkeyup="debounceSearch(this.form)">
                     </div>
 
                     <div class="d-flex gap-2">
-                        <select name="assignee" class="form-select filter-btn w-auto">
+                        <select name="assignee" class="form-select filter-btn w-auto" onchange="this.form.submit()">
                             <option value="">Tất cả nhân viên</option>
                             <option th:each="u : ${users}"
                                     th:value="${u.fullName}"
@@ -163,7 +162,6 @@
                                     th:selected="${assignee == u.fullName}">
                             </option>
                         </select>
-                        <button type="submit" class="btn btn-primary fw-bold px-4" style="font-size: 13px;">Lọc</button>
                         <button type="button" class="btn filter-btn px-3"
                                 onclick="window.location.href='/ui/suppliers'">
                             <i class="bi bi-arrow-clockwise me-2"></i>Làm mới
@@ -274,6 +272,16 @@
     </div>
 
     <script th:inline="javascript">
+        // 0. Hàm chống giật (Debounce) cho ô tìm kiếm
+        let typingTimer;
+
+        function debounceSearch(form) {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                form.submit();
+            }, 500); // Đợi 0.5s sau khi ngừng gõ mới submit form
+        }
+
         document.addEventListener("DOMContentLoaded", function () {
             // 1. Click dòng nhảy chi tiết (Trừ Checkbox)
             const rows = document.querySelectorAll('.supplier-row');
@@ -320,10 +328,9 @@
         }
 
         // 3. Gọi API Xóa hàng loạt
-        async function deleteSelectedSuppliers() {
+        function deleteSelectedSuppliers() {
             const checkedBoxes = document.querySelectorAll('.item-check:checked');
 
-            // 1. Nhắc nhở nếu người dùng chưa chọn nhà cung cấp nào
             if (checkedBoxes.length === 0) {
                 Toast.fire({
                     icon: 'warning',
@@ -334,48 +341,47 @@
 
             const codes = Array.from(checkedBoxes).map(cb => cb.value);
 
-            // 2. Bảng xác nhận xóa bằng SweetAlert2
-            const confirmation = await Swal.fire({
+            Swal.fire({
                 title: 'Xác nhận xóa hàng loạt',
                 text: `Bạn có chắc chắn muốn xóa vĩnh viễn ${codes.length} nhà cung cấp đã chọn không? Thao tác này không thể hoàn tác.`,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',   // Đỏ cảnh báo nguy hiểm
-                cancelButtonColor: '#3085d6', // Xanh an toàn
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Xác nhận xóa',
                 cancelButtonText: 'Hủy bỏ'
-            });
-
-            // Dừng lại nếu người dùng chọn Hủy
-            if (!confirmation.isConfirmed) return;
-
-            try {
-                const res = await fetch('/api/v1/suppliers/bulk-delete', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(codes)
-                });
-
-                if (res.ok) {
-                    // 3. Đợi Toast hiện xong thông báo rồi mới reload trang (Dùng await)
-                    await Toast.fire({
-                        icon: 'success',
-                        title: `Đã xóa thành công ${codes.length} nhà cung cấp!`
-                    });
-                    window.location.reload();
-                } else {
-                    const msg = await res.text();
-                    Toast.fire({
-                        icon: 'error',
-                        title: 'Lỗi khi xóa: ' + (msg || 'Vui lòng thử lại sau.')
-                    });
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/api/v1/suppliers/bulk-delete', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(codes)
+                    })
+                        .then(res => {
+                            if (res.ok) {
+                                Toast.fire({
+                                    icon: 'success',
+                                    title: `Đã xóa thành công ${codes.length} nhà cung cấp!`
+                                });
+                                // Bỏ await đi để trình duyệt reload luôn cho mượt
+                                window.location.reload();
+                            } else {
+                                res.text().then(msg => {
+                                    Toast.fire({
+                                        icon: 'error',
+                                        title: 'Lỗi khi xóa: ' + (msg || 'Vui lòng thử lại sau.')
+                                    });
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            Toast.fire({
+                                icon: 'error',
+                                title: 'Lỗi kết nối đến máy chủ!'
+                            });
+                        });
                 }
-            } catch (err) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối đến máy chủ!'
-                });
-            }
+            });
         }
     </script>
 </div>
