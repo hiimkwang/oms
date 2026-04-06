@@ -332,22 +332,22 @@ public class WebController {
     public String receiptDetailPage(@PathVariable String code, Model model) {
         Receipt receipt = receiptService.getReceiptByCode(code);
         model.addAttribute("order", receipt);
-
+        model.addAttribute("branches", branchService.findAll());
         return "import/import-detail";
     }
 
-    @GetMapping("/ui/imports/edit/{code}")
-    public String editImportPage(@PathVariable String code, Model model) {
-        Receipt receipt = receiptService.getReceiptByCode(code);
-
-        if ("COMPLETED".equals(receipt.getStatus()) || "COMPLETED".equals(receipt.getImportStatus())) {
-            return "redirect:/ui/imports/" + code;
-        }
-
-        model.addAttribute("order", receipt);
-        model.addAttribute("branches", branchService.findAll());
-        return "import/import-edit";
-    }
+//    @GetMapping("/ui/imports/edit/{code}")
+//    public String editImportPage(@PathVariable String code, Model model) {
+//        Receipt receipt = receiptService.getReceiptByCode(code);
+//
+//        if ("COMPLETED".equals(receipt.getStatus()) || "COMPLETED".equals(receipt.getImportStatus())) {
+//            return "redirect:/ui/imports/" + code;
+//        }
+//
+//        model.addAttribute("order", receipt);
+//        model.addAttribute("branches", branchService.findAll());
+//        return "import/import-edit";
+//    }
 
 
     @GetMapping("/ui/cashbook")

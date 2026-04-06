@@ -203,8 +203,8 @@
                         <div class="payment-summary-row mb-2">
                             <span class="text-muted">Giảm giá đơn</span>
                             <div class="input-group input-group-sm w-auto" style="max-width: 150px;">
-                                <input type="number" id="discountInput" class="form-control text-end" value="0" min="0"
-                                       onchange="calculateFinalAmount()">
+                                <input type="number" step="1" id="discountInput" class="form-control text-end" value="0"
+                                       min="0" onchange="calculateFinalAmount()">
                                 <span class="input-group-text">₫</span>
                             </div>
                         </div>
@@ -212,8 +212,8 @@
                         <div class="payment-summary-row border-bottom pb-3">
                             <span class="text-muted">Chi phí nhập hàng (Vận chuyển, phí khác)</span>
                             <div class="input-group input-group-sm w-auto" style="max-width: 150px;">
-                                <input type="number" id="shippingFeeInput" class="form-control text-end" value="0"
-                                       min="0" onchange="calculateFinalAmount()">
+                                <input type="number" step="1" id="shippingFeeInput" class="form-control text-end"
+                                       value="0" min="0" onchange="calculateFinalAmount()">
                                 <span class="input-group-text">₫</span>
                             </div>
                         </div>
@@ -240,7 +240,7 @@
                                 <div class="col-md-6">
                                     <label class="form-label-custom text-muted small">Số tiền đã trả</label>
                                     <div class="input-group">
-                                        <input type="number" id="paymentAmountInput"
+                                        <input type="number" step="1" id="paymentAmountInput"
                                                class="form-control form-control-custom text-end fw-bold text-success"
                                                value="0">
                                         <span class="input-group-text bg-white text-muted">₫</span>
@@ -266,8 +266,7 @@
                         <div class="input-group">
                             <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                             <input type="text" class="form-control form-control-custom border-start-0 ps-0"
-                                   id="supplierSearchInput" placeholder="Tìm tên, SĐT... (F4)"
-                                   autocomplete="off">
+                                   id="supplierSearchInput" placeholder="Tìm tên, SĐT... (F4)" autocomplete="off">
                         </div>
                         <ul class="dropdown-menu w-100 shadow-sm border custom-dropdown-list mt-1 p-0 position-absolute"
                             id="supplierDropdownList" style="left: 0;"></ul>
@@ -300,11 +299,8 @@
                     <div class="mb-0">
                         <label class="form-label-custom">Nhân viên phụ trách</label>
                         <select id="assigneeId" class="form-select form-select-custom bg-light">
-                            <option th:each="u : ${users}"
-                                    th:value="${u.id}"
-                                    th:text="${u.fullName}"
-                                    th:selected="${currentUser != null && u.id == currentUser.id}">
-                            </option>
+                            <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.fullName}"
+                                    th:selected="${currentUser != null && u.id == currentUser.id}"></option>
                         </select>
                     </div>
                 </div>
@@ -319,9 +315,9 @@
                                placeholder="Ví dụ: HD-NCC-001">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label-custom">Ngày nhập </label>
-                        <input type="date" id="expectedDate" class="form-control form-control-custom"
-                               th:value="${#calendars.format(#calendars.createNow(), 'yyyy-MM-dd')}">
+                        <label class="form-label-custom">Thời gian nhập</label>
+                        <input type="datetime-local" id="expectedDate" class="form-control form-control-custom"
+                               th:value="${#calendars.format(#calendars.createNow(), 'yyyy-MM-dd''T''HH:mm')}">
                     </div>
                     <div class="mb-0">
                         <label class="form-label-custom">Ghi chú đơn</label>
@@ -416,13 +412,13 @@
                     <div class="row g-3 bg-white p-3 rounded border">
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-primary">Giá nhập (Vốn)</label>
-                            <input type="number" id="qa_costPrice" class="form-control shadow-none text-end fw-bold"
-                                   value="0">
+                            <input type="number" step="1" id="qa_costPrice"
+                                   class="form-control shadow-none text-end fw-bold" value="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-success">Số lượng</label>
-                            <input type="number" id="qa_importQty" class="form-control shadow-none text-center fw-bold"
-                                   value="1">
+                            <input type="number" step="1" id="qa_importQty"
+                                   class="form-control shadow-none text-center fw-bold" value="1">
                         </div>
                     </div>
                 </div>
@@ -451,7 +447,6 @@
             const productInput = document.getElementById('productSearchInput');
             const supplierInput = document.getElementById('supplierSearchInput');
 
-            // GIỮ NGUYÊN LOGIC TIMEOUT CỦA ANH
             let productTimeout;
             productInput.addEventListener('input', function (e) {
                 clearTimeout(productTimeout);
@@ -552,6 +547,8 @@
                     html = `<li class="p-4 text-center small text-muted">Không thấy SP. <button class="btn btn-link btn-sm" onclick="openQuickAdd('${keyword}')">Thêm nhanh?</button></li>`;
                 } else {
                     variants.forEach(v => {
+                        // Bọc Math.round để làm tròn giá hiển thị trên danh sách
+                        const roundedPrice = Math.round(v.costPrice || 0);
                         const vStr = encodeURIComponent(JSON.stringify(v));
                         html += `
                             <li class="p-2 border-bottom dropdown-item-hover" onclick="addToCart('${vStr}')">
@@ -559,7 +556,7 @@
                                     <div class="img-product"><i class="bi bi-box-seam text-muted"></i></div>
                                     <div>
                                         <div class="fw-bold text-primary" style="font-size: 14px;">${v.productName} ${v.variantName !== 'Mặc định' ? '- ' + v.variantName : ''}</div>
-                                        <div class="text-muted" style="font-size: 12px;">SKU: ${v.sku} | Vốn: ${v.costPrice.toLocaleString()}₫</div>
+                                        <div class="text-muted" style="font-size: 12px;">SKU: ${v.sku} | Vốn: ${roundedPrice.toLocaleString('vi-VN')}₫</div>
                                     </div>
                                 </div>
                             </li>`;
@@ -585,7 +582,7 @@
                 cart.push({
                     sku: v.sku,
                     name: fullName,
-                    importPrice: v.costPrice || 0,
+                    importPrice: Math.round(v.costPrice || 0), // Làm tròn khi ném vào mảng
                     quantity: 1,
                     warrantyMonths: 12
                 });
@@ -609,7 +606,7 @@
                 variants: [{
                     variantName: 'Mặc định',
                     sku: document.getElementById('qa_sku').value,
-                    costPrice: parseFloat(document.getElementById('qa_costPrice').value) || 0
+                    costPrice: Math.round(parseFloat(document.getElementById('qa_costPrice').value) || 0)
                 }]
             };
             const res = await fetch('/api/v1/products', {
@@ -623,7 +620,7 @@
                 cart.push({
                     sku: p.variants[0].sku,
                     name: p.name,
-                    importPrice: p.variants[0].costPrice,
+                    importPrice: Math.round(p.variants[0].costPrice),
                     quantity: parseInt(document.getElementById('qa_importQty').value) || 1,
                     warrantyMonths: 12
                 });
@@ -633,7 +630,7 @@
 
         // ================= TÍNH TOÁN =================
         function formatMoney(amount) {
-            return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+            return new Intl.NumberFormat('vi-VN').format(Math.round(amount)) + '₫';
         }
 
         function renderCart() {
@@ -656,14 +653,14 @@
             totalItemsAmount = 0;
             let totalQty = 0;
             cart.forEach((item, index) => {
-                const lineTotal = item.quantity * item.importPrice;
+                const lineTotal = Math.round(item.quantity * item.importPrice);
                 totalItemsAmount += lineTotal;
                 totalQty += item.quantity;
                 html += `<tr>
                     <td class="ps-3"><div class="fw-bold">${item.name}</div><div class="small text-muted">${item.sku}</div></td>
-                    <td><input type="number" class="form-control form-control-sm text-center mx-auto" style="width:70px;" value="${item.quantity}" onchange="updateCart(${index}, 'quantity', this.value)"></td>
-                    <td><input type="number" class="form-control form-control-sm text-end" value="${item.importPrice}" onchange="updateCart(${index}, 'importPrice', this.value)"></td>
-                    <td><input type="number" class="form-control form-control-sm text-center mx-auto" style="width:65px;" value="${item.warrantyMonths}" onchange="updateCart(${index}, 'warrantyMonths', this.value)"></td>
+                    <td><input type="number" step="1" class="form-control form-control-sm text-center mx-auto" style="width:70px;" value="${item.quantity}" onchange="updateCart(${index}, 'quantity', this.value)"></td>
+                    <td><input type="number" step="1" class="form-control form-control-sm text-end" value="${item.importPrice}" onchange="updateCart(${index}, 'importPrice', this.value)"></td>
+                    <td><input type="number" step="1" class="form-control form-control-sm text-center mx-auto" style="width:65px;" value="${item.warrantyMonths}" onchange="updateCart(${index}, 'warrantyMonths', this.value)"></td>
                     <td class="text-end fw-bold">${formatMoney(lineTotal)}</td>
                     <td class="text-center"><i class="bi bi-trash text-danger cursor-pointer" onclick="removeItem(${index})"></i></td>
                 </tr>`;
@@ -675,7 +672,11 @@
         }
 
         function updateCart(idx, field, val) {
-            cart[idx][field] = parseFloat(val) || 0;
+            if (field === 'importPrice') {
+                cart[idx][field] = Math.round(parseFloat(val) || 0);
+            } else {
+                cart[idx][field] = parseFloat(val) || 0;
+            }
             renderCart();
         }
 
@@ -685,11 +686,13 @@
         }
 
         function calculateFinalAmount() {
-            const disc = parseFloat(document.getElementById('discountInput').value) || 0;
-            const ship = parseFloat(document.getElementById('shippingFeeInput').value) || 0;
-            finalAmountToPay = totalItemsAmount - disc + ship;
+            const disc = Math.round(parseFloat(document.getElementById('discountInput').value) || 0);
+            const ship = Math.round(parseFloat(document.getElementById('shippingFeeInput').value) || 0);
+            finalAmountToPay = Math.round(totalItemsAmount - disc + ship);
             document.getElementById('finalAmountLabel').innerText = formatMoney(finalAmountToPay);
-            if (document.getElementById('paid').checked) document.getElementById('paymentAmountInput').value = finalAmountToPay;
+            if (document.getElementById('paid').checked) {
+                document.getElementById('paymentAmountInput').value = finalAmountToPay;
+            }
         }
 
         function togglePaymentInput() {
@@ -715,14 +718,9 @@
                 return;
             }
 
-            // 1. Xử lý chuẩn format LocalDateTime cho Java (Thêm T00:00:00)
+            // Gửi chính xác giá trị datetime-local
             let rawDate = document.getElementById('expectedDate').value;
-            let formattedDate = null;
-            if (rawDate) {
-                formattedDate = rawDate + "T00:00:00";
-            }
 
-            // 2. Xử lý parse số Long/Int để tránh lỗi chuỗi rỗng ""
             const rawAssigneeId = document.getElementById('assigneeId').value;
             const isPayLater = document.getElementById('payLater').checked;
 
@@ -732,26 +730,25 @@
                 branchName: branchName,
                 assigneeId: rawAssigneeId ? parseInt(rawAssigneeId) : null,
                 referenceCode: document.getElementById('referenceCode').value,
-                createdAt: formattedDate, // Đã fix format
+                createdAt: rawDate, // Spring Boot sẽ tự phân tích chuỗi kiểu "yyyy-MM-dd'T'HH:mm"
                 note: document.getElementById('orderNote').value,
 
-                // Tiền nong
-                itemsAmount: totalItemsAmount,
-                discount: parseFloat(document.getElementById('discountInput').value) || 0,
-                shippingFee: parseFloat(document.getElementById('shippingFeeInput').value) || 0,
-                totalAmount: finalAmountToPay,
+                // Tiền nong (Đảm bảo số nguyên)
+                itemsAmount: Math.round(totalItemsAmount),
+                discount: Math.round(parseFloat(document.getElementById('discountInput').value) || 0),
+                shippingFee: Math.round(parseFloat(document.getElementById('shippingFeeInput').value) || 0),
+                totalAmount: Math.round(finalAmountToPay),
 
                 // Trạng thái nhập & thanh toán
                 isImportStock: document.getElementById('importStock').checked,
                 paymentStatus: isPayLater ? 'UNPAID' : 'PAID',
                 paymentMethod: document.getElementById('paymentMethod').value,
-                amountPaid: isPayLater ? 0 : (parseFloat(document.getElementById('paymentAmountInput').value) || 0),
+                amountPaid: isPayLater ? 0 : Math.round(parseFloat(document.getElementById('paymentAmountInput').value) || 0),
 
-                // Ép kiểu mảng Details cho chắc chắn
                 items: cart.map(i => ({
                     sku: i.sku,
                     quantity: parseInt(i.quantity) || 1,
-                    importPrice: parseFloat(i.importPrice) || 0,
+                    importPrice: Math.round(parseFloat(i.importPrice) || 0),
                     warrantyMonths: parseInt(i.warrantyMonths) || 0
                 }))
             };
@@ -776,7 +773,6 @@
                         window.location.href = "/ui/imports";
                     });
                 } else {
-                    // Cố gắng đọc text lỗi từ backend gửi về để dễ debug
                     const errText = await res.text();
                     console.error("Lỗi 400 Bad Request chi tiết:", errText);
                     Toast.fire({

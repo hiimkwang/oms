@@ -64,7 +64,7 @@
         }
 
         .search-box {
-            max-width: 500px;
+            max-width: 350px;
             border: 1px solid #dce0e4;
             border-radius: 6px;
             background: white;
@@ -137,33 +137,54 @@
     <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
 
         <div class="card-header bg-white border-0 p-0"
-             th:with="statusMap=${receiptStatusMap != null and !receiptStatusMap.isEmpty() ? receiptStatusMap : {'TRADING':'Đang giao dịch', 'COMPLETED':'Hoàn thành', 'CANCELLED':'Đã hủy'}}">
+             th:with="dbStatuses=${@masterDataService.getMasterDataByType('RECEIPT_STATUS')}">
             <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3" id="statusTabs">
                 <li class="nav-item"><a class="nav-link active" data-status="ALL">Tất cả</a></li>
-                <li class="nav-item" th:each="entry : ${statusMap}">
-                    <a class="nav-link" th:data-status="${entry.key}" th:text="${entry.value}"></a>
+                <li class="nav-item" th:each="st : ${dbStatuses}">
+                    <a class="nav-link" th:data-status="${st.dataValue}" th:text="${st.dataLabel}"></a>
                 </li>
+
+                <th:block th:if="${#lists.isEmpty(dbStatuses)}">
+                    <li class="nav-item"><a class="nav-link" data-status="TRADING">Đang giao dịch</a></li>
+                    <li class="nav-item"><a class="nav-link" data-status="COMPLETED">Hoàn thành</a></li>
+                    <li class="nav-item"><a class="nav-link" data-status="CANCELLED">Đã hủy</a></li>
+                </th:block>
             </ul>
         </div>
 
         <div class="card-body p-0">
-            <div id="defaultToolbar"
-                 class="p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap bg-white">
-                <div class="input-group search-box flex-grow-1">
-                    <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
-                    <input type="text" id="searchInput" class="form-control"
-                           placeholder="Tìm theo mã đơn nhập, tên nhà cung cấp...">
-                </div>
+            <div id="defaultToolbar" class="p-3 d-flex flex-column gap-3 bg-white">
+                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <div class="input-group search-box flex-grow-1">
+                        <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
+                        <input type="text" id="searchInput" class="form-control"
+                               placeholder="Tìm theo mã đơn nhập, tên nhà cung cấp...">
+                    </div>
 
-                <div class="d-flex gap-2">
-                    <select id="filterImportStatus" class="form-select filter-btn w-auto">
-                        <option value="ALL">Tất cả trạng thái nhập</option>
-                        <option value="PENDING">Chưa nhập</option>
-                        <option value="COMPLETED">Đã nhập hàng</option>
-                    </select>
-                    <button class="btn filter-btn px-3" onclick="window.location.reload()">
-                        <i class="bi bi-arrow-clockwise me-2"></i>Làm mới
-                    </button>
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                        <select id="dateFilter" class="form-select filter-btn w-auto">
+                            <option value="ALL">Tất cả thời gian</option>
+                            <option value="THIS_WEEK">Tuần này</option>
+                            <option value="THIS_MONTH">Tháng này</option>
+                            <option value="THIS_YEAR">Năm nay</option>
+                            <option value="CUSTOM">Tùy chọn...</option>
+                        </select>
+
+                        <div id="customDateRange" class="d-none gap-2 align-items-center">
+                            <input type="date" id="startDate" class="form-control filter-btn w-auto" title="Từ ngày">
+                            <span class="text-muted">-</span>
+                            <input type="date" id="endDate" class="form-control filter-btn w-auto" title="Đến ngày">
+                        </div>
+
+                        <select id="filterImportStatus" class="form-select filter-btn w-auto">
+                            <option value="ALL">Tất cả trạng thái nhập</option>
+                            <option value="PENDING">Chưa nhập kho</option>
+                            <option value="COMPLETED">Đã nhập hàng</option>
+                        </select>
+                        <button class="btn filter-btn px-3" onclick="window.location.reload()">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Làm mới
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -207,7 +228,8 @@
                         class="import-row"
                         th:data-search="|${order.code} ${order.supplier != null ? order.supplier.name : ''}|"
                         th:data-trading-status="${order.status}"
-                        th:data-import-status="${order.importStatus}">
+                        th:data-import-status="${order.importStatus}"
+                        th:data-date="${order.createdAt}">
 
                         <td class="ps-4">
                             <input class="form-check-input item-check" type="checkbox" th:value="${order.id}"
@@ -220,16 +242,32 @@
                         <td class="text-muted small"
                             th:text="${#temporals.format(order.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
 
-                        <td th:with="statusMap=${receiptStatusMap != null and !receiptStatusMap.isEmpty() ? receiptStatusMap : {'TRADING':'Đang giao dịch', 'COMPLETED':'Hoàn thành', 'CANCELLED':'Đã hủy'}}">
+                        <td>
                             <span class="status-badge"
-                                  th:classappend="${order.status == 'CANCELLED' ? 'status-cancelled' : (order.status == 'COMPLETED' ? 'status-completed' : 'status-trading')}"
-                                  th:text="${statusMap[order.status] ?: order.status}"></span>
+                                  th:classappend="${order.status == 'CANCELLED' ? 'status-cancelled' : (order.status == 'COMPLETED' ? 'status-completed' : 'status-trading')}">
+                                <th:block th:each="st : ${@masterDataService.getMasterDataByType('RECEIPT_STATUS')}">
+                                    <span th:if="${st.dataValue == order.status}" th:text="${st.dataLabel}"
+                                          th:remove="tag"></span>
+                                </th:block>
+                                <th:block th:if="${@masterDataService.getMasterDataByType('RECEIPT_STATUS').isEmpty()}">
+                                    <span th:text="${order.status == 'TRADING' ? 'Đang giao dịch' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đã hủy')}"
+                                          th:remove="tag"></span>
+                                </th:block>
+                            </span>
                         </td>
 
-                        <td th:with="impMap=${ {'PENDING':'Chưa nhập kho', 'COMPLETED':'Đã nhập kho'} }">
+                        <td>
                             <span class="status-badge"
-                                  th:classappend="${order.importStatus == 'COMPLETED' ? 'status-completed' : 'status-unreceived'}"
-                                  th:text="${impMap[order.importStatus] ?: 'Chưa nhập kho'}"></span>
+                                  th:classappend="${order.importStatus == 'COMPLETED' ? 'status-completed' : 'status-unreceived'}">
+                                <th:block th:each="st : ${@masterDataService.getMasterDataByType('IMPORT_STATUS')}">
+                                    <span th:if="${st.dataValue == order.importStatus}" th:text="${st.dataLabel}"
+                                          th:remove="tag"></span>
+                                </th:block>
+                                <th:block th:if="${@masterDataService.getMasterDataByType('IMPORT_STATUS').isEmpty()}">
+                                    <span th:text="${order.importStatus == 'PENDING' ? 'Chưa nhập kho' : 'Đã nhập kho'}"
+                                          th:remove="tag"></span>
+                                </th:block>
+                            </span>
                         </td>
 
                         <td class="fw-medium text-dark"
@@ -268,30 +306,99 @@
         document.addEventListener("DOMContentLoaded", function () {
             const searchInput = document.getElementById('searchInput');
             const filterImportStatus = document.getElementById('filterImportStatus');
+            const dateFilter = document.getElementById('dateFilter');
+            const customDateRange = document.getElementById('customDateRange');
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+
             const tabs = document.querySelectorAll('#statusTabs .nav-link');
-            const rows = document.querySelectorAll('.import-row');
+            const tbody = document.getElementById('importTableBody');
             const emptyRow = document.getElementById('emptySearchRow');
+
+            // SẮP XẾP: Đơn mới nhất lên đầu tiên khi trang load
+            let rowsArray = Array.from(document.querySelectorAll('.import-row'));
+            rowsArray.sort((a, b) => {
+                const dateA = new Date(a.getAttribute('data-date') || 0);
+                const dateB = new Date(b.getAttribute('data-date') || 0);
+                return dateB - dateA; // Sắp xếp giảm dần (Mới nhất lên trước)
+            });
+            // Re-append lại vào DOM theo thứ tự mới
+            rowsArray.forEach(row => tbody.appendChild(row));
+
+            // Logic Bộ lọc Thời gian
+            dateFilter.addEventListener('change', function () {
+                if (this.value === 'CUSTOM') {
+                    customDateRange.classList.remove('d-none');
+                    customDateRange.classList.add('d-flex');
+                } else {
+                    customDateRange.classList.add('d-none');
+                    customDateRange.classList.remove('d-flex');
+                    applyFilters();
+                }
+            });
 
             function applyFilters() {
                 const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
                 const importStatusTerm = filterImportStatus ? filterImportStatus.value : 'ALL';
+                const dateFilterVal = dateFilter ? dateFilter.value : 'ALL';
+
+                const startVal = startDate ? startDate.value : '';
+                const endVal = endDate ? endDate.value : '';
 
                 const activeTabEl = document.querySelector('#statusTabs .nav-link.active');
                 const activeTab = activeTabEl ? activeTabEl.getAttribute('data-status') : 'ALL';
 
+                // Lấy mốc thời gian chuẩn bị cho Date Filter
+                const now = new Date();
+
+                // Mốc Tuần này
+                const startOfWeek = new Date(now);
+                const day = startOfWeek.getDay();
+                const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+                startOfWeek.setDate(diff);
+                startOfWeek.setHours(0, 0, 0, 0);
+
+                // Mốc Tháng này, Năm nay
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const startOfYear = new Date(now.getFullYear(), 0, 1);
+
                 let hasVisible = false;
 
-                rows.forEach(row => {
+                rowsArray.forEach(row => {
                     const searchData = (row.getAttribute('data-search') || '').toLowerCase();
                     const tradingStatus = row.getAttribute('data-trading-status');
                     const importStatus = row.getAttribute('data-import-status');
+                    const rowDate = new Date(row.getAttribute('data-date') || 0);
 
+                    // Check Logic Cũ
                     const matchSearch = searchData.includes(searchTerm);
                     const matchTab = (activeTab === "ALL" || tradingStatus === activeTab);
                     const matchSelect = (importStatusTerm === "ALL" || importStatus === importStatusTerm);
 
-                    if (matchSearch && matchTab && matchSelect) {
-                        // SỬ DỤNG .d-none CỦA BOOTSTRAP THAY VÌ setProperty
+                    // Check Logic Ngày tháng
+                    let matchDate = true;
+                    if (dateFilterVal !== 'ALL') {
+                        if (dateFilterVal === 'THIS_WEEK') {
+                            matchDate = rowDate >= startOfWeek;
+                        } else if (dateFilterVal === 'THIS_MONTH') {
+                            matchDate = rowDate >= startOfMonth;
+                        } else if (dateFilterVal === 'THIS_YEAR') {
+                            matchDate = rowDate >= startOfYear;
+                        } else if (dateFilterVal === 'CUSTOM') {
+                            if (startVal) {
+                                const s = new Date(startVal);
+                                s.setHours(0, 0, 0, 0);
+                                if (rowDate < s) matchDate = false;
+                            }
+                            if (endVal) {
+                                const e = new Date(endVal);
+                                e.setHours(23, 59, 59, 999);
+                                if (rowDate > e) matchDate = false;
+                            }
+                        }
+                    }
+
+                    if (matchSearch && matchTab && matchSelect && matchDate) {
                         row.classList.remove('d-none');
                         hasVisible = true;
                     } else {
@@ -300,7 +407,7 @@
                 });
 
                 if (emptyRow) {
-                    if (!hasVisible && rows.length > 0) {
+                    if (!hasVisible && rowsArray.length > 0) {
                         emptyRow.style.display = '';
                     } else {
                         emptyRow.style.display = 'none';
@@ -311,6 +418,8 @@
 
             if (searchInput) searchInput.addEventListener('input', applyFilters);
             if (filterImportStatus) filterImportStatus.addEventListener('change', applyFilters);
+            if (startDate) startDate.addEventListener('change', applyFilters);
+            if (endDate) endDate.addEventListener('change', applyFilters);
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', function (e) {
@@ -325,7 +434,6 @@
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('.item-check');
             checkboxes.forEach(cb => {
-                // Tránh check những row đang bị ẩn bởi bộ lọc
                 if (!cb.closest('tr').classList.contains('d-none')) {
                     cb.checked = source.checked;
                 }
@@ -359,10 +467,7 @@
             const checkedBoxes = document.querySelectorAll('.item-check:checked');
 
             if (checkedBoxes.length === 0) {
-                Toast.fire({
-                    icon: 'warning',
-                    title: 'Vui lòng chọn ít nhất 1 đơn nhập hàng để xóa!'
-                });
+                Toast.fire({icon: 'warning', title: 'Vui lòng chọn ít nhất 1 đơn nhập hàng để xóa!'});
                 return;
             }
 
@@ -389,23 +494,14 @@
                 });
 
                 if (res.ok) {
-                    await Toast.fire({
-                        icon: 'success',
-                        title: `Đã xóa thành công ${ids.length} đơn nhập hàng!`
-                    });
+                    await Toast.fire({icon: 'success', title: `Đã xóa thành công ${ids.length} đơn nhập hàng!`});
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    Toast.fire({
-                        icon: 'error',
-                        title: 'Lỗi: ' + (err.message || 'Không thể xóa đơn hàng!')
-                    });
+                    Toast.fire({icon: 'error', title: 'Lỗi: ' + (err.message || 'Không thể xóa đơn hàng!')});
                 }
             } catch (err) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối đến máy chủ!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối đến máy chủ!'});
             }
         }
     </script>

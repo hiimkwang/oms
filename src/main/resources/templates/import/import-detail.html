@@ -33,50 +33,32 @@
             padding: 4px 12px;
             border-radius: 6px;
             font-weight: 600;
+            text-transform: uppercase;
         }
 
-        .badge-trading {
+        .badge-pending {
+            background: #fffbeb;
+            color: #d97706;
+        }
+
+        .badge-trading, .badge-unpaid {
             background: #f1f5f9;
             color: #475569;
         }
 
-        .badge-completed {
+        .badge-completed, .badge-paid {
             background: #e6f6ee;
             color: #008a47;
         }
 
-        .badge-cancelled {
+        .badge-cancelled, .badge-failed {
             background: #fef2f2;
             color: #dc2626;
         }
 
-        .timeline {
-            margin-top: 1rem;
-            padding-left: 10px;
-        }
-
-        .timeline-item {
-            border-left: 2px solid #e9ecef;
-            padding-left: 20px;
-            position: relative;
-            padding-bottom: 20px;
-        }
-
-        .timeline-item:last-child {
-            border-left: 2px solid transparent;
-            padding-bottom: 0;
-        }
-
-        .timeline-item::before {
-            content: "";
-            position: absolute;
-            left: -6px;
-            top: 0;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #0d6efd;
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+        .badge-partial {
+            background: #eff6ff;
+            color: #1d4ed8;
         }
 
         .text-success-custom {
@@ -84,7 +66,7 @@
         }
 
         .text-warning-custom {
-            color: #f59e0b !important;
+            color: #d97706 !important;
         }
 
         .summary-box {
@@ -106,7 +88,6 @@
             display: block;
         }
 
-        /* CSS cho Lịch sử thao tác chuẩn hệ thống */
         .activity-timeline {
             border-left: 2px solid #e2e8f0;
             margin-left: 130px;
@@ -142,6 +123,47 @@
             background-color: #fff;
             border: 2px solid #0d6efd;
         }
+
+        .custom-dropdown-list {
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1050;
+            display: none;
+        }
+
+        .custom-dropdown-list.show {
+            display: block;
+        }
+
+        .dropdown-item-hover:hover {
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+
+        /* CSS MỚI: Hiệu ứng focus đồng nhất cho cả nhóm Input và Icon */
+        .search-box-focus-within {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            background-color: #fff;
+        }
+
+        .search-box-focus-within:focus-within {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .search-box-focus-within .input-group-text {
+            border: none;
+            background: transparent;
+        }
+
+        .search-box-focus-within .form-control {
+            border: none;
+            box-shadow: none;
+            background: transparent;
+            padding-left: 0;
+        }
     </style>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -151,8 +173,13 @@
                 <div class="d-flex align-items-center gap-2">
                     <h3 class="fw-bold text-dark mb-0" th:text="${order.code}"></h3>
                     <span class="status-header-badge ms-2"
-                          th:classappend="${order.status == 'CANCELLED' ? 'badge-cancelled' : (order.status == 'COMPLETED' ? 'badge-completed' : 'badge-trading')}"
-                          th:text="${order.status == 'CANCELLED' ? 'Đã hủy' : (order.status == 'COMPLETED' ? 'Hoàn thành' : 'Đang giao dịch')}">
+                          th:classappend="${order.status == 'PENDING' ? 'badge-pending' : 'badge-' + #strings.toLowerCase(order.status)}">
+                        <th:block th:each="st : ${@masterDataService.getMasterDataByType('RECEIPT_STATUS')}">
+                            <span th:if="${st.dataValue == order.status}" th:text="${st.dataLabel}"
+                                  th:remove="tag"></span>
+                        </th:block>
+                        <span th:if="${@masterDataService.getMasterDataByType('RECEIPT_STATUS').isEmpty()}"
+                              th:text="${order.status}" th:remove="tag"></span>
                     </span>
                 </div>
                 <div class="text-muted small mt-1">
@@ -163,10 +190,10 @@
         </div>
         <div class="d-flex gap-2">
             <th:block th:if="${order.status != 'CANCELLED' and order.importStatus != 'COMPLETED'}">
-                <a th:href="@{/ui/imports/edit/{code}(code=${order.code})}"
-                   class="btn btn-white border fw-medium shadow-sm px-3 text-dark text-decoration-none">
+                <button class="btn btn-white border fw-medium shadow-sm px-3 text-dark" data-bs-toggle="modal"
+                        data-bs-target="#updateModal">
                     <i class="bi bi-pencil me-1"></i> Sửa đơn
-                </a>
+                </button>
                 <button class="btn btn-white border text-danger fw-medium shadow-sm px-3"
                         th:onclick="'cancelOrder(' + ${order.id} + ')'">
                     <i class="bi bi-x-circle me-1"></i> Hủy đơn
@@ -183,11 +210,19 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div class="detail-card-title mb-0"
-                             th:classappend="${order.importStatus == 'COMPLETED' ? 'text-success-custom' : 'text-warning-custom'}">
-                            <i th:class="${order.importStatus == 'COMPLETED' ? 'bi bi-check-circle-fill' : 'bi bi-clock-history'}"></i>
-                            <span th:text="${order.importStatus == 'COMPLETED' ? 'Trạng thái: Đã nhập vào kho' : 'Trạng thái: Đang chờ nhập kho'}"></span>
+                        <div class="detail-card-title mb-0" th:switch="${order.importStatus}">
+                            <th:block th:case="'COMPLETED'">
+                                <span class="text-success-custom"><i class="bi bi-check-circle-fill"></i> Trạng thái: Đã nhập kho</span>
+                            </th:block>
+                            <th:block th:case="'PENDING'">
+                                <span class="text-warning-custom"><i class="bi bi-clock-history"></i> Trạng thái: Chờ nhập kho</span>
+                            </th:block>
+                            <th:block th:case="*">
+                                <span class="text-warning-custom"><i class="bi bi-clock-history"></i> Trạng thái: <span
+                                        th:text="${order.importStatus}"></span></span>
+                            </th:block>
                         </div>
+
                         <div th:if="${order.importStatus != 'COMPLETED' && order.status != 'CANCELLED'}">
                             <button class="btn btn-primary fw-bold px-4 shadow-sm"
                                     th:onclick="'confirmReceive(' + ${order.id} + ')'">
@@ -208,7 +243,8 @@
                             </tr>
                             </thead>
                             <tbody>
-                            <tr th:each="item : ${order.details}">
+                            <tr th:each="item : ${order.details}"
+                                th:with="itemPrice=${item.importPrice != null ? item.importPrice : 0}, itemQty=${item.quantity != null ? item.quantity : 0}, itemTotal=${itemPrice * itemQty}">
                                 <td class="py-3 ps-3">
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="img-product bg-light border rounded d-flex align-items-center justify-content-center"
@@ -217,20 +253,19 @@
                                         </div>
                                         <div>
                                             <div class="text-dark fw-bold" style="font-size: 14px;"
-                                                 th:text="${item.sku}"></div>
-                                            <div class="text-muted small">Sản phẩm hệ thống</div>
+                                                 th:text="${item.productName != null ? item.productName : item.sku}"></div>
+                                            <div class="text-muted small" style="font-size: 11px;">Mã: <span
+                                                    th:text="${item.sku}"></span></div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-center fw-medium" th:text="${item.quantity}"></td>
+                                <td class="text-center fw-medium" th:text="${itemQty}"></td>
                                 <td class="text-end"
-                                    th:text="${#numbers.formatDecimal(item.importPrice, 0, 'COMMA', 0, 'POINT') + '₫'}"></td>
-                                <td class="text-center">
-                                    <span class="badge bg-light text-dark border"
-                                          th:text="${item.warrantyMonths + ' tháng'}"></span>
-                                </td>
+                                    th:text="${#numbers.formatDecimal(itemPrice, 0, 'COMMA', 0, 'POINT')} + '₫'"></td>
+                                <td class="text-center"><span class="badge bg-light text-dark border"
+                                                              th:text="${item.warrantyMonths + ' tháng'}"></span></td>
                                 <td class="text-end fw-bold text-dark pe-3"
-                                    th:text="${#numbers.formatDecimal(item.importPrice * item.quantity, 0, 'COMMA', 0, 'POINT') + '₫'}"></td>
+                                    th:text="${#numbers.formatDecimal(itemTotal, 0, 'COMMA', 0, 'POINT')} + '₫'"></td>
                             </tr>
                             </tbody>
                         </table>
@@ -240,57 +275,66 @@
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
-                    <div class="detail-card-title mb-4">
-                        <i class="bi bi-credit-card-2-back text-primary"></i> Thông tin thanh toán
+                    <div class="detail-card-title mb-4"><i class="bi bi-credit-card-2-back text-primary"></i> Thông tin
+                        thanh toán
                     </div>
-
                     <div class="row align-items-end">
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded border">
                                 <div class="small text-muted mb-1">Trạng thái thanh toán:</div>
                                 <div class="fw-bold fs-5"
-                                     th:classappend="${order.paymentStatus == 'PAID' ? 'text-success' : (order.paymentStatus == 'PARTIAL' ? 'text-primary' : 'text-danger')}"
-                                     th:text="${order.paymentStatus == 'PAID' ? 'ĐÃ THANH TOÁN' : (order.paymentStatus == 'PARTIAL' ? 'THANH TOÁN MỘT PHẦN' : 'CHƯA THANH TOÁN')}">
+                                     th:classappend="${order.paymentStatus == 'PAID' ? 'text-success' : (order.paymentStatus == 'PARTIAL' ? 'text-primary' : 'text-danger')}">
+                                    <th:block
+                                            th:each="st : ${@masterDataService.getMasterDataByType('PAYMENT_STATUS')}">
+                                        <span th:if="${st.dataValue == order.paymentStatus}" th:text="${st.dataLabel}"
+                                              th:remove="tag"></span>
+                                    </th:block>
+                                    <span th:if="${@masterDataService.getMasterDataByType('PAYMENT_STATUS').isEmpty()}"
+                                          th:text="${order.paymentStatus}" th:remove="tag"></span>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="summary-box ms-auto">
+                            <div class="summary-box ms-auto"
+                                 th:with="amtItems=${order.itemsAmount != null ? order.itemsAmount : 0},
+                                          amtDisc=${order.discount != null ? order.discount : 0},
+                                          amtShip=${order.shippingFee != null ? order.shippingFee : 0},
+                                          amtTotal=${order.totalAmount != null ? order.totalAmount : 0},
+                                          amtPaid=${order.amountPaid != null ? order.amountPaid : 0},
+                                          amtDebt=${amtTotal - amtPaid}">
                                 <div class="d-flex justify-content-between text-muted mb-2">
                                     <span>Tổng tiền hàng:</span>
                                     <span class="fw-medium text-dark"
-                                          th:text="${#numbers.formatDecimal(order.itemsAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                          th:text="${#numbers.formatDecimal(amtItems, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
                                 </div>
                                 <div class="d-flex justify-content-between text-muted mb-2">
                                     <span>Giảm giá/Chiết khấu:</span>
                                     <span class="text-danger"
-                                          th:text="'-' + ${#numbers.formatDecimal(order.discount ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                          th:text="'-' + ${#numbers.formatDecimal(amtDisc, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
                                 </div>
                                 <div class="d-flex justify-content-between text-muted mb-2 pb-2 border-bottom">
                                     <span>Phí nhập hàng:</span>
                                     <span class="text-dark"
-                                          th:text="${#numbers.formatDecimal(order.shippingFee ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                          th:text="${#numbers.formatDecimal(amtShip, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
                                 </div>
                                 <div class="d-flex justify-content-between fw-bold text-dark fs-5 mt-2">
                                     <span>Tổng cần trả:</span>
-                                    <span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                    <span th:text="${#numbers.formatDecimal(amtTotal, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
                                 </div>
                                 <div class="d-flex justify-content-between fw-medium text-success mt-1">
                                     <span>Đã trả NCC:</span>
-                                    <span th:text="${#numbers.formatDecimal(order.amountPaid ?: 0, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                    <span th:text="${#numbers.formatDecimal(amtPaid, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
                                 </div>
                                 <div class="d-flex justify-content-between fw-bold text-danger pt-2 mt-2 border-top">
                                     <span>Còn nợ NCC:</span>
-                                    <span th:text="${#numbers.formatDecimal(order.totalAmount - (order.amountPaid ?: 0), 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                                    <span th:text="${amtDebt > 0 ? #numbers.formatDecimal(amtDebt, 0, 'COMMA', 0, 'POINT') : '0'} + '₫'"></span>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                     <div class="text-end mt-4" th:if="${order.paymentStatus != 'PAID' && order.status != 'CANCELLED'}">
                         <button class="btn btn-outline-primary fw-bold px-4 shadow-sm" data-bs-toggle="modal"
-                                data-bs-target="#paymentModal">
-                            <i class="bi bi-cash-coin me-1"></i> Thanh toán thêm
+                                data-bs-target="#paymentModal"><i class="bi bi-cash-coin me-1"></i> Thanh toán
                         </button>
                     </div>
                 </div>
@@ -298,24 +342,27 @@
 
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
-                    <div class="p-3 border-bottom detail-card-title mb-0">
-                        <i class="bi bi-clock-history me-2 text-secondary"></i>Lịch sử thao tác
+                    <div class="p-3 border-bottom detail-card-title mb-0"><i
+                            class="bi bi-clock-history me-2 text-secondary"></i>Lịch sử thao tác
                     </div>
                     <div class="p-4">
                         <div class="activity-timeline" th:if="${not #lists.isEmpty(order.activities)}">
                             <div class="activity-item" th:each="act : ${order.activities}">
-                                <div class="activity-time" th:text="${#temporals.format(act.createdAt, 'dd/MM/yyyy HH:mm')}"></div>
+                                <div class="activity-time"
+                                     th:text="${#temporals.format(act.createdAt, 'dd/MM/yyyy HH:mm')}"></div>
                                 <div class="activity-bullet"></div>
                                 <div class="activity-content">
-                                    <div class="fw-bold text-dark" style="font-size: 13px;" th:text="${act.action}"></div>
-                                    <div class="text-muted mt-1" style="font-size: 11px;">
-                                        <i class="bi bi-person-circle me-1"></i>Thực hiện bởi: <span class="fw-medium" th:text="${act.creatorName ?: 'Hệ thống'}"></span>
+                                    <div class="fw-bold text-dark" style="font-size: 13px;"
+                                         th:text="${act.action}"></div>
+                                    <div class="text-muted mt-1" style="font-size: 11px;"><i
+                                            class="bi bi-person-circle me-1"></i>Bởi: <span class="fw-medium"
+                                                                                            th:text="${act.creatorName ?: 'Hệ thống'}"></span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="empty-state py-4" th:if="${#lists.isEmpty(order.activities)}">
-                            <i class="bi bi-journal-x"></i>
+                        <div class="empty-state py-4" th:if="${#lists.isEmpty(order.activities)}"><i
+                                class="bi bi-journal-x"></i>
                             <div class="text-muted small mt-2">Chưa có lịch sử thao tác nào.</div>
                         </div>
                     </div>
@@ -329,9 +376,7 @@
                     <div class="detail-card-title border-bottom pb-2">Nhà cung cấp</div>
                     <div class="d-flex align-items-center gap-3 mb-4 mt-3">
                         <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm"
-                             style="width:45px; height:45px;">
-                            <i class="bi bi-shop fs-5"></i>
-                        </div>
+                             style="width:45px; height:45px;"><i class="bi bi-shop fs-5"></i></div>
                         <div>
                             <div class="fw-bold text-dark fs-6" th:text="${order.supplier.name}"></div>
                             <div class="text-muted small" th:text="'Mã: ' + ${order.supplier.code}"></div>
@@ -339,10 +384,9 @@
                     </div>
                     <div class="d-flex justify-content-between mb-2"><span class="info-label">Số điện thoại:</span><span
                             class="info-value text-end" th:text="${order.supplier.phone ?: '---'}"></span></div>
-                    <div class="text-center mt-3 pt-3 border-top">
-                        <a th:href="@{/ui/suppliers/{code}(code=${order.supplier.code})}"
-                           class="text-decoration-none small fw-bold">Xem hồ sơ nhà cung cấp</a>
-                    </div>
+                    <div class="text-center mt-3 pt-3 border-top"><a
+                            th:href="@{/ui/suppliers/{code}(code=${order.supplier.code})}"
+                            class="text-decoration-none small fw-bold">Xem hồ sơ nhà cung cấp</a></div>
                 </div>
             </div>
 
@@ -352,15 +396,16 @@
                     <div class="mt-3 mb-3">
                         <label class="info-label d-block mb-1">Chi nhánh nhập</label>
                         <div class="info-value fw-bold text-primary">
-                            <i class="bi bi-geo-alt me-1"></i> <span
-                                th:text="${order.branchName ?: 'Kho mặc định'}"></span>
+                            <i class="bi bi-geo-alt me-1"></i>
+                            <span th:text="${order.branchName ?: 'Kho mặc định'}"></span>
                         </div>
-                        <small class="text-muted" th:text="'(ID Chi nhánh: ' + ${order.branchId} + ')'"></small>
                     </div>
                     <div class="mb-3">
                         <label class="info-label d-block mb-1">Nhân viên phụ trách</label>
-                        <div class="info-value fw-medium text-dark">
-                            <i class="bi bi-person me-1"></i> <span th:text="${order.creatorName}"></span>
+                        <div class="info-value fw-medium text-dark"
+                             th:with="u=${@customUserDetailsService.findByUsername(order.creatorName)}">
+                            <i class="bi bi-person me-1"></i> <span
+                                th:text="${u.isPresent() ? u.get().fullName : order.creatorName}"></span>
                         </div>
                     </div>
                     <div class="mb-0">
@@ -374,7 +419,9 @@
     </div>
 
     <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true"
-         th:with="debt=${order.totalAmount - (order.amountPaid ?: 0)}">
+         th:with="amtTotal=${order.totalAmount != null ? order.totalAmount : 0},
+                  amtPaid=${order.amountPaid != null ? order.amountPaid : 0},
+                  debtAmt=${amtTotal - amtPaid}">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header border-bottom py-3">
@@ -385,7 +432,7 @@
                     <div class="bg-light p-3 rounded mb-4 text-center border">
                         <div class="text-muted small mb-1">Số tiền còn nợ NCC</div>
                         <div class="fw-bold text-danger fs-3"
-                             th:text="${#numbers.formatDecimal(debt, 0, 'COMMA', 0, 'POINT')} + '₫'"></div>
+                             th:text="${debtAmt > 0 ? #numbers.formatDecimal(debtAmt, 0, 'COMMA', 0, 'POINT') : '0'} + '₫'"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">Hình thức thanh toán</label>
@@ -398,8 +445,10 @@
                         <label class="form-label fw-bold small">Số tiền thanh toán <span
                                 class="text-danger">*</span></label>
                         <div class="input-group">
-                            <input type="number" id="payAmountInput" class="form-control text-end fw-bold text-success"
-                                   th:max="${debt}" th:value="${debt}">
+                            <input type="number" step="1" id="payAmountInput"
+                                   class="form-control text-end fw-bold text-success"
+                                   th:max="${debtAmt > 0 ? #numbers.formatDecimal(debtAmt, 0, 'NONE', 0, 'POINT') : 0}"
+                                   th:value="${debtAmt > 0 ? #numbers.formatDecimal(debtAmt, 0, 'NONE', 0, 'POINT') : 0}">
                             <span class="input-group-text bg-white">₫</span>
                         </div>
                     </div>
@@ -414,100 +463,462 @@
         </div>
     </div>
 
+    <div class="modal fade" id="updateModal" tabindex="-1" aria-hidden="true"
+         th:with="editShip=${order.shippingFee != null ? order.shippingFee : 0},
+                  editDisc=${order.discount != null ? order.discount : 0}">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom py-3 bg-light">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2 text-primary"></i> Sửa thông tin
+                        đơn nhập hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 bg-light">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="bg-white p-3 rounded border h-100">
+                                <h6 class="fw-bold mb-3 border-bottom pb-2">Thông tin cơ bản</h6>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-secondary">Nhà cung cấp <span
+                                            class="text-danger">*</span></label>
+                                    <div id="editSupplierSearchWrapper" class="position-relative">
+                                        <div class="input-group input-group-sm search-box-focus-within">
+                                            <span class="input-group-text"><i
+                                                    class="bi bi-search text-muted"></i></span>
+                                            <input type="text" id="editSupplierSearchInput" class="form-control"
+                                                   placeholder="Tìm tên, SĐT..." autocomplete="off">
+                                        </div>
+                                        <ul class="dropdown-menu w-100 shadow border custom-dropdown-list mt-1 p-0 position-absolute"
+                                            id="editSupplierDropdown"></ul>
+                                    </div>
+                                    <div id="editSupplierSelectedWrapper"
+                                         class="d-none border rounded p-2 bg-white position-relative mt-1">
+                                        <i class="bi bi-x position-absolute text-muted cursor-pointer"
+                                           style="top: 5px; right: 5px; font-size: 18px;"
+                                           onclick="clearEditSupplier()"></i>
+                                        <input type="hidden" id="editSupplierCode" th:value="${order.supplier.code}">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                                 style="width: 28px; height: 28px;"><i class="bi bi-person small"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark" style="font-size: 13px;"
+                                                     id="editSelectedSupName" th:text="${order.supplier.name}"></div>
+                                                <div class="text-muted" style="font-size: 11px;"
+                                                     id="editSelectedSupPhone"
+                                                     th:text="${order.supplier.phone ?: 'N/A'}"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-secondary">Chi nhánh nhập hàng</label>
+                                    <select id="editBranchId" class="form-select form-select-sm">
+                                        <option value="">-- Kho mặc định --</option>
+                                        <option th:each="b : ${branches}"
+                                                th:value="${b.id}"
+                                                th:text="${b.name}"
+                                                th:selected="${order.branchId != null and b.id == order.branchId}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-secondary">Phí vận chuyển</label>
+                                    <input type="number" step="1" id="editShippingFee"
+                                           class="form-control form-control-sm text-end"
+                                           th:value="${#numbers.formatDecimal(editShip, 0, 'NONE', 0, 'POINT')}"
+                                           onchange="calculateEditTotal()">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-secondary">Giảm giá/Chiết khấu</label>
+                                    <input type="number" step="1" id="editDiscount"
+                                           class="form-control form-control-sm text-end"
+                                           th:value="${#numbers.formatDecimal(editDisc, 0, 'NONE', 0, 'POINT')}"
+                                           onchange="calculateEditTotal()">
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label fw-bold small text-secondary">Ghi chú đơn</label>
+                                    <textarea id="editNote" class="form-control form-control-sm" rows="3"
+                                              th:text="${order.note}"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-8">
+                            <div class="bg-white p-3 rounded border h-100 d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                    <h6 class="fw-bold mb-0">Giỏ hàng sản phẩm</h6>
+                                    <div class="fw-bold text-danger">
+                                        Tổng: <span id="editTotalAmountLabel">0₫</span>
+                                    </div>
+                                </div>
+
+                                <div class="position-relative mb-3">
+                                    <div class="input-group input-group-sm search-box-focus-within">
+                                        <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
+                                        <input type="text" id="editProductSearchInput" class="form-control"
+                                               placeholder="Tìm tên, mã SKU để thêm vào đơn..." autocomplete="off">
+                                    </div>
+                                    <ul class="dropdown-menu w-100 shadow border custom-dropdown-list mt-1 p-0"
+                                        id="editProductDropdown"></ul>
+                                </div>
+
+                                <div class="table-responsive flex-grow-1" style="max-height: 350px; overflow-y: auto;">
+                                    <table class="table table-sm table-hover align-middle border mb-0">
+                                        <thead class="bg-light sticky-top" style="z-index: 1;">
+                                        <tr class="text-muted small">
+                                            <th>Sản phẩm</th>
+                                            <th class="text-center" style="width: 80px;">Số lượng</th>
+                                            <th class="text-end" style="width: 100px;">Đơn giá</th>
+                                            <th class="text-center" style="width: 80px;">BH(Tháng)</th>
+                                            <th class="text-center" style="width: 40px;"></th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="editCartBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top py-3">
+                    <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="button" class="btn btn-primary fw-bold px-5" onclick="submitUpdateReceipt()">
+                        Lưu thay đổi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script th:inline="javascript">
-        // 1. Nhập kho - Gọi confirmImport của Service
-        // 1. Nhập kho
-        async function confirmReceive(id) {
-            // Lấy biến từ Thymeleaf (Lưu ý: đoạn script này phải nằm trong thẻ <script th:inline="javascript">)
-            const branchName = /*[[${order.branchName}]]*/ 'kho hiện tại';
+        let editCart = [
+            /*[# th:each="item : ${order.details}"]*/
+            {
+                sku: /*[[${item.sku}]]*/ '',
+                name: /*[[${item.productName != null ? item.productName : item.sku}]]*/ '',
+                quantity: /*[[${item.quantity != null ? item.quantity : 0}]]*/ 0,
+                importPrice: Math.round(/*[[${item.importPrice != null ? item.importPrice : 0}]]*/ 0),
+                warrantyMonths: /*[[${item.warrantyMonths != null ? item.warrantyMonths : 0}]]*/ 0
+            },
+            /*[/]*/
+        ];
 
-            const confirmation = await Swal.fire({
-                title: 'Xác nhận nhập kho',
-                text: `Số lượng sẽ được cộng vào: ${branchName}. Bạn có chắc chắn không?`,
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745', // Màu xanh lá cho hành động an toàn/tích cực
-                cancelButtonColor: '#6c757d',  // Xám cho nút hủy
-                confirmButtonText: 'Xác nhận nhập',
-                cancelButtonText: 'Hủy bỏ'
-            });
+        document.addEventListener("DOMContentLoaded", () => {
+            renderEditCart();
+            if (document.getElementById('editSupplierCode').value) {
+                document.getElementById('editSupplierSearchWrapper').classList.add('d-none');
+                document.getElementById('editSupplierSelectedWrapper').classList.remove('d-none');
+            }
+        });
 
-            if (!confirmation.isConfirmed) return;
-            await postAction(`/api/v1/receipt/${id}/receive`, null, "Đã nhập hàng vào kho thành công!");
+        const editSupInput = document.getElementById('editSupplierSearchInput');
+        let editSupTimeout;
+        editSupInput.addEventListener('input', e => {
+            clearTimeout(editSupTimeout);
+            editSupTimeout = setTimeout(() => fetchEditSuppliers(e.target.value), 300);
+        });
+
+        async function fetchEditSuppliers(keyword) {
+            const list = document.getElementById('editSupplierDropdown');
+            if (!keyword.trim()) {
+                list.classList.remove('show');
+                return;
+            }
+            list.classList.add('show');
+            list.innerHTML = `<li class="p-2 small text-center text-muted">Đang tìm kiếm...</li>`;
+
+            try {
+                const res = await fetch(`/api/v1/suppliers?keyword=${keyword}`);
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    list.innerHTML = `<li class="p-2 small text-center text-danger">Không thấy NCC</li>`;
+                } else {
+                    let html = '';
+                    data.forEach(s => {
+                        html += `
+                        <li class="p-2 border-bottom dropdown-item-hover" onclick="selectEditSupplier('${s.code}', '${s.name.replace(/'/g, "\\'")}', '${s.phone || ''}')">
+                            <div class="fw-bold text-dark small">${s.name}</div>
+                            <div class="text-muted" style="font-size: 11px;">Mã: ${s.code} | SĐT: ${s.phone || 'N/A'}</div>
+                        </li>`;
+                    });
+                    list.innerHTML = html;
+                }
+            } catch (e) {
+                list.classList.remove('show');
+            }
         }
 
-        // 2. Hủy đơn
-        async function cancelOrder(id) {
-            const confirmation = await Swal.fire({
-                title: 'Xác nhận hủy đơn',
-                text: "Bạn có chắc chắn muốn hủy đơn nhập hàng này? Thao tác này không thể hoàn tác.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',   // Đỏ cảnh báo
-                cancelButtonColor: '#3085d6', // Xanh an toàn
-                confirmButtonText: 'Xác nhận hủy',
-                cancelButtonText: 'Đóng'
-            });
-
-            if (!confirmation.isConfirmed) return;
-            await postAction(`/api/v1/receipt/${id}/cancel`, null, "Đã hủy đơn hàng thành công!");
+        function selectEditSupplier(code, name, phone) {
+            document.getElementById('editSupplierSearchWrapper').classList.add('d-none');
+            document.getElementById('editSupplierSelectedWrapper').classList.remove('d-none');
+            document.getElementById('editSupplierCode').value = code;
+            document.getElementById('editSelectedSupName').innerText = name;
+            document.getElementById('editSelectedSupPhone').innerText = phone || 'N/A';
+            document.getElementById('editSupplierDropdown').classList.remove('show');
+            editSupInput.value = '';
         }
 
-        // 3. Thanh toán nợ
-        async function submitPaymentModal(id) {
-            const amount = parseFloat(document.getElementById('payAmountInput').value);
-            const method = document.getElementById('payMethod').value;
+        function clearEditSupplier() {
+            document.getElementById('editSupplierSelectedWrapper').classList.add('d-none');
+            document.getElementById('editSupplierSearchWrapper').classList.remove('d-none');
+            document.getElementById('editSupplierCode').value = '';
+        }
 
-            if (!amount || amount <= 0) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Vui lòng nhập số tiền hợp lệ!'
-                });
+        function renderEditCart() {
+            const tbody = document.getElementById('editCartBody');
+            let html = '';
+
+            editCart.forEach((item, idx) => {
+                html += `
+                <tr>
+                    <td class="small">
+                        <div class="fw-bold text-primary">${item.name}</div>
+                        <div class="text-muted" style="font-size: 11px;">Mã: ${item.sku}</div>
+                    </td>
+                    <td><input type="number" step="1" class="form-control form-control-sm text-center" value="${item.quantity}" onchange="updateEditCart(${idx}, 'quantity', this.value)"></td>
+                    <td><input type="number" step="1" class="form-control form-control-sm text-end" value="${item.importPrice}" onchange="updateEditCart(${idx}, 'importPrice', this.value)"></td>
+                    <td><input type="number" step="1" class="form-control form-control-sm text-center" value="${item.warrantyMonths}" onchange="updateEditCart(${idx}, 'warrantyMonths', this.value)"></td>
+                    <td class="text-center"><i class="bi bi-trash text-danger cursor-pointer" onclick="removeEditCart(${idx})"></i></td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+            calculateEditTotal();
+        }
+
+        function updateEditCart(idx, field, val) {
+            if (field === 'importPrice') {
+                editCart[idx][field] = Math.round(parseFloat(val) || 0);
+            } else {
+                editCart[idx][field] = parseFloat(val) || 0;
+            }
+            calculateEditTotal();
+        }
+
+        function removeEditCart(idx) {
+            editCart.splice(idx, 1);
+            renderEditCart();
+        }
+
+        function calculateEditTotal() {
+            const itemsAmt = editCart.reduce((sum, i) => sum + (i.quantity * i.importPrice), 0);
+            const disc = Math.round(parseFloat(document.getElementById('editDiscount').value) || 0);
+            const ship = Math.round(parseFloat(document.getElementById('editShippingFee').value) || 0);
+
+            const total = Math.round(itemsAmt - disc + ship);
+            document.getElementById('editTotalAmountLabel').innerText = new Intl.NumberFormat('vi-VN').format(total) + '₫';
+        }
+
+        const editProdInput = document.getElementById('editProductSearchInput');
+        let editProdTimeout;
+        editProdInput.addEventListener('input', e => {
+            clearTimeout(editProdTimeout);
+            editProdTimeout = setTimeout(() => fetchEditProducts(e.target.value), 300);
+        });
+
+        async function fetchEditProducts(keyword) {
+            const list = document.getElementById('editProductDropdown');
+            if (!keyword.trim()) {
+                list.classList.remove('show');
                 return;
             }
 
-            const payload = {amountPaid: amount, paymentMethod: method};
+            list.classList.add('show');
+            list.innerHTML = `<li class="p-2 small text-center text-muted">Đang tìm kiếm...</li>`;
 
-            // Ẩn Bootstrap Modal
-            const modalEl = document.getElementById('paymentModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            if (modalInstance) {
-                modalInstance.hide();
+            try {
+                const res = await fetch(`/api/v1/products/variants/search?keyword=${keyword}`);
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    list.innerHTML = `<li class="p-2 small text-center text-danger">Không tìm thấy sản phẩm</li>`;
+                } else {
+                    let html = '';
+                    data.forEach(v => {
+                        const str = encodeURIComponent(JSON.stringify(v));
+                        html += `
+                        <li class="p-2 border-bottom dropdown-item-hover" onclick="addEditProduct('${str}')">
+                            <div class="fw-bold text-dark small">${v.productName} ${v.variantName !== 'Mặc định' ? '- ' + v.variantName : ''}</div>
+                            <div class="text-muted" style="font-size: 11px;">SKU: ${v.sku} | Vốn: ${v.costPrice}₫</div>
+                        </li>`;
+                    });
+                    list.innerHTML = html;
+                }
+            } catch (e) {
+                list.classList.remove('show');
             }
-
-            // Gọi API xử lý
-            await postAction(`/api/v1/receipt/${id}/payment`, payload, "Ghi nhận thanh toán thành công!");
         }
 
-        // 4. Hàm Helper dùng chung (Đã tối ưu Async/Await & Fix lỗi reload)
-        async function postAction(url, payload, successMsg) {
+        function addEditProduct(str) {
+            const v = JSON.parse(decodeURIComponent(str));
+            const idx = editCart.findIndex(i => i.sku === v.sku);
+
+            const fullName = (v.variantName && v.variantName !== 'Mặc định')
+                ? v.productName + ' - ' + v.variantName
+                : v.productName;
+
+            if (idx > -1) editCart[idx].quantity += 1;
+            else {
+                editCart.push({
+                    sku: v.sku,
+                    name: fullName,
+                    quantity: 1,
+                    importPrice: Math.round(v.costPrice || 0),
+                    warrantyMonths: 12
+                });
+            }
+            renderEditCart();
+            editProdInput.value = '';
+            document.getElementById('editProductDropdown').classList.remove('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!editProdInput.contains(e.target) && !document.getElementById('editProductDropdown').contains(e.target)) {
+                document.getElementById('editProductDropdown').classList.remove('show');
+            }
+            if (!document.getElementById('editSupplierSearchWrapper').contains(e.target)) {
+                document.getElementById('editSupplierDropdown').classList.remove('show');
+            }
+        });
+
+        async function submitUpdateReceipt() {
+            const orderCode = /*[[${order.code}]]*/ '';
+
+            if (editCart.length === 0) {
+                return Toast.fire({icon: 'error', title: 'Giỏ hàng không được để trống!'});
+            }
+
+            const itemsAmt = Math.round(editCart.reduce((sum, i) => sum + (i.quantity * i.importPrice), 0));
+            const disc = Math.round(parseFloat(document.getElementById('editDiscount').value) || 0);
+            const ship = Math.round(parseFloat(document.getElementById('editShippingFee').value) || 0);
+
+            const payload = {
+                supplierCode: document.getElementById('editSupplierCode').value.trim(),
+                branchId: document.getElementById('editBranchId').value || null,
+                shippingFee: ship,
+                discount: disc,
+                note: document.getElementById('editNote').value.trim(),
+                itemsAmount: itemsAmt,
+                totalAmount: Math.round(itemsAmt - disc + ship),
+                items: editCart.map(i => ({
+                    sku: i.sku,
+                    productName: i.name,
+                    quantity: parseInt(i.quantity) || 1,
+                    importPrice: Math.round(parseFloat(i.importPrice) || 0),
+                    warrantyMonths: parseInt(i.warrantyMonths) || 0
+                }))
+            };
+
+            if (!payload.supplierCode) {
+                return Toast.fire({icon: 'error', title: 'Bạn chưa chọn Nhà cung cấp!'});
+            }
+
+            const modalEl = document.getElementById('updateModal');
+            let modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (!modalInstance) {
+                modalInstance = new bootstrap.Modal(modalEl);
+            }
+            modalInstance.hide();
+
+            await postAction(`/api/v1/receipt/${orderCode}`, payload, "Cập nhật đơn nhập hàng thành công!", "PUT");
+        }
+
+        async function confirmReceive(id) {
+            const hasDebt = /*[[${order.paymentStatus != 'PAID'}]]*/ false;
+            const debtAmount = Math.round(/*[[${(order.totalAmount != null ? order.totalAmount : 0) - (order.amountPaid != null ? order.amountPaid : 0)}]]*/ 0);
+
+            if (hasDebt && debtAmount > 0) {
+                const conf = await Swal.fire({
+                    title: 'Đơn hàng còn nợ NCC!',
+                    text: `Sau khi sửa đơn, bạn đang nợ NCC ${new Intl.NumberFormat('vi-VN').format(debtAmount)}₫. Bạn có muốn thanh toán luôn phần nợ này trước khi nhập kho không?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonColor: '#0d6efd',
+                    denyButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="bi bi-cash-coin me-1"></i> Thanh toán ngay',
+                    denyButtonText: 'Chỉ nhập kho (Ghi nợ)',
+                    cancelButtonText: 'Hủy'
+                });
+
+                if (conf.isConfirmed) {
+                    const modalEl = document.getElementById('paymentModal');
+                    new bootstrap.Modal(modalEl).show();
+                    return;
+                } else if (conf.isDenied) {
+                    await postAction(`/api/v1/receipt/${id}/receive`, null, "Đã nhập hàng vào kho (Trạng thái nợ)!");
+                }
+            } else {
+                const confirmation = await Swal.fire({
+                    title: 'Xác nhận nhập kho',
+                    text: 'Số lượng hàng hóa sẽ được cộng vào tồn kho chi nhánh. Bạn có chắc chắn không?',
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonText: 'Hủy'
+                });
+                if (confirmation.isConfirmed) {
+                    await postAction(`/api/v1/receipt/${id}/receive`, null, "Đã nhập hàng vào kho thành công!");
+                }
+            }
+        }
+
+        async function cancelOrder(id) {
+            const confirmation = await Swal.fire({
+                title: 'Hủy đơn',
+                text: "Thao tác này không thể hoàn tác.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Xác nhận hủy',
+                cancelButtonText: 'Đóng'
+            });
+            if (!confirmation.isConfirmed) return;
+            await postAction(`/api/v1/receipt/${id}/cancel`, null, "Đã hủy đơn hàng!");
+        }
+
+        async function submitPaymentModal(id) {
+            const amount = Math.round(parseFloat(document.getElementById('payAmountInput').value));
+            const method = document.getElementById('payMethod').value;
+            if (!amount || amount <= 0) return Toast.fire({icon: 'error', title: 'Số tiền không hợp lệ!'});
+            const modalEl = document.getElementById('paymentModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+            await postAction(`/api/v1/receipt/${id}/payment`, {
+                amountPaid: amount,
+                paymentMethod: method
+            }, "Thanh toán thành công!");
+        }
+
+        async function postAction(url, payload, successMsg, method = 'POST') {
             try {
                 const res = await fetch(url, {
-                    method: 'POST',
+                    method: method,
                     headers: {'Content-Type': 'application/json'},
                     body: payload ? JSON.stringify(payload) : null
                 });
 
                 if (res.ok) {
-                    // Chờ Toast chạy xong rồi mới cho phép reload trang
-                    await Toast.fire({
-                        icon: 'success',
-                        title: successMsg
-                    });
+                    await Toast.fire({icon: 'success', title: successMsg});
                     window.location.reload();
                 } else {
-                    // Lấy text báo lỗi từ server (nếu có) để hiển thị chi tiết hơn
                     const errorText = await res.text();
-                    Toast.fire({
-                        icon: 'error',
-                        title: errorText || 'Có lỗi xảy ra từ máy chủ!'
-                    });
+                    let parsedError = errorText;
+                    try {
+                        const jsonObj = JSON.parse(errorText);
+                        if (jsonObj.message) parsedError = jsonObj.message;
+                    } catch (e) {
+                    }
+                    Toast.fire({icon: 'error', title: parsedError || 'Có lỗi xảy ra!'});
                 }
             } catch (err) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối đến máy chủ!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối đến máy chủ!'});
             }
         }
     </script>

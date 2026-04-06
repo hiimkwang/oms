@@ -1,6 +1,9 @@
 package com.oms.module.receipt.service;
 
 import com.oms.module.account.entity.User;
+import com.oms.module.cashbook.dto.CashTransactionRequest;
+import com.oms.module.cashbook.entity.CashTransaction;
+import com.oms.module.cashbook.service.CashbookService;
 import com.oms.module.inventory.entity.Inventory;
 import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.product.entity.ProductVariant;
@@ -13,6 +16,7 @@ import com.oms.module.receipt.entity.ReceiptActivity;
 import com.oms.module.receipt.entity.ReceiptDetail;
 import com.oms.module.receipt.repository.ReceiptActivityRepository;
 import com.oms.module.receipt.repository.ReceiptRepository;
+import com.oms.module.setting.entity.Branch;
 import com.oms.module.setting.repository.BranchRepository;
 import com.oms.module.supplier.entity.Supplier;
 import com.oms.module.supplier.repository.SupplierRepository;
@@ -41,6 +45,12 @@ public class ReceiptService {
     private final InventoryRepository inventoryRepository;
     private final BranchRepository branchRepository;
     private final ProductService productService;
+    private final CashbookService cashbookService;
+
+    // Hàm hỗ trợ làm tròn số tiền, bỏ số thập phân
+    private BigDecimal round(BigDecimal value) {
+        return value != null ? value.setScale(0, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+    }
 
     private String getCurrentUserName() {
         try {
@@ -54,16 +64,55 @@ public class ReceiptService {
         }
     }
 
+    private String getFullProductName(String sku) {
+        return variantRepository.findBySku(sku).map(variant -> {
+            String name = variant.getProduct() != null ? variant.getProduct().getName() : sku;
+            if (variant.getVariantName() != null && !"Mặc định".equalsIgnoreCase(variant.getVariantName())) {
+                name += " - " + variant.getVariantName();
+            }
+            return name;
+        }).orElse(sku);
+    }
+
+    // TỰ ĐỘNG TẠO PHIẾU CHI ĐÃ CHỈNH LẠI REASON VÀ DESCRIPTION
+    private void createPaymentVoucher(Receipt receipt, BigDecimal amount, String methodStr) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return;
+
+        CashTransactionRequest cashReq = new CashTransactionRequest();
+        cashReq.setType(CashTransaction.TransactionType.PAYMENT);
+
+        CashTransaction.PaymentMethod pm = CashTransaction.PaymentMethod.CASH;
+        if ("TRANSFER".equalsIgnoreCase(methodStr) || "BANK".equalsIgnoreCase(methodStr)) {
+            pm = CashTransaction.PaymentMethod.BANK;
+        }
+        cashReq.setPaymentMethod(pm);
+
+        cashReq.setTargetGroup(CashTransaction.TargetGroup.SUPPLIER);
+        if (receipt.getSupplier() != null) {
+            cashReq.setTargetId(receipt.getSupplier().getId());
+        }
+
+        cashReq.setAmount(amount);
+        // FIX: Tách riêng Lý do chi và Diễn giải
+        cashReq.setReason("Trả nợ nhà cung cấp");
+        cashReq.setDescription("Chi tiền trả nhà cung cấp cho phiếu nhập " + receipt.getCode());
+        cashReq.setBranchId(receipt.getBranchId());
+        cashReq.setReferenceCode(receipt.getCode());
+        cashReq.setTransactionDate(LocalDateTime.now());
+
+        cashbookService.createTransaction(cashReq);
+    }
+
     @Transactional
     public Receipt createReceipt(ReceiptRequest request) {
         Supplier supplier = supplierRepository.findByCode(request.getSupplierCode())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy NCC"));
 
         String currentWorker = getCurrentUserName();
-        String actualBranchName = "Kho không xác định";
+        String actualBranchName = "Kho mặc định";
         if (request.getBranchId() != null) {
             actualBranchName = branchRepository.findById(request.getBranchId())
-                    .map(b -> b.getName())
+                    .map(Branch::getName)
                     .orElse("Kho mặc định");
         }
 
@@ -73,11 +122,11 @@ public class ReceiptService {
                 .branchId(request.getBranchId())
                 .branchName(actualBranchName)
                 .note(request.getNote())
-                .itemsAmount(request.getItemsAmount())
-                .discount(request.getDiscount())
-                .shippingFee(request.getShippingFee())
-                .totalAmount(request.getTotalAmount())
-                .amountPaid(request.getAmountPaid())
+                .itemsAmount(round(request.getItemsAmount()))
+                .discount(round(request.getDiscount()))
+                .shippingFee(round(request.getShippingFee()))
+                .totalAmount(round(request.getTotalAmount()))
+                .amountPaid(round(request.getAmountPaid()))
                 .paymentStatus(request.getPaymentStatus())
                 .createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now())
                 .status(TRADING)
@@ -89,8 +138,9 @@ public class ReceiptService {
                 ReceiptDetail.builder()
                         .receipt(receipt)
                         .sku(item.getSku())
+                        .productName(getFullProductName(item.getSku()))
                         .quantity(item.getQuantity())
-                        .importPrice(item.getImportPrice())
+                        .importPrice(round(item.getImportPrice()))
                         .warrantyMonths(item.getWarrantyMonths() != null ? item.getWarrantyMonths() : 0)
                         .build()
         ).collect(Collectors.toList());
@@ -99,6 +149,11 @@ public class ReceiptService {
         Receipt savedReceipt = receiptRepository.save(receipt);
 
         logActivity(savedReceipt, "Tạo mới phiếu nhập hàng", currentWorker);
+
+        // TỰ ĐỘNG TẠO PHIẾU CHI NẾU CÓ THANH TOÁN LÚC TẠO ĐƠN
+        if (savedReceipt.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
+            createPaymentVoucher(savedReceipt, savedReceipt.getAmountPaid(), String.valueOf(request.getPaymentMethod()));
+        }
 
         if (!Boolean.TRUE.equals(request.getIsImportStock())) {
             addInboundStock(savedReceipt, details);
@@ -125,14 +180,22 @@ public class ReceiptService {
 
         removeInboundStock(receipt, receipt.getDetails());
 
+        String actualBranchName = "Kho mặc định";
+        if (request.getBranchId() != null) {
+            actualBranchName = branchRepository.findById(request.getBranchId())
+                    .map(Branch::getName)
+                    .orElse("Kho mặc định");
+        }
+
         receipt.setSupplier(supplier);
         receipt.setBranchId(request.getBranchId());
-        receipt.setBranchName(request.getBranchName());
+        receipt.setBranchName(actualBranchName);
         receipt.setNote(request.getNote());
-        receipt.setItemsAmount(request.getItemsAmount());
-        receipt.setDiscount(request.getDiscount());
-        receipt.setShippingFee(request.getShippingFee());
-        receipt.setTotalAmount(request.getTotalAmount());
+
+        receipt.setItemsAmount(round(request.getItemsAmount()));
+        receipt.setDiscount(round(request.getDiscount()));
+        receipt.setShippingFee(round(request.getShippingFee()));
+        receipt.setTotalAmount(round(request.getTotalAmount()));
 
         BigDecimal paid = receipt.getAmountPaid() != null ? receipt.getAmountPaid() : BigDecimal.ZERO;
         if (paid.compareTo(receipt.getTotalAmount()) >= 0) receipt.setPaymentStatus(PAID);
@@ -144,8 +207,9 @@ public class ReceiptService {
                 ReceiptDetail.builder()
                         .receipt(receipt)
                         .sku(item.getSku())
+                        .productName(getFullProductName(item.getSku()))
                         .quantity(item.getQuantity())
-                        .importPrice(item.getImportPrice())
+                        .importPrice(round(item.getImportPrice()))
                         .warrantyMonths(item.getWarrantyMonths() != null ? item.getWarrantyMonths() : 0)
                         .build()
         ).collect(Collectors.toList());
@@ -259,10 +323,10 @@ public class ReceiptService {
         if (oldStock + importQty > 0) {
             BigDecimal totalOldValue = oldCost.multiply(new BigDecimal(Math.max(0, oldStock)));
             BigDecimal totalNewValue = actualPrice.multiply(new BigDecimal(importQty));
-            BigDecimal newCost = totalOldValue.add(totalNewValue).divide(new BigDecimal(oldStock + importQty), 2, RoundingMode.HALF_UP);
+            BigDecimal newCost = totalOldValue.add(totalNewValue).divide(new BigDecimal(oldStock + importQty), 0, RoundingMode.HALF_UP);
             variant.setCostPrice(newCost);
         } else {
-            variant.setCostPrice(actualPrice);
+            variant.setCostPrice(round(actualPrice));
         }
     }
 
@@ -279,12 +343,13 @@ public class ReceiptService {
         Receipt receipt = receiptRepository.findById(id).orElseThrow();
         String currentWorker = getCurrentUserName();
 
+        BigDecimal amountToAddRounded = round(amountToAdd);
+        if (amountToAddRounded.compareTo(BigDecimal.ZERO) <= 0) throw new RuntimeException("Số tiền phải > 0");
+
         BigDecimal currentPaid = receipt.getAmountPaid() != null ? receipt.getAmountPaid() : BigDecimal.ZERO;
         BigDecimal totalAmount = receipt.getTotalAmount() != null ? receipt.getTotalAmount() : BigDecimal.ZERO;
 
-        if (amountToAdd.compareTo(BigDecimal.ZERO) <= 0) throw new RuntimeException("Số tiền phải > 0");
-
-        BigDecimal newPaidAmount = currentPaid.add(amountToAdd);
+        BigDecimal newPaidAmount = currentPaid.add(amountToAddRounded);
         receipt.setAmountPaid(newPaidAmount);
 
         if (newPaidAmount.compareTo(totalAmount) >= 0) {
@@ -295,7 +360,10 @@ public class ReceiptService {
         }
 
         receiptRepository.save(receipt);
-        logActivity(receipt, "Thanh toán: " + amountToAdd + "đ (" + method + ")", currentWorker);
+        logActivity(receipt, "Thanh toán: " + amountToAddRounded + "đ (" + method + ")", currentWorker);
+
+        // TỰ ĐỘNG TẠO PHIẾU CHI
+        createPaymentVoucher(receipt, amountToAddRounded, method);
     }
 
     private void checkAndCompleteReceipt(Receipt receipt) {
@@ -325,7 +393,7 @@ public class ReceiptService {
                 .map(r -> SupplierStatsResponse.ReceiptSummary.builder().code(r.getCode()).createdAt(r.getCreatedAt()).status(r.getStatus()).paymentStatus(r.getPaymentStatus()).totalAmount(r.getTotalAmount()).build())
                 .collect(Collectors.toList());
 
-        return SupplierStatsResponse.builder().totalOrders(totalOrders).totalAmount(totalAmount).totalDebt(totalDebt != null ? totalDebt : BigDecimal.ZERO).history(history).build();
+        return SupplierStatsResponse.builder().totalOrders(totalOrders).totalAmount(round(totalAmount)).totalDebt(round(totalDebt)).history(history).build();
     }
 
     private void logActivity(Receipt receipt, String action, String creator) {
