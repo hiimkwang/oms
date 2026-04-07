@@ -126,6 +126,7 @@ public class DashboardController {
         Long pendingOrders = orderRepo.countOrdersByStatus(CREATED, start, end);
         Long shippingOrders = orderRepo.countOrdersByStatus(SHIPPING, start, end);
         Long canceledOrders = orderRepo.countOrdersByStatus(CANCELLED, start, end);
+        Long confirmedOrders = orderRepo.countOrdersByStatus(CONFIRMED, start, end);
 
         // Đẩy 8 thẻ bài ra View
         model.addAttribute("netRevenue", totalRevenue);
@@ -137,7 +138,7 @@ public class DashboardController {
         model.addAttribute("pendingOrders", pendingOrders != null ? pendingOrders : 0);
         model.addAttribute("shippingOrders", shippingOrders != null ? shippingOrders : 0);
         model.addAttribute("canceledOrders", canceledOrders != null ? canceledOrders : 0);
-
+        model.addAttribute("confirmedOrders", confirmedOrders != null ? confirmedOrders : 0);
         // ==========================================
         // 3. VẼ BIỂU ĐỒ (BÁM SÁT VÀO BỘ LỌC THỜI GIAN)
         // ==========================================

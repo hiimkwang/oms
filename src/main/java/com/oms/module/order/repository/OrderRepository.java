@@ -15,8 +15,13 @@ import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE MONTH(o.createdAt) = :month AND YEAR(o.createdAt) = :year")
-    Double sumTotalRevenueByMonthAndYear(@Param("month") int month, @Param("year") int year);
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE MONTH(o.createdAt) = :month AND YEAR(o.createdAt) = :year AND o.status NOT IN ('CANCELLED', 'CREATED')")
+    BigDecimal sumTotalRevenueBigDecimal(@Param("month") int month, @Param("year") int year);
+
+    default Double sumTotalRevenueByMonthAndYear(int month, int year) {
+        BigDecimal result = sumTotalRevenueBigDecimal(month, year);
+        return result != null ? result.doubleValue() : 0D;
+    }
 
     Optional<Order> findByOrderCode(String orderCode);
 
