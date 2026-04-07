@@ -55,7 +55,6 @@
             margin-bottom: 10px;
         }
 
-        /* Hiệu ứng ô khóa */
         .editable-field:disabled {
             background-color: #f8f9fa;
             border-color: transparent;
@@ -70,6 +69,46 @@
 
         .text-danger-custom {
             color: #dc2626 !important;
+        }
+
+        /* CSS cho các Badge trạng thái trong bảng Lịch sử */
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid;
+            display: inline-block;
+        }
+
+        .status-trading {
+            background-color: #f1f5f9;
+            color: #475569;
+            border-color: #cbd5e1;
+        }
+
+        .status-completed {
+            background-color: #e6f6ee;
+            color: #008a47;
+            border-color: #c2ebd5;
+        }
+
+        .status-cancelled {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
+        .pay-paid {
+            color: #008a47;
+        }
+
+        .pay-partial {
+            color: #0d6efd;
+        }
+
+        .pay-unpaid {
+            color: #dc2626;
         }
     </style>
 
@@ -113,8 +152,8 @@
                         <div class="fw-bold text-dark" style="font-size: 15px;">Mã nhà cung cấp: <span
                                 th:text="${supplier.code}">---</span></div>
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-white border text-dark dropdown-toggle fw-bold"
-                                    type="button" id="timeFilterBtn" data-bs-toggle="dropdown">
+                            <button class="btn btn-sm btn-white border text-dark dropdown-toggle fw-bold" type="button"
+                                    id="timeFilterBtn" data-bs-toggle="dropdown">
                                 Tháng này
                             </button>
                             <ul class="dropdown-menu shadow border-0 mt-2">
@@ -158,39 +197,6 @@
                 </div>
             </div>
 
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <div class="card-title-custom">Thông tin chi tiết</div>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="text-label">Tên nhà cung cấp</label>
-                            <input type="text" id="name" class="form-control form-control-custom editable-field"
-                                   th:value="${supplier.name}" disabled>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-label">Mã số thuế</label>
-                            <input type="text" id="taxCode" class="form-control form-control-custom editable-field"
-                                   th:value="${supplier.taxCode}" disabled>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-label">Số điện thoại</label>
-                            <input type="text" id="phone" class="form-control form-control-custom editable-field"
-                                   th:value="${supplier.phone}" disabled>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-label">Email</label>
-                            <input type="email" id="email" class="form-control form-control-custom editable-field"
-                                   th:value="${supplier.email}" disabled>
-                        </div>
-                        <div class="col-md-12">
-                            <label class="text-label">Website</label>
-                            <input type="text" id="website" class="form-control form-control-custom editable-field"
-                                   th:value="${supplier.website}" disabled>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <div class="card-title-custom">Lịch sử nhập hàng trong kỳ</div>
@@ -219,6 +225,31 @@
         <div class="col-md-4">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
+                    <div class="card-title-custom">Thông tin chi tiết</div>
+                    <label class="text-label">Tên nhà cung cấp</label>
+                    <input type="text" id="name" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.name}" disabled>
+
+                    <label class="text-label mt-2">Mã số thuế</label>
+                    <input type="text" id="taxCode" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.taxCode}" disabled>
+
+                    <label class="text-label mt-2">Số điện thoại</label>
+                    <input type="text" id="phone" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.phone}" disabled>
+
+                    <label class="text-label mt-2">Email</label>
+                    <input type="email" id="email" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.email}" disabled>
+
+                    <label class="text-label mt-2">Website</label>
+                    <input type="text" id="website" class="form-control form-control-custom editable-field"
+                           th:value="${supplier.website}" disabled>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
                     <div class="card-title-custom">Địa chỉ</div>
                     <label class="text-label">Quốc gia</label>
                     <select id="country" class="form-select form-select-custom editable-field" disabled>
@@ -228,15 +259,15 @@
                         <option value="Khác" th:selected="${supplier.country == 'Khác'}">Khác</option>
                     </select>
 
-                    <label class="text-label">Tỉnh / Thành phố</label>
+                    <label class="text-label mt-2">Tỉnh / Thành phố</label>
                     <input type="text" id="province" class="form-control form-control-custom editable-field"
                            th:value="${supplier.province}" disabled>
 
-                    <label class="text-label">Phường / Xã</label>
+                    <label class="text-label mt-2">Phường / Xã</label>
                     <input type="text" id="ward" class="form-control form-control-custom editable-field"
                            th:value="${supplier.ward}" disabled>
 
-                    <label class="text-label">Địa chỉ chi tiết</label>
+                    <label class="text-label mt-2">Địa chỉ chi tiết</label>
                     <textarea id="addressDetail" class="form-control form-control-custom editable-field" rows="3"
                               th:text="${supplier.addressDetail}" disabled></textarea>
                 </div>
@@ -245,14 +276,10 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <div class="card-title-custom">Nhân viên phụ trách</div>
-                    <label class="text-label">Người chịu trách nhiệm</label>
                     <select id="assignee" class="form-select form-select-custom editable-field" disabled>
                         <option value="">Chưa phân công</option>
-                        <option th:each="u : ${users}"
-                                th:value="${u.fullName}"
-                                th:text="${u.fullName}"
-                                th:selected="${supplier.assignee == u.fullName}">
-                        </option>
+                        <option th:each="u : ${users}" th:value="${u.fullName}" th:text="${u.fullName}"
+                                th:selected="${supplier.assignee == u.fullName}"></option>
                     </select>
                 </div>
             </div>
@@ -267,9 +294,56 @@
         </div>
     </div>
 
-    <script th:inline="javascript">
+    <div class="d-none" id="masterDataDictionary">
+        <span th:each="st : ${@masterDataService.getMasterDataByType('RECEIPT_STATUS')}"
+              class="dict-receipt-status"
+              th:data-key="${st.dataValue}"
+              th:data-val="${st.dataLabel}"></span>
+
+        <span th:each="pst : ${@masterDataService.getMasterDataByType('PAYMENT_STATUS')}"
+              class="dict-payment-status"
+              th:data-key="${pst.dataValue}"
+              th:data-val="${pst.dataLabel}"></span>
+    </div>
+
+    <script>
         const formatMoney = (v) => new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(v || 0);
-        const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN');
+
+        const formatDate = (d) => {
+            const date = new Date(d);
+            const time = date.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
+            const day = date.toLocaleDateString('vi-VN');
+            return `${time} ${day}`;
+        };
+
+        // Khởi tạo từ điển trạng thái từ DOM (đảm bảo JS thuần túy, an toàn 100%)
+        const statusMapData = {};
+        const payStatusMapData = {};
+
+        document.querySelectorAll('.dict-receipt-status').forEach(el => {
+            statusMapData[el.getAttribute('data-key')] = el.getAttribute('data-val');
+        });
+
+        document.querySelectorAll('.dict-payment-status').forEach(el => {
+            payStatusMapData[el.getAttribute('data-key')] = el.getAttribute('data-val');
+        });
+
+        // Hàm hỗ trợ dịch trạng thái qua Tiếng Việt (Có CSS động)
+        function getStatusHtml(code) {
+            let label = statusMapData[code] || code;
+            let cssClass = 'status-trading';
+            if (code === 'COMPLETED') cssClass = 'status-completed';
+            if (code === 'CANCELLED') cssClass = 'status-cancelled';
+            return `<span class="status-badge ${cssClass}">${label}</span>`;
+        }
+
+        function getPaymentHtml(code) {
+            let label = payStatusMapData[code] || code;
+            let cssClass = 'pay-unpaid';
+            if (code === 'PAID') cssClass = 'pay-paid';
+            if (code === 'PARTIAL') cssClass = 'pay-partial';
+            return `<span class="small fw-bold ${cssClass}">${label}</span>`;
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             changePeriod('thisMonth');
@@ -300,28 +374,15 @@
 
             const code = document.getElementById('supplierCode').value;
             try {
-                const res = await fetch(`/api/v1/suppliers/${code}/status?status=${newStatus}`, {
-                    method: 'PUT'
-                });
-
+                const res = await fetch(`/api/v1/suppliers/${code}/status?status=${newStatus}`, {method: 'PUT'});
                 if (res.ok) {
-                    await Swal.fire(
-                        'Thành công!',
-                        `Đã ${actionText} nhà cung cấp.`,
-                        'success'
-                    );
+                    await Swal.fire('Thành công!', `Đã ${actionText} nhà cung cấp.`, 'success');
                     window.location.reload();
                 } else {
-                    Toast.fire({
-                        icon: 'error',
-                        title: 'Có lỗi xảy ra khi thay đổi trạng thái!'
-                    });
+                    Toast.fire({icon: 'error', title: 'Có lỗi xảy ra khi thay đổi trạng thái!'});
                 }
             } catch (e) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối đến máy chủ!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối đến máy chủ!'});
             }
         }
 
@@ -342,7 +403,6 @@
                 end = new Date(now.getFullYear(), 11, 31, 23, 59, 59).toISOString();
                 document.getElementById('timeFilterBtn').innerText = "Năm nay";
             } else if (period === 'allTime') {
-                // Gửi chuỗi rỗng để Backend hiểu là không giới hạn ngày
                 start = '';
                 end = '';
                 document.getElementById('timeFilterBtn').innerText = "Tất cả thời gian";
@@ -360,20 +420,21 @@
                 const tbody = document.querySelector('#historyTable tbody');
                 if (data.history && data.history.length > 0) {
                     document.getElementById('emptyHistory').classList.add('d-none');
+                    // Áp dụng hàm dịch Tiếng Việt vào đây
                     tbody.innerHTML = data.history.map(h => `
                         <tr>
                             <td><a href="/ui/imports/${h.code}" class="text-decoration-none fw-bold">${h.code}</a></td>
-                            <td>${formatDate(h.createdAt)}</td>
-                            <td><span class="badge ${h.status === 'COMPLETED' ? 'bg-success' : 'bg-warning text-dark'}">${h.status}</span></td>
-                            <td><span class="text-${h.paymentStatus === 'PAID' ? 'success' : 'danger'} small fw-bold">${h.paymentStatus}</span></td>
-                            <td class="text-end fw-bold pe-3">${formatMoney(h.totalAmount)}</td>
+                            <td class="text-muted small">${formatDate(h.createdAt)}</td>
+                            <td>${getStatusHtml(h.status)}</td>
+                            <td>${getPaymentHtml(h.paymentStatus)}</td>
+                            <td class="text-end fw-bold pe-3 text-dark">${formatMoney(h.totalAmount)}</td>
                         </tr>`).join('');
                 } else {
                     tbody.innerHTML = "";
                     document.getElementById('emptyHistory').classList.remove('d-none');
                 }
             } catch (e) {
-                console.error(e);
+                console.error("Lỗi khi tải lịch sử giao dịch:", e);
             }
         }
 
@@ -400,17 +461,12 @@
             });
 
             if (res.ok) {
-                Toast.fire({
-                    icon: 'success',
-                    title: 'Đã cập nhật thông tin nhà cung cấp thành công!'
-                }).then(() => {
-                    window.location.reload();
-                });
+                Toast.fire({icon: 'success', title: 'Đã cập nhật thông tin nhà cung cấp thành công!'})
+                    .then(() => {
+                        window.location.reload();
+                    });
             } else {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi cập nhật thông tin nhà cung cấp!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi cập nhật thông tin nhà cung cấp!'});
             }
         }
     </script>

@@ -72,11 +72,13 @@ public class WarrantyService {
         try {
             if (statusStr != null && !statusStr.isEmpty())
                 status = WarrantyTicket.TicketStatus.valueOf(statusStr.toUpperCase());
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
+
         try {
-            if (typeStr != null && !typeStr.isEmpty()) type = WarrantyTicket.TicketType.valueOf(typeStr.toUpperCase());
-        } catch (Exception e) {
+            if (typeStr != null && !typeStr.isEmpty())
+                type = WarrantyTicket.TicketType.valueOf(typeStr.toUpperCase());
+        } catch (Exception ignored) {
         }
 
         return warrantyRepo.filterTickets(keyword, status, type);

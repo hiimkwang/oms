@@ -4,6 +4,15 @@
 <body>
 <div class="oms-container pb-5">
     <style>
+        .readonly-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: #334155;
+        }
+
         .card-title-custom {
             font-size: 15px;
             font-weight: 700;
@@ -26,12 +35,11 @@
             height: 38px;
         }
 
-        .form-control-custom:focus {
+        .form-control-custom:focus, .form-select-custom:focus {
             border-color: #3b82f6;
             box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.1);
         }
 
-        /* Toggle Dịch vụ */
         .service-type-toggle {
             display: flex;
             gap: 15px;
@@ -80,7 +88,6 @@
             color: #ea580c;
         }
 
-        /* Khung thông báo bảo hành */
         .warranty-alert {
             font-size: 13px;
             padding: 10px 15px;
@@ -156,7 +163,7 @@
                     <div id="repairFeeContainer" class="d-none mt-3">
                         <label class="form-label-custom text-danger">Phí sửa chữa dự kiến (Báo khách)</label>
                         <div class="input-group" style="max-width: 300px;">
-                            <input type="number" id="repairCost"
+                            <input type="number" step="1" id="repairCost"
                                    class="form-control form-control-custom text-end fw-bold text-danger" placeholder="0"
                                    value="0">
                             <span class="input-group-text bg-white fw-bold">₫</span>
@@ -181,7 +188,6 @@
                                     onclick="checkSerial()">Kiểm tra
                             </button>
                         </div>
-
                         <div id="warrantyAlert" class="warranty-alert"></div>
                     </div>
 
@@ -287,68 +293,49 @@
             }
         }
 
-        // --- HÀM TRA CỨU SERIAL TỪ HỆ THỐNG ĐƠN HÀNG ---
         async function checkSerial() {
             const serial = document.getElementById('serialNumber').value.trim();
             const alertBox = document.getElementById('warrantyAlert');
             const btn = document.getElementById('btnCheckSerial');
 
             if (!serial) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Vui lòng nhập Serial/IMEI để kiểm tra!'
-                });
+                Toast.fire({icon: 'error', title: 'Vui lòng nhập Serial/IMEI để kiểm tra!'});
                 return;
             }
 
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             btn.disabled = true;
-
-            // Xóa class cũ
             alertBox.className = 'warranty-alert';
 
             try {
-                // Gọi API xuống Backend
                 const res = await fetch(`/api/v1/warranties/check-serial?serial=${encodeURIComponent(serial)}`);
 
                 if (res.ok) {
                     const data = await res.json();
-
-                    // Điền dữ liệu vào form
                     document.getElementById('productName').value = data.productName || '';
                     document.getElementById('customerName').value = data.customerName || '';
                     document.getElementById('customerPhone').value = data.customerPhone || '';
 
-                    // Format ngày để hiển thị
                     const buyDate = new Date(data.purchaseDate).toLocaleDateString('vi-VN');
                     const endDate = new Date(data.warrantyEndDate).toLocaleDateString('vi-VN');
 
-                    // Hiển thị trạng thái
                     if (data.isWarrantyValid) {
                         alertBox.classList.add('alert-valid');
                         alertBox.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i><strong>Sản phẩm chính hãng - CÒN BẢO HÀNH</strong><br>Ngày mua: ${buyDate} | Hạn bảo hành đến: ${endDate}`;
-
-                        // Tự động chuyển sang chế độ Bảo hành (Free)
                         document.querySelector('input[name="ticketType"][value="WARRANTY"]').checked = true;
                         toggleServiceType();
                     } else {
                         alertBox.classList.add('alert-expired');
                         alertBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Sản phẩm chính hãng - ĐÃ HẾT HẠN BẢO HÀNH</strong><br>Ngày mua: ${buyDate} | Đã hết hạn vào: ${endDate}`;
-
-                        // Tự động chuyển sang chế độ Sửa dịch vụ (Có thu phí)
                         document.querySelector('input[name="ticketType"][value="REPAIR"]').checked = true;
                         toggleServiceType();
                     }
                 } else {
-                    // Trả về 404 (Không tìm thấy)
                     alertBox.classList.add('alert-notfound');
                     alertBox.innerHTML = `<i class="bi bi-info-circle-fill me-2"></i>Hệ thống không tìm thấy Serial này trong lịch sử bán hàng. Vui lòng kiểm tra lại hoặc điền thông tin thủ công.`;
                 }
             } catch (e) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối máy chủ!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ!'});
             } finally {
                 btn.innerHTML = 'Kiểm tra';
                 btn.disabled = false;
@@ -358,9 +345,9 @@
         async function submitTicket() {
             const payload = {
                 type: document.querySelector('input[name="ticketType"]:checked').value,
-                repairCost: parseFloat(document.getElementById('repairCost').value || 0),
+                repairCost: Math.round(parseFloat(document.getElementById('repairCost').value || 0)),
                 productName: document.getElementById('productName').value.trim(),
-                receiveDate : document.getElementById('receiveDate').value,
+                receiveDate: document.getElementById('receiveDate').value,
                 serialNumber: document.getElementById('serialNumber').value.trim(),
                 issueDescription: document.getElementById('issueDescription').value.trim(),
                 customerName: document.getElementById('customerName').value.trim(),
@@ -370,11 +357,7 @@
             };
 
             if (!payload.productName || !payload.serialNumber || !payload.issueDescription || !payload.customerName || !payload.customerPhone) {
-
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Vui lòng điền đầy đủ thông tin vào các trường có dấu *'
-                });
+                Toast.fire({icon: 'error', title: 'Vui lòng điền đầy đủ thông tin vào các trường có dấu *'});
                 return;
             }
 
@@ -386,23 +369,15 @@
                 });
 
                 if (res.ok) {
-                    Toast.fire({
-                        icon: 'success',
-                        title: 'Tạo phiếu tiếp nhận thành công!'
-                    }).then(() => {
-                        window.location.href = "/ui/warranties";
-                    });
+                    Toast.fire({icon: 'success', title: 'Tạo phiếu tiếp nhận thành công!'})
+                        .then(() => {
+                            window.location.href = "/ui/warranties";
+                        });
                 } else {
-                    Toast.fire({
-                        icon: 'error',
-                        title: 'Có lỗi xảy ra khi lưu phiếu!'
-                    });
+                    Toast.fire({icon: 'error', title: 'Có lỗi xảy ra khi lưu phiếu!'});
                 }
             } catch (e) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối máy chủ!'
-                });
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ!'});
             }
         }
     </script>

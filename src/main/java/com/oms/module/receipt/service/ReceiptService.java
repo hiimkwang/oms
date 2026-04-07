@@ -6,6 +6,8 @@ import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.service.CashbookService;
 import com.oms.module.inventory.entity.Inventory;
 import com.oms.module.inventory.repository.InventoryRepository;
+import com.oms.module.notification.entity.Notification;
+import com.oms.module.notification.repository.NotificationRepository;
 import com.oms.module.product.entity.ProductVariant;
 import com.oms.module.product.repository.ProductVariantRepository;
 import com.oms.module.product.service.ProductService;
@@ -46,6 +48,7 @@ public class ReceiptService {
     private final BranchRepository branchRepository;
     private final ProductService productService;
     private final CashbookService cashbookService;
+    private final NotificationRepository notificationRepository; // BỔ SUNG REPOSITORY THÔNG BÁO
 
     // Hàm hỗ trợ làm tròn số tiền, bỏ số thập phân
     private BigDecimal round(BigDecimal value) {
@@ -74,7 +77,21 @@ public class ReceiptService {
         }).orElse(sku);
     }
 
-    // TỰ ĐỘNG TẠO PHIẾU CHI ĐÃ CHỈNH LẠI REASON VÀ DESCRIPTION
+    private void pushNotification(String title, String content, String link) {
+        try {
+            Notification noti = new Notification();
+            noti.setTitle(title);
+            noti.setMessage(content);
+            noti.setLink(link);
+            noti.setRead(false);
+            noti.setCreatedAt(LocalDateTime.now());
+            notificationRepository.save(noti);
+        } catch (Exception e) {
+            System.err.println("Lỗi khi lưu thông báo: " + e.getMessage());
+        }
+    }
+
+    // TỰ ĐỘNG TẠO PHIẾU CHI
     private void createPaymentVoucher(Receipt receipt, BigDecimal amount, String methodStr) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return;
 
@@ -93,7 +110,6 @@ public class ReceiptService {
         }
 
         cashReq.setAmount(amount);
-        // FIX: Tách riêng Lý do chi và Diễn giải
         cashReq.setReason("Trả nợ nhà cung cấp");
         cashReq.setDescription("Chi tiền trả nhà cung cấp cho phiếu nhập " + receipt.getCode());
         cashReq.setBranchId(receipt.getBranchId());
@@ -150,7 +166,9 @@ public class ReceiptService {
 
         logActivity(savedReceipt, "Tạo mới phiếu nhập hàng", currentWorker);
 
-        // TỰ ĐỘNG TẠO PHIẾU CHI NẾU CÓ THANH TOÁN LÚC TẠO ĐƠN
+        // Bắn Noti tạo đơn mới
+        pushNotification("Đơn nhập hàng mới", "Phiếu nhập " + savedReceipt.getCode() + " vừa được tạo trên hệ thống.", "/ui/imports/" + savedReceipt.getCode());
+
         if (savedReceipt.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
             createPaymentVoucher(savedReceipt, savedReceipt.getAmountPaid(), String.valueOf(request.getPaymentMethod()));
         }
@@ -218,6 +236,9 @@ public class ReceiptService {
         Receipt savedReceipt = receiptRepository.save(receipt);
         logActivity(receipt, "Cập nhật thông tin phiếu nhập", getCurrentUserName());
 
+        // Bắn Noti cập nhật đơn
+        pushNotification("Cập nhật đơn nhập hàng", "Phiếu nhập " + receipt.getCode() + " đã được chỉnh sửa thông tin.", "/ui/imports/" + receipt.getCode());
+
         addInboundStock(savedReceipt, newDetails);
 
         return savedReceipt;
@@ -255,6 +276,9 @@ public class ReceiptService {
         receipt.setImportStatus(COMPLETED);
         logActivity(receipt, "Xác nhận nhập kho vào: " + receipt.getBranchName(), currentWorker);
 
+        // Bắn Noti nhập kho thành công
+        pushNotification("Nhập kho thành công", "Hàng hóa của phiếu nhập " + receipt.getCode() + " đã được cộng vào " + receipt.getBranchName(), "/ui/imports/" + receipt.getCode());
+
         checkAndCompleteReceipt(receipt);
         return receiptRepository.save(receipt);
     }
@@ -269,6 +293,9 @@ public class ReceiptService {
 
         receiptRepository.save(receipt);
         logActivity(receipt, "Hủy phiếu nhập hàng", getCurrentUserName());
+
+        // Bắn Noti hủy đơn
+        pushNotification("Hủy phiếu nhập hàng", "Phiếu nhập " + receipt.getCode() + " đã bị hủy bỏ.", "/ui/imports/" + receipt.getCode());
     }
 
     private void addInboundStock(Receipt receipt, List<ReceiptDetail> details) {
@@ -362,7 +389,9 @@ public class ReceiptService {
         receiptRepository.save(receipt);
         logActivity(receipt, "Thanh toán: " + amountToAddRounded + "đ (" + method + ")", currentWorker);
 
-        // TỰ ĐỘNG TẠO PHIẾU CHI
+        // Bắn Noti ghi nhận thanh toán
+        pushNotification("Thanh toán phiếu nhập", "Ghi nhận thanh toán " + amountToAddRounded + "đ cho phiếu nhập " + receipt.getCode(), "/ui/imports/" + receipt.getCode());
+
         createPaymentVoucher(receipt, amountToAddRounded, method);
     }
 
