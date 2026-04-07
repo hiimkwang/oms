@@ -14,7 +14,9 @@
             <div th:each="n : ${notifications}"
                  th:classappend="${n.read ? '' : 'bg-light border-start border-primary border-4'}"
                  class="list-group-item list-group-item-action p-3"
-                 th:onclick="|handleNotiClick(${n.id}, '${n.link}')|"
+                 th:data-id="${n.id}"
+                 th:data-link="${n.link}"
+                 onclick="handleNotiClick(this.dataset.id, this.dataset.link)"
                  style="cursor: pointer;">
 
                 <div class="d-flex gap-3">

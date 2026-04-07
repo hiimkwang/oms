@@ -36,6 +36,6 @@ public class Notification {
     }
 
     public enum NotificationType {
-        ORDER, PAYMENT, SYSTEM, WARNING
+        ORDER, PAYMENT, SYSTEM, WARNING, WARRANTY, IMPORT
     }
 }

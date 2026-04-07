@@ -1,6 +1,8 @@
 package com.oms.module.warranty.service;
 
 import com.oms.module.account.entity.User;
+import com.oms.module.notification.entity.Notification;
+import com.oms.module.notification.service.NotificationService;
 import com.oms.module.warranty.entity.WarrantyActivity;
 import com.oms.module.warranty.entity.WarrantyTicket;
 import com.oms.module.warranty.repository.WarrantyTicketRepository;
@@ -20,7 +22,8 @@ public class WarrantyService {
 
     private final WarrantyTicketRepository warrantyRepo;
 
-    // --- HÀM TIỆN ÍCH LẤY USER VÀ GHI LOG ---
+    private final NotificationService notificationService;
+
     private String getCurrentUserName() {
         try {
             Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -63,7 +66,6 @@ public class WarrantyService {
                 return status.name();
         }
     }
-    // ----------------------------------------
 
     public List<WarrantyTicket> filterTickets(String keyword, String statusStr, String typeStr) {
         WarrantyTicket.TicketStatus status = null;
@@ -96,10 +98,28 @@ public class WarrantyService {
             request.setReceiveDate(LocalDateTime.now());
         }
 
-        // Ghi log tạo mới
         logActivity(request, "Tạo phiếu bảo hành", "Tiếp nhận thiết bị của khách hàng: " + request.getCustomerName());
 
-        return warrantyRepo.save(request);
+        WarrantyTicket savedTicket = warrantyRepo.save(request);
+
+
+        try {
+            String title = "Tiếp nhận bảo hành: " + savedTicket.getTicketCode();
+            String message = "Khách hàng: " + savedTicket.getCustomerName() +
+                    " | Lỗi: " + (savedTicket.getIssueDescription() != null ? savedTicket.getIssueDescription() : "Không ghi rõ");
+            String link = "/ui/warranties/" + savedTicket.getId();
+
+            notificationService.create(
+                    title,
+                    message,
+                    Notification.NotificationType.WARRANTY,
+                    link
+            );
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gửi thông báo bảo hành mới: " + e.getMessage());
+        }
+
+        return savedTicket;
     }
 
     @Transactional
@@ -115,8 +135,9 @@ public class WarrantyService {
     public WarrantyTicket updateTicket(Long id, WarrantyTicket request) {
         WarrantyTicket existing = getById(id);
 
-        // 1. KIỂM TRA SỰ THAY ĐỔI ĐỂ GHI LOG
-        if (existing.getStatus() != request.getStatus()) {
+        boolean isStatusChanged = existing.getStatus() != request.getStatus();
+
+        if (isStatusChanged) {
             logActivity(existing, "Cập nhật trạng thái", "Chuyển từ [" + getStatusName(existing.getStatus()) + "] sang [" + getStatusName(request.getStatus()) + "]");
         }
 
@@ -126,7 +147,6 @@ public class WarrantyService {
             logActivity(existing, "Cập nhật Ghi chú / Lỗi", "Ghi chú mới: " + newDesc);
         }
 
-        // 2. CẬP NHẬT DỮ LIỆU
         existing.setCustomerName(request.getCustomerName());
         existing.setCustomerPhone(request.getCustomerPhone());
         existing.setIssueDescription(request.getIssueDescription());
@@ -136,6 +156,22 @@ public class WarrantyService {
         existing.setStatus(request.getStatus());
         existing.setType(request.getType());
 
-        return warrantyRepo.save(existing);
+        WarrantyTicket savedTicket = warrantyRepo.save(existing);
+
+
+        if (isStatusChanged && request.getStatus() == WarrantyTicket.TicketStatus.DONE) {
+            try {
+                notificationService.create(
+                        "Sửa chữa hoàn tất: " + existing.getTicketCode(),
+                        "Thiết bị của khách hàng " + existing.getCustomerName() + " đã được sửa xong, sẵn sàng để trả khách.",
+                        Notification.NotificationType.WARRANTY,
+                        "/ui/warranties/" + existing.getId()
+                );
+            } catch (Exception e) {
+                System.err.println("Lỗi khi gửi thông báo cập nhật bảo hành: " + e.getMessage());
+            }
+        }
+
+        return savedTicket;
     }
 }

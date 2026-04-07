@@ -22,6 +22,8 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.oms.constant.CommonConstants.OrderStatusConstant.*;
+
 @Controller
 @RequiredArgsConstructor
 public class DashboardController {
@@ -121,9 +123,9 @@ public class DashboardController {
         }
 
         Long unpaidOrders = orderRepo.countUnpaidOrders(start, end);
-        Long pendingOrders = orderRepo.countOrdersByStatus("Khởi tạo", start, end);
-        Long shippingOrders = orderRepo.countOrdersByStatus("Đang giao hàng", start, end);
-        Long canceledOrders = orderRepo.countOrdersByStatus("Đã hủy", start, end);
+        Long pendingOrders = orderRepo.countOrdersByStatus(CREATED, start, end);
+        Long shippingOrders = orderRepo.countOrdersByStatus(SHIPPING, start, end);
+        Long canceledOrders = orderRepo.countOrdersByStatus(CANCELLED, start, end);
 
         // Đẩy 8 thẻ bài ra View
         model.addAttribute("netRevenue", totalRevenue);

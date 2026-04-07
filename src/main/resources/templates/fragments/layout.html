@@ -731,6 +731,21 @@
         window.location.href = link;
     }
 
+    async function markAllRead() {
+        try {
+            const response = await fetch('/api/notifications/mark-all-read', {method: 'POST'});
+            if (response.ok) {
+                const badge = document.getElementById('notiBadge');
+                badge.innerText = '0';
+                badge.classList.add('d-none');
+
+                await loadNotifications();
+            }
+        } catch (e) {
+            console.error("Lỗi khi đánh dấu đã đọc:", e);
+        }
+    }
+
     function getIcon(type) {
         if (type === 'ORDER') return 'bi-cart-check-fill';
         if (type === 'PAYMENT') return 'bi-cash-coin';

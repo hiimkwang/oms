@@ -255,17 +255,17 @@
             <div class="status-val text-warning" th:text="${unpaidOrders ?: 0}">0</div>
             <div class="status-lbl"><i class="bi bi-clock-history me-1 fs-6"></i>Chưa Thanh Toán</div>
         </div>
-        <div class="status-card" onclick="window.location.href='/ui/orders?status=Chưa giao'">
+        <div class="status-card" onclick="window.location.href='/ui/orders?status=PENDING'">
             <div class="status-val text-dark" th:text="${pendingOrders ?: 0}">0</div>
-            <div class="status-lbl"><i class="bi bi-box me-1 fs-6"></i>Chưa Giao</div>
+            <div class="status-lbl"><i class="bi bi-box me-1 fs-6"></i>Chờ Xử Lý</div>
         </div>
-        <div class="status-card" onclick="window.location.href='/ui/orders?status=Đang giao'">
+        <div class="status-card" onclick="window.location.href='/ui/orders?status=SHIPPING'">
             <div class="status-val text-info" th:text="${shippingOrders ?: 0}">0</div>
             <div class="status-lbl"><i class="bi bi-truck me-1 fs-6"></i>Đang Giao</div>
         </div>
-        <div class="status-card" onclick="window.location.href='/ui/orders?status=Hủy'">
+        <div class="status-card" onclick="window.location.href='/ui/orders?status=CANCELLED'">
             <div class="status-val text-danger" th:text="${canceledOrders ?: 0}">0</div>
-            <div class="status-lbl"><i class="bi bi-x-circle me-1 fs-6"></i>Hủy</div>
+            <div class="status-lbl"><i class="bi bi-x-circle me-1 fs-6"></i>Đã Hủy</div>
         </div>
     </div>
 
@@ -321,10 +321,10 @@
                                 th:text="${#numbers.formatDecimal(o.totalAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></td>
                             <td>
                                 <span class="badge px-2 py-1 border fw-bold"
-                                      th:classappend="${o.status == 'Hủy' ? 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25' :
-                                                     (o.status == 'Hoàn thành' ? 'bg-success bg-opacity-10 text-success border-success border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border-primary border-opacity-25')}"
-                                      th:text="${o.status}">
-                                </span>
+                                      th:classappend="${o.status == 'CANCELLED' or o.status == 'Đã hủy' or o.status == 'Hủy' ? 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25' :
+                     (o.status == 'COMPLETED' or o.status == 'Hoàn thành' ? 'bg-success bg-opacity-10 text-success border-success border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border-primary border-opacity-25')}"
+                                      th:text="${o.status != null ? o.status : 'Chưa có'}">
+</span>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(recentOrders)}">

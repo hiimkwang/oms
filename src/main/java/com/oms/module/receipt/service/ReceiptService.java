@@ -81,6 +81,7 @@ public class ReceiptService {
         try {
             Notification noti = new Notification();
             noti.setTitle(title);
+            noti.setType(Notification.NotificationType.IMPORT);
             noti.setMessage(content);
             noti.setLink(link);
             noti.setRead(false);

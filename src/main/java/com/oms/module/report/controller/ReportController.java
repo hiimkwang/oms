@@ -1,5 +1,6 @@
 package com.oms.module.report.controller;
 
+import com.oms.constant.CommonConstants;
 import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.repository.CashTransactionRepository;
 import com.oms.module.inventory.repository.InventoryRepository;
@@ -168,9 +169,9 @@ public class ReportController {
             model.addAttribute("chanNetRev", pRev != null ? pRev : BigDecimal.ZERO);
             model.addAttribute("chanGrossProfit", (pRev != null ? pRev : BigDecimal.ZERO).subtract(pCogs != null ? pCogs : BigDecimal.ZERO));
             model.addAttribute("chanOrders", orderRepo.countTotalChannelTabOrders(targetChannels, startTime, endTime));
-            model.addAttribute("chanCanceled", orderRepo.countChannelTabOrdersByStatus(targetChannels, "Đã hủy", startTime, endTime));
-            model.addAttribute("chanReturned", orderRepo.countChannelTabOrdersByStatus(targetChannels, "Trả hàng", startTime, endTime));
-            model.addAttribute("chanShipped", orderRepo.countChannelTabOrdersByStatus(targetChannels, "Hoàn thành", startTime, endTime));
+            model.addAttribute("chanCanceled", orderRepo.countChannelTabOrdersByStatus(targetChannels, CommonConstants.OrderStatusConstant.CANCELLED, startTime, endTime));
+            model.addAttribute("chanReturned", orderRepo.countChannelTabOrdersByStatus(targetChannels, CommonConstants.OrderStatusConstant.RETURNED, startTime, endTime));
+            model.addAttribute("chanShipped", orderRepo.countChannelTabOrdersByStatus(targetChannels, CommonConstants.OrderStatusConstant.COMPLETED, startTime, endTime));
 
             model.addAttribute("chanChannelLabels", extractStringLabels(orderRepo.findChannelTabRevenueByChannel(targetChannels, startTime, endTime)));
             model.addAttribute("chanChannelData", extractBigDecimalData(orderRepo.findChannelTabRevenueByChannel(targetChannels, startTime, endTime)));

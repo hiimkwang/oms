@@ -9,6 +9,7 @@ import com.oms.module.category.service.CategoryService;
 import com.oms.module.customer.service.CustomerService;
 import com.oms.module.inventory.dto.InventoryDTO;
 import com.oms.module.inventory.service.InventoryService;
+import com.oms.module.notification.entity.Notification;
 import com.oms.module.notification.service.NotificationService;
 import com.oms.module.order.entity.Order;
 import com.oms.module.order.service.OrderService;
@@ -62,6 +63,7 @@ public class WebController {
     private final WarrantyService warrantyService;
     private final CustomUserDetailsService customUserDetailsService;
     private final ReturnOrderService returnOrderService;
+
     @GetMapping("/login")
     public String login(Model model) {
         Map<String, String> configs = masterDataService.getSystemConfigMap(Arrays.asList("STORE_NAME", "STORE_LOGO"));
@@ -461,8 +463,9 @@ public class WebController {
 
 
     @GetMapping("/ui/notifications")
-    public String list(Model model) {
-        model.addAttribute("notifications", notificationService.getAll());
+    public String viewAllNotifications(Model model) {
+        List<Notification> notifications = notificationService.getAll();
+        model.addAttribute("notifications", notifications);
         return "notifications/list-noti";
     }
 
