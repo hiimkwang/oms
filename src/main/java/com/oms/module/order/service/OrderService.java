@@ -19,6 +19,7 @@ import com.oms.module.product.service.ProductService;
 import com.oms.module.setting.entity.MasterData;
 import com.oms.module.setting.service.MasterDataService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,6 +36,7 @@ import static com.oms.constant.CommonConstants.OrderStatusConstant.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -58,33 +60,7 @@ public class OrderService {
 
         String requestedStatus = request.getStatus() != null ? request.getStatus() : DRAFT;
 
-        Order order = Order.builder()
-                .orderCode(generatedCode)
-                .customer(customer)
-                .salesChannelCode(request.getSalesChannelCode())
-                .branchId(request.getBranchId())
-                .status(requestedStatus)
-                .note(request.getNote())
-                .shippingType(request.getShippingType())
-                .shipFromBranchId(request.getShipFromBranchId())
-                .shippingPartner(request.getShippingPartner())
-                .trackingCode(request.getTrackingCode())
-                .referenceCode(request.getReferenceCode())
-                .shippingAddress(request.getShippingAddress())
-                .expectedDeliveryDate(request.getExpectedDeliveryDate())
-                .shippingFee(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO)
-                .codAmount(request.getCodAmount() != null ? request.getCodAmount() : BigDecimal.ZERO)
-                .shipWeight(request.getShipWeight())
-                .paymentStatus(request.getPaymentStatus())
-                .paymentMethod(request.getPaymentMethod())
-                .amountPaid(request.getAmountPaid() != null ? request.getAmountPaid() : BigDecimal.ZERO)
-                .invoiceTaxCode(request.getInvoiceTaxCode())
-                .invoiceCompanyName(request.getInvoiceCompanyName())
-                .invoiceCompanyAddress(request.getInvoiceCompanyAddress())
-                .discountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO)
-                .details(new ArrayList<>())
-                .createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now())
-                .build();
+        Order order = Order.builder().orderCode(generatedCode).customer(customer).salesChannelCode(request.getSalesChannelCode()).branchId(request.getBranchId()).status(requestedStatus).note(request.getNote()).shippingType(request.getShippingType()).shipFromBranchId(request.getShipFromBranchId()).shippingPartner(request.getShippingPartner()).trackingCode(request.getTrackingCode()).referenceCode(request.getReferenceCode()).shippingAddress(request.getShippingAddress()).expectedDeliveryDate(request.getExpectedDeliveryDate()).shippingFee(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO).codAmount(request.getCodAmount() != null ? request.getCodAmount() : BigDecimal.ZERO).shipWeight(request.getShipWeight()).paymentStatus(request.getPaymentStatus()).paymentMethod(request.getPaymentMethod()).amountPaid(request.getAmountPaid() != null ? request.getAmountPaid() : BigDecimal.ZERO).invoiceTaxCode(request.getInvoiceTaxCode()).invoiceCompanyName(request.getInvoiceCompanyName()).invoiceCompanyAddress(request.getInvoiceCompanyAddress()).discountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO).details(new ArrayList<>()).createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now()).build();
 
         buildOrderDetailsAndCalculateTotal(order, request.getDetails());
         Order savedOrder = orderRepository.save(order);
@@ -108,12 +84,7 @@ public class OrderService {
 
         // 3. TRỪ KHO VÀ BÁO CHUÔNG
         applyInventory(savedOrder, savedOrder.getStatus());
-        notificationService.create(
-                "Đơn hàng mới",
-                "Đơn hàng " + savedOrder.getOrderCode() + " vừa được tạo thành công.",
-                Notification.NotificationType.ORDER,
-                "/ui/orders/detail/" + savedOrder.getOrderCode()
-        );
+        notificationService.create("Đơn hàng mới", "Đơn hàng " + savedOrder.getOrderCode() + " vừa được tạo thành công.", Notification.NotificationType.ORDER, "/ui/orders/detail/" + savedOrder.getOrderCode());
 
         return savedOrder;
     }
@@ -184,12 +155,7 @@ public class OrderService {
             addActivityLog(order, "Cập nhật trạng thái", "Chuyển trạng thái từ [" + translateStatus(oldStatus) + "] sang [" + translateStatus(newStatus) + "]");
             if (CANCELLED.equals(newStatus) || COMPLETED.equals(newStatus)) {
                 String translatedStatus = translateStatus(newStatus);
-                notificationService.create(
-                        "Cập nhật đơn hàng " + order.getOrderCode(),
-                        "Đơn hàng đã chuyển sang trạng thái: " + translatedStatus,
-                        Notification.NotificationType.ORDER,
-                        "/ui/orders/detail/" + order.getOrderCode()
-                );
+                notificationService.create("Cập nhật đơn hàng " + order.getOrderCode(), "Đơn hàng đã chuyển sang trạng thái: " + translatedStatus, Notification.NotificationType.ORDER, "/ui/orders/detail/" + order.getOrderCode());
             }
         } else if (order.getAmountPaid().compareTo(request.getAmountPaid()) != 0) {
             addActivityLog(order, "Thanh toán", "Cập nhật số tiền đã thanh toán: " + request.getAmountPaid() + "đ");
@@ -224,10 +190,16 @@ public class OrderService {
 
             if (detailReq.getIsCustom() == null || !detailReq.getIsCustom()) {
                 try {
-                    product = productService.getProductBySku(detailReq.getSku());
-                    productName = product.getName();
+                    ProductVariant variant = variantRepository.findBySku(detailReq.getSku()).orElse(null);
+                    if (variant != null) {
+                        product = variant.getProduct();
+                        String varName = variant.getVariantName();
+                        productName = product.getName() + (varName != null && !varName.trim().isEmpty() ? " - " + varName : "");
+                    } else {
+                        productName = detailReq.getName(); // Fallback an toàn
+                    }
                 } catch (Exception e) {
-                    System.out.println("Cảnh báo: Không tìm thấy sản phẩm có SKU " + detailReq.getSku());
+                    log.error("Cảnh báo: Lỗi khi lấy thông tin biến thể SKU {}: {}", detailReq.getSku(), e);
                 }
             }
 
@@ -235,19 +207,7 @@ public class OrderService {
             BigDecimal quantity = BigDecimal.valueOf(detailReq.getQuantity());
             BigDecimal lineTotal = unitPrice.multiply(quantity);
 
-            OrderDetail orderDetail = OrderDetail.builder()
-                    .order(order)
-                    .product(product)
-                    .sku(detailReq.getSku())
-                    .productName(productName)
-                    .quantity(detailReq.getQuantity())
-                    .unitPrice(unitPrice)
-                    .totalPrice(lineTotal)
-                    .note(detailReq.getNote())
-                    .isCustom(detailReq.getIsCustom() != null ? detailReq.getIsCustom() : false)
-                    .serialNumber(detailReq.getSerialNumber())
-                    .warrantyMonths(detailReq.getWarrantyMonths())
-                    .build();
+            OrderDetail orderDetail = OrderDetail.builder().order(order).product(product).sku(detailReq.getSku()).productName(productName).quantity(detailReq.getQuantity()).unitPrice(unitPrice).totalPrice(lineTotal).note(detailReq.getNote()).isCustom(detailReq.getIsCustom() != null ? detailReq.getIsCustom() : false).serialNumber(detailReq.getSerialNumber()).warrantyMonths(detailReq.getWarrantyMonths()).build();
 
             order.getDetails().add(orderDetail);
             totalItemsAmount = totalItemsAmount.add(lineTotal);
@@ -373,13 +333,7 @@ public class OrderService {
     }
 
     private void addActivityLog(Order order, String action, String description) {
-        OrderActivity activity = OrderActivity.builder()
-                .order(order)
-                .action(action)
-                .description(description)
-                .createdBy(getCurrentUser())
-                .createdAt(LocalDateTime.now())
-                .build();
+        OrderActivity activity = OrderActivity.builder().order(order).action(action).description(description).createdBy(getCurrentUser()).createdAt(LocalDateTime.now()).build();
         if (order.getActivities() == null) {
             order.setActivities(new ArrayList<>());
         }

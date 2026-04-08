@@ -23,6 +23,7 @@ public class SupplierService {
     private final SupplierRepository supplierRepository;
 
     private final ReceiptRepository receiptRepository;
+
     @Transactional(readOnly = true)
     public List<Supplier> getSuppliers(String keyword) {
         return supplierRepository.searchSuppliers(keyword);
@@ -30,9 +31,7 @@ public class SupplierService {
 
     @Transactional(readOnly = true)
     public Supplier getSupplierByCode(String code) {
-        // Cần thêm hàm findByCode trong SupplierRepository nhé
-        return supplierRepository.findByCode(code)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Nhà cung cấp với mã: " + code));
+        return supplierRepository.findByCode(code).orElseThrow(() -> new RuntimeException("Không tìm thấy Nhà cung cấp với mã: " + code));
     }
 
     @Transactional
@@ -57,9 +56,7 @@ public class SupplierService {
         return supplierRepository.save(supplier);
     }
 
-    // Hàm phụ trợ map DTO sang Entity
     private void mapRequestToEntity(SupplierRequest request, Supplier supplier) {
-        //supplier.setCode(request.getCode());
         supplier.setName(request.getName());
         supplier.setPhone(request.getPhone());
         supplier.setEmail(request.getEmail());
@@ -83,8 +80,6 @@ public class SupplierService {
         supplierRepository.deleteAllByCodeIn(codes);
     }
 
-    // Nhớ inject ReceiptRepository vào nhé: private final ReceiptRepository receiptRepository;
-
     public SupplierStatsResponse getSupplierStats(String code, LocalDateTime start, LocalDateTime end) {
         // 1. Đếm số đơn và tổng tiền
         Object[] basicStats = receiptRepository.getBasicStats(code, start, end);
@@ -103,28 +98,15 @@ public class SupplierService {
 
         // 3. Lấy lịch sử giao dịch
         List<Receipt> receipts = receiptRepository.findBySupplierCodeAndCreatedAtBetweenOrderByCreatedAtDesc(code, start, end);
-        List<SupplierStatsResponse.ReceiptSummary> history = receipts.stream()
-                .map(r -> SupplierStatsResponse.ReceiptSummary.builder()
-                        .code(r.getCode())
-                        .createdAt(r.getCreatedAt())
-                        .status(r.getStatus())
-                        .paymentStatus(r.getPaymentStatus())
-                        .totalAmount(r.getTotalAmount())
-                        .build())
-                .collect(Collectors.toList());
+        List<SupplierStatsResponse.ReceiptSummary> history = receipts.stream().map(r -> SupplierStatsResponse.ReceiptSummary.builder().code(r.getCode()).createdAt(r.getCreatedAt()).status(r.getStatus()).paymentStatus(r.getPaymentStatus()).totalAmount(r.getTotalAmount()).build()).collect(Collectors.toList());
 
-        return SupplierStatsResponse.builder()
-                .totalOrders(count)
-                .totalAmount(total)
-                .totalDebt(debt)
-                .history(history)
-                .build();
+        return SupplierStatsResponse.builder().totalOrders(count).totalAmount(total).totalDebt(debt).history(history).build();
     }
+
     @Transactional
     public void updateStatus(String code, String status) {
         // 1. Tìm nhà cung cấp theo Mã NCC
-        Supplier supplier = supplierRepository.findByCode(code)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Nhà cung cấp với mã: " + code));
+        Supplier supplier = supplierRepository.findByCode(code).orElseThrow(() -> new RuntimeException("Không tìm thấy Nhà cung cấp với mã: " + code));
 
         // 2. Cập nhật trạng thái
         try {

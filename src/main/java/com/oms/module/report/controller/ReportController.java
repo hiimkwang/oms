@@ -1,7 +1,6 @@
 package com.oms.module.report.controller;
 
 import com.oms.constant.CommonConstants;
-import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.repository.CashTransactionRepository;
 import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.order.repository.OrderRepository;
@@ -20,7 +19,6 @@ import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Arrays;
 
 @Controller
 @RequiredArgsConstructor
@@ -31,19 +29,13 @@ public class ReportController {
     private final CashTransactionRepository cashTransactionRepository;
 
     @GetMapping("/ui/reports")
-    public String reportOverview(
-            Model model,
-            @RequestParam(required = false, defaultValue = "overview") String tab,
-            @RequestParam(required = false, defaultValue = "30days") String preset,
-            @RequestParam(required = false) String channel, // <--- THÊM BIẾN NÀY VÀO ĐÂY
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+    public String reportOverview(Model model, @RequestParam(required = false, defaultValue = "overview") String tab, @RequestParam(required = false, defaultValue = "30days") String preset, @RequestParam(required = false) String channel,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startTime = start;
         LocalDateTime endTime = end;
 
-        // XỬ LÝ PRESET THỜI GIAN (Giữ nguyên không đổi)
         if (!"custom".equals(preset)) {
             endTime = now.with(LocalTime.MAX);
             switch (preset) {
@@ -90,17 +82,15 @@ public class ReportController {
         model.addAttribute("startDate", startTime);
         model.addAttribute("endDate", endTime);
         model.addAttribute("tab", tab);
-        model.addAttribute("selectedChannel", channel); // Ném tên Kênh đang chọn xuống View
+        model.addAttribute("selectedChannel", channel);
 
         if ("overview".equals(tab)) {
-            // ... (Giữ nguyên)
             loadGeneralKPIs(model, startTime, endTime);
             loadTimeCharts(model, startTime, endTime);
             loadTopProducts(model, startTime, endTime);
             loadChannelAndBranchRevenue(model, startTime, endTime);
 
         } else if ("revenue".equals(tab)) {
-            // ... (Giữ nguyên)
             loadGeneralKPIs(model, startTime, endTime);
             loadTimeCharts(model, startTime, endTime);
             loadTopProducts(model, startTime, endTime);
@@ -120,7 +110,6 @@ public class ReportController {
             model.addAttribute("branchProfitData", extractBigDecimalData(orderRepo.findProfitByBranch(startTime, endTime)));
 
         } else if ("customer".equals(tab)) {
-            // ... (Giữ nguyên)
             loadGeneralKPIs(model, startTime, endTime);
             loadTimeCharts(model, startTime, endTime);
             List<Object[]> topCusRaw = orderRepo.findTopCustomers(startTime, endTime, PageRequest.of(0, 5));

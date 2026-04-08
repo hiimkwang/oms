@@ -2,13 +2,14 @@ package com.oms.module.product.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+
 import java.math.BigDecimal;
 import java.util.List;
 
 @Data
 public class ProductRequest {
 
-    private String sku; // Để trống Spring Boot sẽ tự cho qua
+    private String sku;
 
     @NotBlank(message = "Tên sản phẩm không được để trống")
     private String name;
@@ -24,7 +25,6 @@ public class ProductRequest {
     private Integer minStockLevel = 0;
     private Integer stockQuantity = 0;
 
-    // Đã đồng bộ tên
     private BigDecimal price;
     private String description;
     private String warrantyPeriod;

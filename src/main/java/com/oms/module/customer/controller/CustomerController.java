@@ -57,7 +57,6 @@ public class CustomerController {
     public ResponseEntity<?> delete(@PathVariable String code) {
         try {
             customerService.deleteCustomer(code);
-            // Trả về JSON thành công
             return ResponseEntity.ok(Map.of("message", "Xóa khách hàng thành công!"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

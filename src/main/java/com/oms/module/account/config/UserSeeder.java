@@ -27,8 +27,6 @@ public class UserSeeder implements CommandLineRunner {
             admin.setRole(User.Role.ADMIN);
             admin.setActive(true);
             userRepository.save(admin);
-
-            //System.out.println("Đã tạo tài khoản admin mặc định: admin / 123456");
         }
     }
 }

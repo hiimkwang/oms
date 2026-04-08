@@ -4,7 +4,10 @@ import com.oms.module.setting.entity.MasterData;
 import com.oms.module.setting.service.MasterDataService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
@@ -25,10 +28,6 @@ public class MasterDataController {
         if (type == null || value == null || value.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-
-        // Xử lý thông minh:
-        // Nếu Frontend chỉ gửi 1 ô input "value", ta lấy nó làm Label (hiển thị)
-        // và chuyển sang viết hoa không dấu/có dấu làm Value (để lưu DB chuẩn)
         if (label == null || label.trim().isEmpty()) {
             label = value.trim();
         }

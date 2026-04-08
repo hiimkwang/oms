@@ -37,12 +37,7 @@ public class WarrantyService {
     }
 
     private void logActivity(WarrantyTicket ticket, String action, String description) {
-        WarrantyActivity activity = WarrantyActivity.builder()
-                .ticket(ticket)
-                .action(action)
-                .description(description)
-                .creatorName(getCurrentUserName())
-                .build();
+        WarrantyActivity activity = WarrantyActivity.builder().ticket(ticket).action(action).description(description).creatorName(getCurrentUserName()).build();
         if (ticket.getActivities() == null) {
             ticket.setActivities(new ArrayList<>());
         }
@@ -78,8 +73,7 @@ public class WarrantyService {
         }
 
         try {
-            if (typeStr != null && !typeStr.isEmpty())
-                type = WarrantyTicket.TicketType.valueOf(typeStr.toUpperCase());
+            if (typeStr != null && !typeStr.isEmpty()) type = WarrantyTicket.TicketType.valueOf(typeStr.toUpperCase());
         } catch (Exception ignored) {
         }
 
@@ -105,16 +99,10 @@ public class WarrantyService {
 
         try {
             String title = "Tiếp nhận bảo hành: " + savedTicket.getTicketCode();
-            String message = "Khách hàng: " + savedTicket.getCustomerName() +
-                    " | Lỗi: " + (savedTicket.getIssueDescription() != null ? savedTicket.getIssueDescription() : "Không ghi rõ");
+            String message = "Khách hàng: " + savedTicket.getCustomerName() + " | Lỗi: " + (savedTicket.getIssueDescription() != null ? savedTicket.getIssueDescription() : "Không ghi rõ");
             String link = "/ui/warranties/" + savedTicket.getId();
 
-            notificationService.create(
-                    title,
-                    message,
-                    Notification.NotificationType.WARRANTY,
-                    link
-            );
+            notificationService.create(title, message, Notification.NotificationType.WARRANTY, link);
         } catch (Exception e) {
             System.err.println("Lỗi khi gửi thông báo bảo hành mới: " + e.getMessage());
         }
@@ -161,12 +149,7 @@ public class WarrantyService {
 
         if (isStatusChanged && request.getStatus() == WarrantyTicket.TicketStatus.DONE) {
             try {
-                notificationService.create(
-                        "Sửa chữa hoàn tất: " + existing.getTicketCode(),
-                        "Thiết bị của khách hàng " + existing.getCustomerName() + " đã được sửa xong, sẵn sàng để trả khách.",
-                        Notification.NotificationType.WARRANTY,
-                        "/ui/warranties/" + existing.getId()
-                );
+                notificationService.create("Sửa chữa hoàn tất: " + existing.getTicketCode(), "Thiết bị của khách hàng " + existing.getCustomerName() + " đã được sửa xong, sẵn sàng để trả khách.", Notification.NotificationType.WARRANTY, "/ui/warranties/" + existing.getId());
             } catch (Exception e) {
                 System.err.println("Lỗi khi gửi thông báo cập nhật bảo hành: " + e.getMessage());
             }

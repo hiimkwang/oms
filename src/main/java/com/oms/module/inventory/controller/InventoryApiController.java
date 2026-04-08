@@ -20,10 +20,16 @@ public class InventoryApiController {
 
     @GetMapping("/check")
     public ResponseEntity<?> checkStock(
-            @RequestParam Long branchId,
+            @RequestParam(required = false) Long branchId,
             @RequestParam String sku) {
 
-        Integer stock = inventoryRepository.getStockByBranchAndSku(branchId, sku);
+        Integer stock = 0;
+
+        if (branchId != null) {
+            stock = inventoryRepository.getStockByBranchAndSku(branchId, sku);
+        } else {
+            stock = inventoryRepository.getTotalStockBySku(sku);
+        }
 
         Map<String, Integer> response = new HashMap<>();
         response.put("stock", stock != null ? stock : 0);

@@ -34,8 +34,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.oms.constant.CommonConstants.PaymentStatusConstant.*;
-import static com.oms.constant.CommonConstants.ReceiptStatusConstant.*;
 import static com.oms.constant.CommonConstants.ReceiptStatusConstant.PENDING;
+import static com.oms.constant.CommonConstants.ReceiptStatusConstant.*;
 
 @Service
 @RequiredArgsConstructor
@@ -48,9 +48,8 @@ public class ReceiptService {
     private final BranchRepository branchRepository;
     private final ProductService productService;
     private final CashbookService cashbookService;
-    private final NotificationRepository notificationRepository; // BỔ SUNG REPOSITORY THÔNG BÁO
+    private final NotificationRepository notificationRepository;
 
-    // Hàm hỗ trợ làm tròn số tiền, bỏ số thập phân
     private BigDecimal round(BigDecimal value) {
         return value != null ? value.setScale(0, RoundingMode.HALF_UP) : BigDecimal.ZERO;
     }
@@ -92,7 +91,6 @@ public class ReceiptService {
         }
     }
 
-    // TỰ ĐỘNG TẠO PHIẾU CHI
     private void createPaymentVoucher(Receipt receipt, BigDecimal amount, String methodStr) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return;
 
@@ -122,52 +120,23 @@ public class ReceiptService {
 
     @Transactional
     public Receipt createReceipt(ReceiptRequest request) {
-        Supplier supplier = supplierRepository.findByCode(request.getSupplierCode())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy NCC"));
+        Supplier supplier = supplierRepository.findByCode(request.getSupplierCode()).orElseThrow(() -> new RuntimeException("Không tìm thấy NCC"));
 
         String currentWorker = getCurrentUserName();
         String actualBranchName = "Kho mặc định";
         if (request.getBranchId() != null) {
-            actualBranchName = branchRepository.findById(request.getBranchId())
-                    .map(Branch::getName)
-                    .orElse("Kho mặc định");
+            actualBranchName = branchRepository.findById(request.getBranchId()).map(Branch::getName).orElse("Kho mặc định");
         }
 
-        Receipt receipt = Receipt.builder()
-                .code("REI" + System.currentTimeMillis())
-                .supplier(supplier)
-                .branchId(request.getBranchId())
-                .branchName(actualBranchName)
-                .note(request.getNote())
-                .itemsAmount(round(request.getItemsAmount()))
-                .discount(round(request.getDiscount()))
-                .shippingFee(round(request.getShippingFee()))
-                .totalAmount(round(request.getTotalAmount()))
-                .amountPaid(round(request.getAmountPaid()))
-                .paymentStatus(request.getPaymentStatus())
-                .createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now())
-                .status(TRADING)
-                .importStatus(PENDING)
-                .creatorName(currentWorker)
-                .build();
+        Receipt receipt = Receipt.builder().code("REI" + System.currentTimeMillis()).supplier(supplier).branchId(request.getBranchId()).branchName(actualBranchName).note(request.getNote()).itemsAmount(round(request.getItemsAmount())).discount(round(request.getDiscount())).shippingFee(round(request.getShippingFee())).totalAmount(round(request.getTotalAmount())).amountPaid(round(request.getAmountPaid())).paymentStatus(request.getPaymentStatus()).createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now()).status(TRADING).importStatus(PENDING).creatorName(currentWorker).build();
 
-        List<ReceiptDetail> details = request.getItems().stream().map(item ->
-                ReceiptDetail.builder()
-                        .receipt(receipt)
-                        .sku(item.getSku())
-                        .productName(getFullProductName(item.getSku()))
-                        .quantity(item.getQuantity())
-                        .importPrice(round(item.getImportPrice()))
-                        .warrantyMonths(item.getWarrantyMonths() != null ? item.getWarrantyMonths() : 0)
-                        .build()
-        ).collect(Collectors.toList());
+        List<ReceiptDetail> details = request.getItems().stream().map(item -> ReceiptDetail.builder().receipt(receipt).sku(item.getSku()).productName(getFullProductName(item.getSku())).quantity(item.getQuantity()).importPrice(round(item.getImportPrice())).warrantyMonths(item.getWarrantyMonths() != null ? item.getWarrantyMonths() : 0).build()).collect(Collectors.toList());
 
         receipt.setDetails(details);
         Receipt savedReceipt = receiptRepository.save(receipt);
 
         logActivity(savedReceipt, "Tạo mới phiếu nhập hàng", currentWorker);
 
-        // Bắn Noti tạo đơn mới
         pushNotification("Đơn nhập hàng mới", "Phiếu nhập " + savedReceipt.getCode() + " vừa được tạo trên hệ thống.", "/ui/imports/" + savedReceipt.getCode());
 
         if (savedReceipt.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
@@ -187,23 +156,19 @@ public class ReceiptService {
 
     @Transactional
     public Receipt updateReceipt(String code, ReceiptRequest request) {
-        Receipt receipt = receiptRepository.findByCode(code)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu mã: " + code));
+        Receipt receipt = receiptRepository.findByCode(code).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu mã: " + code));
 
         if (COMPLETED.equals(receipt.getStatus()) || COMPLETED.equals(receipt.getImportStatus())) {
             throw new RuntimeException("Đã nhập kho hoặc hoàn thành không được sửa!");
         }
 
-        Supplier supplier = supplierRepository.findByCode(request.getSupplierCode())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy NCC"));
+        Supplier supplier = supplierRepository.findByCode(request.getSupplierCode()).orElseThrow(() -> new RuntimeException("Không tìm thấy NCC"));
 
         removeInboundStock(receipt, receipt.getDetails());
 
         String actualBranchName = "Kho mặc định";
         if (request.getBranchId() != null) {
-            actualBranchName = branchRepository.findById(request.getBranchId())
-                    .map(Branch::getName)
-                    .orElse("Kho mặc định");
+            actualBranchName = branchRepository.findById(request.getBranchId()).map(Branch::getName).orElse("Kho mặc định");
         }
 
         receipt.setSupplier(supplier);
@@ -222,22 +187,12 @@ public class ReceiptService {
         else receipt.setPaymentStatus(UNPAID);
 
         receipt.getDetails().clear();
-        List<ReceiptDetail> newDetails = request.getItems().stream().map(item ->
-                ReceiptDetail.builder()
-                        .receipt(receipt)
-                        .sku(item.getSku())
-                        .productName(getFullProductName(item.getSku()))
-                        .quantity(item.getQuantity())
-                        .importPrice(round(item.getImportPrice()))
-                        .warrantyMonths(item.getWarrantyMonths() != null ? item.getWarrantyMonths() : 0)
-                        .build()
-        ).collect(Collectors.toList());
+        List<ReceiptDetail> newDetails = request.getItems().stream().map(item -> ReceiptDetail.builder().receipt(receipt).sku(item.getSku()).productName(getFullProductName(item.getSku())).quantity(item.getQuantity()).importPrice(round(item.getImportPrice())).warrantyMonths(item.getWarrantyMonths() != null ? item.getWarrantyMonths() : 0).build()).collect(Collectors.toList());
 
         receipt.getDetails().addAll(newDetails);
         Receipt savedReceipt = receiptRepository.save(receipt);
         logActivity(receipt, "Cập nhật thông tin phiếu nhập", getCurrentUserName());
 
-        // Bắn Noti cập nhật đơn
         pushNotification("Cập nhật đơn nhập hàng", "Phiếu nhập " + receipt.getCode() + " đã được chỉnh sửa thông tin.", "/ui/imports/" + receipt.getCode());
 
         addInboundStock(savedReceipt, newDetails);
@@ -256,8 +211,7 @@ public class ReceiptService {
         BigDecimal ratio = calculateExtraCostRatio(receipt);
 
         for (ReceiptDetail detail : receipt.getDetails()) {
-            ProductVariant variant = variantRepository.findBySku(detail.getSku())
-                    .orElseThrow(() -> new RuntimeException("Không thấy SP mã: " + detail.getSku()));
+            ProductVariant variant = variantRepository.findBySku(detail.getSku()).orElseThrow(() -> new RuntimeException("Không thấy SP mã: " + detail.getSku()));
 
             BigDecimal extraCostPerItem = detail.getImportPrice().multiply(ratio);
             BigDecimal actualImportPrice = detail.getImportPrice().add(extraCostPerItem);
@@ -277,7 +231,6 @@ public class ReceiptService {
         receipt.setImportStatus(COMPLETED);
         logActivity(receipt, "Xác nhận nhập kho vào: " + receipt.getBranchName(), currentWorker);
 
-        // Bắn Noti nhập kho thành công
         pushNotification("Nhập kho thành công", "Hàng hóa của phiếu nhập " + receipt.getCode() + " đã được cộng vào " + receipt.getBranchName(), "/ui/imports/" + receipt.getCode());
 
         checkAndCompleteReceipt(receipt);
@@ -295,7 +248,6 @@ public class ReceiptService {
         receiptRepository.save(receipt);
         logActivity(receipt, "Hủy phiếu nhập hàng", getCurrentUserName());
 
-        // Bắn Noti hủy đơn
         pushNotification("Hủy phiếu nhập hàng", "Phiếu nhập " + receipt.getCode() + " đã bị hủy bỏ.", "/ui/imports/" + receipt.getCode());
     }
 
@@ -305,9 +257,7 @@ public class ReceiptService {
             ProductVariant variant = variantRepository.findBySku(detail.getSku()).orElse(null);
             if (variant == null) continue;
 
-            Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variant.getId(), receipt.getBranchId())
-                    .orElse(Inventory.builder().variantId(variant.getId()).branchId(receipt.getBranchId())
-                            .stock(0).availableStock(0).inboundStock(0).build());
+            Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variant.getId(), receipt.getBranchId()).orElse(Inventory.builder().variantId(variant.getId()).branchId(receipt.getBranchId()).stock(0).availableStock(0).inboundStock(0).build());
 
             int currentInbound = inv.getInboundStock() != null ? inv.getInboundStock() : 0;
             inv.setInboundStock(currentInbound + detail.getQuantity());
@@ -332,9 +282,7 @@ public class ReceiptService {
     private void updateBranchInventoryForImport(Long branchId, Long variantId, Integer qty) {
         if (branchId == null) return;
 
-        Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variantId, branchId)
-                .orElse(Inventory.builder().variantId(variantId).branchId(branchId)
-                        .stock(0).availableStock(0).inboundStock(0).build());
+        Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variantId, branchId).orElse(Inventory.builder().variantId(variantId).branchId(branchId).stock(0).availableStock(0).inboundStock(0).build());
 
         int currentInbound = inv.getInboundStock() != null ? inv.getInboundStock() : 0;
         inv.setInboundStock(Math.max(0, currentInbound - qty));
@@ -390,7 +338,6 @@ public class ReceiptService {
         receiptRepository.save(receipt);
         logActivity(receipt, "Thanh toán: " + amountToAddRounded + "đ (" + method + ")", currentWorker);
 
-        // Bắn Noti ghi nhận thanh toán
         pushNotification("Thanh toán phiếu nhập", "Ghi nhận thanh toán " + amountToAddRounded + "đ cho phiếu nhập " + receipt.getCode(), "/ui/imports/" + receipt.getCode());
 
         createPaymentVoucher(receipt, amountToAddRounded, method);
@@ -419,9 +366,7 @@ public class ReceiptService {
         totalOrders = receipts.size();
         totalAmount = receipts.stream().map(r -> r.getTotalAmount() != null ? r.getTotalAmount() : BigDecimal.ZERO).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        List<SupplierStatsResponse.ReceiptSummary> history = receipts.stream()
-                .map(r -> SupplierStatsResponse.ReceiptSummary.builder().code(r.getCode()).createdAt(r.getCreatedAt()).status(r.getStatus()).paymentStatus(r.getPaymentStatus()).totalAmount(r.getTotalAmount()).build())
-                .collect(Collectors.toList());
+        List<SupplierStatsResponse.ReceiptSummary> history = receipts.stream().map(r -> SupplierStatsResponse.ReceiptSummary.builder().code(r.getCode()).createdAt(r.getCreatedAt()).status(r.getStatus()).paymentStatus(r.getPaymentStatus()).totalAmount(r.getTotalAmount()).build()).collect(Collectors.toList());
 
         return SupplierStatsResponse.builder().totalOrders(totalOrders).totalAmount(round(totalAmount)).totalDebt(round(totalDebt)).history(history).build();
     }

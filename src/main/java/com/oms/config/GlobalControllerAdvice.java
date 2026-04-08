@@ -52,12 +52,6 @@ public class GlobalControllerAdvice {
         }
         return null;
     }
-
-    // ==========================================================
-    // KHU VỰC BỔ SUNG: TÁCH RIÊNG TỪ ĐIỂN TRẠNG THÁI
-    // ==========================================================
-
-    // Hàm dùng chung để tạo Map
     private Map<String, String> getMapByType(String dataType) {
         Map<String, String> map = new HashMap<>();
         List<MasterData> dataList = masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType);
@@ -65,7 +59,6 @@ public class GlobalControllerAdvice {
         return map;
     }
 
-    // Hàm dùng chung để tạo JSON String
     private String getJsonByType(String dataType) {
         try {
             return objectMapper.writeValueAsString(getMapByType(dataType));

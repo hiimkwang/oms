@@ -1,11 +1,10 @@
 package com.oms.module.customer.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Formula;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -46,8 +45,8 @@ public class Customer {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
-    @Formula("(SELECT COUNT(o.id) FROM orders o WHERE o.customer_id = id AND o.status = 'Hoàn thành')")
+    @Formula("(SELECT COUNT(o.id) FROM orders o WHERE o.customer_id = id AND o.status = 'COMPLETED')")
     private Integer orderCount;
-    @Formula("(SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o WHERE o.customer_id = id AND o.status = 'Hoàn thành')")
+    @Formula("(SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o WHERE o.customer_id = id AND o.status = 'COMPLETED')")
     private Double totalSpent;
 }

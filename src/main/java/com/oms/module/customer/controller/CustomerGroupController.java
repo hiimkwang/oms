@@ -31,8 +31,6 @@ public class CustomerGroupController {
             map.put("note", g.getNote() != null ? g.getNote() : "");
             map.put("customerCount", count);
             map.put("createdAt", g.getCreatedAt());
-
-            // BỔ SUNG DÒNG NÀY: Trả về trạng thái tự động hay thủ công
             map.put("autoUpdate", g.getAutoUpdate() != null ? g.getAutoUpdate() : false);
             map.put("colorCode", g.getColorCode() != null ? g.getColorCode() : "#6c757d");
             return map;
@@ -44,7 +42,7 @@ public class CustomerGroupController {
     @PostMapping
     public ResponseEntity<?> createGroup(@RequestBody CustomerGroup req) {
         if (req.getCode() == null || req.getCode().isBlank()) {
-            req.setCode("N" + System.currentTimeMillis()); // Tự sinh mã nếu để trống
+            req.setCode("N" + System.currentTimeMillis());
         }
         return ResponseEntity.ok(groupRepository.save(req));
     }

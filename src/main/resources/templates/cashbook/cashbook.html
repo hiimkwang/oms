@@ -246,12 +246,13 @@
                     <div id="customDateContainer" class="gap-2 align-items-center"
                          th:classappend="${param.preset != null and param.preset[0] == 'custom'} ? 'd-flex' : 'd-none'">
                         <input type="date" class="form-control filter-btn w-auto text-muted" id="startDate"
-                               th:value="${param.start != null ? #strings.substring(param.start[0],0,10) : ''}"
-                               onchange="applyFilters()">
+                               th:value="${param.start != null ? #strings.substring(param.start[0],0,10) : ''}">
                         <span class="text-muted">-</span>
                         <input type="date" class="form-control filter-btn w-auto text-muted" id="endDate"
-                               th:value="${param.end != null ? #strings.substring(param.end[0],0,10) : ''}"
-                               onchange="applyFilters()">
+                               th:value="${param.end != null ? #strings.substring(param.end[0],0,10) : ''}">
+                        <button class="btn btn-primary fw-bold px-3" style="height: 36px;" onclick="applyFilters()">
+                            Lọc
+                        </button>
                     </div>
 
                     <select class="form-select filter-btn w-auto" id="branchFilter" onchange="applyFilters()">
@@ -437,7 +438,6 @@
 
         // Xóa bộ lọc
         function clearAllFilters() {
-            // Về trang có gán cứng 'thisMonth' cho đúng mạch mặc định của bạn
             window.location.href = window.location.pathname + '?preset=thisMonth';
         }
 

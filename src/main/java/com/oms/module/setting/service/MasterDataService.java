@@ -24,10 +24,7 @@ public class MasterDataService {
      * Lấy danh sách giá trị (String) để đổ vào các ô Dropdown (Select)
      */
     public List<String> getValuesByType(String dataType) {
-        return masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType)
-                .stream()
-                .map(MasterData::getDataValue)
-                .collect(Collectors.toList());
+        return masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType).stream().map(MasterData::getDataValue).collect(Collectors.toList());
     }
 
     /**
@@ -43,12 +40,8 @@ public class MasterDataService {
         List<MasterData> existingList = masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType);
         int nextSortOrder = existingList.isEmpty() ? 1 : existingList.get(existingList.size() - 1).getSortOrder() + 1;
 
-        MasterData newData = MasterData.builder()
-                .dataType(dataType.toUpperCase())
-                .dataValue(dataValue.trim().toUpperCase()) // Ép dataValue luôn viết hoa
-                .dataLabel(dataLabel != null ? dataLabel.trim() : dataValue.trim())
-                .sortOrder(nextSortOrder)
-                .build();
+        MasterData newData = MasterData.builder().dataType(dataType.toUpperCase()).dataValue(dataValue.trim().toUpperCase()) // Ép dataValue luôn viết hoa
+                .dataLabel(dataLabel != null ? dataLabel.trim() : dataValue.trim()).sortOrder(nextSortOrder).build();
 
         return masterDataRepository.save(newData);
     }
@@ -73,8 +66,7 @@ public class MasterDataService {
      * Lấy chi tiết 1 bản ghi bằng ID
      */
     public MasterData getById(Long id) {
-        return masterDataRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu cấu hình với ID: " + id));
+        return masterDataRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu cấu hình với ID: " + id));
     }
 
     /**
@@ -85,8 +77,7 @@ public class MasterDataService {
         MasterData existingData = getById(id);
 
         // Nếu người dùng đổi tên, phải kiểm tra xem tên mới có bị trùng với cái khác không
-        if (!existingData.getDataValue().equalsIgnoreCase(request.getDataValue().trim()) &&
-                masterDataRepository.existsByDataTypeAndDataValueIgnoreCase(existingData.getDataType(), request.getDataValue().trim())) {
+        if (!existingData.getDataValue().equalsIgnoreCase(request.getDataValue().trim()) && masterDataRepository.existsByDataTypeAndDataValueIgnoreCase(existingData.getDataType(), request.getDataValue().trim())) {
             throw new RuntimeException("Giá trị này đã tồn tại trong hệ thống!");
         }
 
@@ -106,7 +97,6 @@ public class MasterDataService {
     public void delete(Long id) {
         MasterData existingData = getById(id);
 
-        // TODO: Trong tương lai, bạn có thể thêm logic kiểm tra xem Danh mục này
         // đã được dùng trong bảng Product chưa. Nếu dùng rồi thì không cho xóa (ném Exception),
         // chỉ cho phép "Ẩn" đi để tránh lỗi mất dữ liệu báo cáo cũ.
 
@@ -133,11 +123,7 @@ public class MasterDataService {
                 masterDataRepository.save(existing);
             } else {
                 // Nếu chưa có -> Tạo mới
-                MasterData newData = MasterData.builder()
-                        .dataType(upperKey)
-                        .dataValue(value)
-                        .sortOrder(1)
-                        .build();
+                MasterData newData = MasterData.builder().dataType(upperKey).dataValue(value).sortOrder(1).build();
                 masterDataRepository.save(newData);
             }
         });

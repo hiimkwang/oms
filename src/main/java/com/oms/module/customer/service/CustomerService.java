@@ -47,7 +47,6 @@ public class CustomerService {
             req.setTags(c.getTags());
 
             // --- 3. Địa chỉ nhận hàng (Shipping) ---
-            // Tận dụng lấy luôn tên và SĐT khách ném vào ship luôn cho tiện
             req.setShipFirstName(c.getFirstName());
             req.setShipLastName(c.getLastName());
             req.setShipPhone(c.getPhone());
@@ -56,14 +55,13 @@ public class CustomerService {
             req.setShipDistrict(c.getShipDistrict());
             req.setShipAddressDetail(c.getShipAddressDetail());
 
-            // --- 4. Thông tin hóa đơn (VAT) - CÁI MÌNH ĐANG CẦN NHẤT ĐÂY ---
+            // --- 4. Thông tin hóa đơn (VAT) ---
             req.setHasInvoice(c.getHasInvoice() != null ? c.getHasInvoice() : false);
             req.setTaxCode(c.getTaxCode());
             req.setCompanyName(c.getCompanyName());
             req.setCompanyAddress(c.getCompanyAddress());
 
             // --- 5. Thông tin thống kê ---
-            // Xử lý ép kiểu từ Integer sang Long an toàn
             req.setOrderCount(c.getOrderCount() != null ? c.getOrderCount().longValue() : 0L);
             req.setTotalSpent(c.getTotalSpent() != null ? c.getTotalSpent() : 0.0);
 

@@ -3,9 +3,7 @@ package com.oms.module.warranty.controller;
 import com.oms.module.order.entity.Order;
 import com.oms.module.order.entity.OrderDetail;
 import com.oms.module.order.repository.OrderDetailRepository;
-import com.oms.module.order.repository.OrderRepository;
 import com.oms.module.warranty.entity.WarrantyTicket;
-import com.oms.module.warranty.repository.WarrantyTicketRepository;
 import com.oms.module.warranty.service.WarrantyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +21,7 @@ import java.util.Optional;
 public class WarrantyApiController {
 
     private final WarrantyService warrantyService;
-    private final OrderDetailRepository orderDetailRepository; // Tiêm Repository mới vào
+    private final OrderDetailRepository orderDetailRepository;
 
     @PostMapping
     public ResponseEntity<?> createTicket(@RequestBody WarrantyTicket request) {

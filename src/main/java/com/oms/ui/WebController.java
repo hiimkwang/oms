@@ -89,9 +89,7 @@ public class WebController {
     }
 
     @PostMapping("/profile/change-password")
-    public ResponseEntity<?> changePassword(@RequestParam String oldPassword,
-                                            @RequestParam String newPassword,
-                                            Principal principal) {
+    public ResponseEntity<?> changePassword(@RequestParam String oldPassword, @RequestParam String newPassword, Principal principal) {
         User user = customUserDetailsService.findByUsername(principal.getName()).orElse(null);
 
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
@@ -106,12 +104,8 @@ public class WebController {
 
     @PostMapping("/profile/update")
     @ResponseBody
-    public ResponseEntity<?> updateProfile(@RequestParam String fullName,
-                                           @RequestParam(required = false) String email,
-                                           @RequestParam(required = false) String phone,
-                                           Principal principal) {
-        User user = customUserDetailsService.findByUsername(principal.getName())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+    public ResponseEntity<?> updateProfile(@RequestParam String fullName, @RequestParam(required = false) String email, @RequestParam(required = false) String phone, Principal principal) {
+        User user = customUserDetailsService.findByUsername(principal.getName()).orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         user.setFullName(fullName);
         user.setEmail(email);
@@ -123,11 +117,8 @@ public class WebController {
     }
 
     @GetMapping("/ui/products")
-    public String listProductsPage(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long category, // Nhận Long categoryId
-            @RequestParam(required = false) String brand,
-            Model model) {
+    public String listProductsPage(@RequestParam(required = false) String keyword, @RequestParam(required = false) Long category, // Nhận Long categoryId
+                                   @RequestParam(required = false) String brand, Model model) {
 
         model.addAttribute("products", productService.getFilteredProducts(keyword, category, brand));
 
@@ -143,7 +134,6 @@ public class WebController {
 
     @GetMapping("/ui/products/create")
     public String createProductPage(Model model) {
-        // 3. ĐỔ DỮ LIỆU TỪ BẢNG MỚI RA
         model.addAttribute("categories", categoryService.getAll());
         model.addAttribute("brands", masterDataService.getValuesByType("BRAND"));
         model.addAttribute("units", masterDataService.getValuesByType("UNIT"));
@@ -252,14 +242,7 @@ public class WebController {
 
 
     @GetMapping("/ui/inventory")
-    public String showInventoryPage(
-            @RequestParam(required = false) Long branchId,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String stockStatus,
-            @RequestParam(required = false) Integer minStock,
-            @RequestParam(required = false) Integer maxStock,
-            @RequestParam(required = false) String dateRange,
-            Model model) {
+    public String showInventoryPage(@RequestParam(required = false) Long branchId, @RequestParam(required = false) String keyword, @RequestParam(required = false) String stockStatus, @RequestParam(required = false) Integer minStock, @RequestParam(required = false) Integer maxStock, @RequestParam(required = false) String dateRange, Model model) {
 
         List<Branch> branches = branchService.findAll();
         model.addAttribute("branches", branches);
@@ -270,8 +253,7 @@ public class WebController {
         }
         model.addAttribute("selectedBranchId", selectedBranchId);
 
-        List<InventoryDTO> inventoryList = inventoryService.getInventoryList(
-                selectedBranchId, keyword, stockStatus, minStock, maxStock, dateRange);
+        List<InventoryDTO> inventoryList = inventoryService.getInventoryList(selectedBranchId, keyword, stockStatus, minStock, maxStock, dateRange);
 
         model.addAttribute("inventories", inventoryList);
 
@@ -285,8 +267,7 @@ public class WebController {
     }
 
     @GetMapping("/ui/suppliers")
-    public String listSuppliers(Model model, @RequestParam(required = false) String keyword,
-                                @RequestParam(required = false) String assignee) {
+    public String listSuppliers(Model model, @RequestParam(required = false) String keyword, @RequestParam(required = false) String assignee) {
         model.addAttribute("suppliers", supplierService.getSuppliers(keyword));
         model.addAttribute("keyword", keyword);
         model.addAttribute("users", customUserDetailsService.findAll());
@@ -353,14 +334,7 @@ public class WebController {
 
 
     @GetMapping("/ui/cashbook")
-    public String cashbookOverview(
-            Model model,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long branchId,
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false, defaultValue = "today") String preset,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+    public String cashbookOverview(Model model, @RequestParam(required = false) String keyword, @RequestParam(required = false) Long branchId, @RequestParam(required = false) String type, @RequestParam(required = false, defaultValue = "today") String preset, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -429,11 +403,7 @@ public class WebController {
     }
 
     @GetMapping("/ui/warranties")
-    public String warrantyList(
-            Model model,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String type) {
+    public String warrantyList(Model model, @RequestParam(required = false) String keyword, @RequestParam(required = false) String status, @RequestParam(required = false) String type) {
 
         List<WarrantyTicket> tickets = warrantyService.filterTickets(keyword, status, type);
         model.addAttribute("tickets", tickets);
@@ -470,9 +440,7 @@ public class WebController {
     }
 
     @GetMapping("/ui/returns")
-    public String getReturnList(@RequestParam(required = false) String keyword,
-                                @RequestParam(required = false) String status,
-                                Model model) {
+    public String getReturnList(@RequestParam(required = false) String keyword, @RequestParam(required = false) String status, Model model) {
         List<ReturnOrder> returns = returnOrderService.getAllReturns(keyword, status);
         model.addAttribute("returns", returns);
         return "returnorder/return-list";

@@ -51,7 +51,6 @@ public class InventoryService {
                     startDate = now.withDayOfMonth(1).with(LocalTime.MIN);
                     endDate = now.with(LocalTime.MAX);
                     break;
-                // Anh có thể thêm logic cho last_month tương tự như code cũ
             }
         }
 

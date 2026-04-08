@@ -7,7 +7,10 @@ import com.oms.module.setting.repository.BranchRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
@@ -18,7 +21,7 @@ public class UserApiController {
 
     private final UserRepository userRepository;
     private final BranchRepository branchRepository;
-    private final PasswordEncoder passwordEncoder; // Bắt buộc phải inject cái này để mã hóa pass
+    private final PasswordEncoder passwordEncoder;
 
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody Map<String, String> payload) {
@@ -36,7 +39,6 @@ public class UserApiController {
         // Mã hóa mật khẩu
         user.setPassword(passwordEncoder.encode(payload.get("password")));
 
-        // CHỈNH SỬA Ở ĐÂY: Ép kiểu String sang Enum Role
         try {
             user.setRole(User.Role.valueOf(payload.get("role")));
         } catch (IllegalArgumentException e) {

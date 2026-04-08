@@ -192,7 +192,7 @@
                             <th>Ngày mua</th>
                             <th>Giá trị</th>
                             <th>Thanh toán</th>
-                            <th>Trạng thái</th>
+                            <th class="text-center">Trạng thái</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -210,9 +210,20 @@
                                       class="badge bg-warning bg-opacity-10 text-dark border border-warning border-opacity-50 px-2 py-1"><i
                                         class="bi bi-clock me-1"></i>Chưa thu</span>
                             </td>
-                            <td>
-                                <span class="badge bg-light text-dark border px-2 py-1 fw-bold"
-                                      th:text="${o.status}"></span>
+                            <td class="text-center align-middle">
+                                <span class="badge px-2 py-1 border fw-bold"
+                                      th:classappend="${o.status == 'CANCELLED' or o.status == 'RETURNED' ? 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25' :
+                                                     (o.status == 'COMPLETED' ? 'bg-success bg-opacity-10 text-success border-success border-opacity-25' :
+                                                     (o.status == 'CREATED' or o.status == 'DRAFT' ? 'bg-secondary bg-opacity-10 text-secondary border-secondary border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border-primary border-opacity-25'))}"
+                                      th:text="${o.status == 'CANCELLED' ? 'Đã hủy' :
+                                                (o.status == 'RETURNED' ? 'Trả hàng' :
+                                                (o.status == 'COMPLETED' ? 'Hoàn thành' :
+                                                (o.status == 'CREATED' ? 'Mới tạo' :
+                                                (o.status == 'DRAFT' ? 'Nháp' :
+                                                (o.status == 'CONFIRMED' ? 'Đã Xác Nhận' :
+                                                (o.status == 'SHIPPING' ? 'Đang giao' :
+                                                (o.status != null ? o.status : '---')))))))}">
+                                </span>
                             </td>
                         </tr>
                         </tbody>
@@ -426,7 +437,7 @@
     </div>
 
     <script th:inline="javascript">
-        // 1. Lấy thẳng dữ liệu từ Thymeleaf (đã được @Formula tính sẵn dưới DB)
+        // Lấy thẳng dữ liệu từ Thymeleaf
         const customerCode = /*[[${customer.code}]]*/ 'UNKNOWN';
         let currentGroup = /*[[${customer.customerGroup ?: 'Khách lẻ'}]]*/ 'Khách lẻ';
 
@@ -436,13 +447,12 @@
         };
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Bơm số liệu lên thẳng giao diện luôn cho nóng
+            // Bơm số liệu lên thẳng giao diện
             document.getElementById('uiTotalSpent').innerText = new Intl.NumberFormat('vi-VN').format(stats.totalSpent) + '₫';
             document.getElementById('uiOrderCount').innerText = stats.orderCount;
             const groupEl = document.getElementById('uiCustomerGroup');
             if (groupEl) groupEl.innerText = currentGroup;
 
-            // Chỉ cần gọi duy nhất API lấy nhóm khách hàng để check thăng hạng
             await fetchCustomerGroups();
         });
 
@@ -486,7 +496,6 @@
                     }
                 });
 
-                // Gắn vào ô Select và bật Badge nếu có thăng hạng
                 select.value = bestMatch;
                 if (isAuto && bestMatch !== currentGroup) {
                     select.classList.add('auto-selected');
@@ -523,7 +532,7 @@
         }
 
         async function submitUpdate() {
-            const payload = getCustomerPayload(true);
+            const payload = getCustomerPayload(true); // Mặc định lấy từ ô outerNote
             if (!payload.firstName || !payload.phoneNumber) return Toast.fire({
                 icon: 'error',
                 title: 'Vui lòng nhập Tên và Số điện thoại!'
@@ -548,40 +557,65 @@
         }
 
         async function quickSaveNote() {
-            await submitUpdate();
+            // Hàm riêng biệt để cập nhật mỗi trường Note, lấy lại toàn bộ dữ liệu gốc từ Thymeleaf để không làm mất dữ liệu
+            const newNote = document.getElementById('outerNote').value.trim();
+            const payload = {
+                firstName: /*[[${customer.firstName}]]*/ '',
+                lastName: /*[[${customer.lastName}]]*/ '',
+                fullName: /*[[${customer.fullName}]]*/ '',
+                email: /*[[${customer.email}]]*/ '',
+                phoneNumber: /*[[${customer.phone}]]*/ '',
+                dob: /*[[${customer.dob}]]*/ null,
+                gender: /*[[${customer.gender}]]*/ null,
+                customerGroup: /*[[${customer.customerGroup}]]*/ '',
+                tags: /*[[${customer.tags}]]*/ '',
+                shipAddressDetail: /*[[${customer.shipAddressDetail}]]*/ '',
+                hasInvoice: /*[[${customer.hasInvoice != null ? customer.hasInvoice : false}]]*/ false,
+                taxCode: /*[[${customer.taxCode}]]*/ '',
+                companyName: /*[[${customer.companyName}]]*/ '',
+                companyAddress: /*[[${customer.companyAddress}]]*/ '',
+                note: newNote
+            };
+
+            try {
+                const res = await fetch(`/api/v1/customers/${customerCode}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) Toast.fire({icon: 'success', title: 'Lưu ghi chú thành công!'});
+                else Toast.fire({icon: 'error', title: 'Không thể lưu ghi chú!'});
+            } catch (e) {
+                Toast.fire({icon: 'error', title: 'Lỗi server!'});
+            }
         }
 
         async function deleteCustomer() {
-            // 1. Sử dụng SweetAlert2 để đưa ra cảnh báo nghiêm trọng
             const confirmation = await Swal.fire({
                 title: 'Xác nhận xóa khách hàng',
                 text: "Cảnh báo: Xóa khách hàng sẽ làm mất liên kết với các đơn hàng cũ. Bạn có chắc chắn muốn tiếp tục?",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',   // Màu đỏ cho hành động nguy hiểm
-                cancelButtonColor: '#3085d6', // Màu xanh cho nút hủy
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
                 confirmButtonText: 'Xác nhận xóa',
                 cancelButtonText: 'Hủy bỏ'
             });
 
-            // Nếu người dùng chọn Hủy
             if (!confirmation.isConfirmed) return;
 
             try {
-                // Giả sử customerCode đã được định nghĩa ở phạm vi global hoặc lấy từ DOM
                 const res = await fetch(`/api/v1/customers/${customerCode}`, {
                     method: 'DELETE'
                 });
 
                 if (res.ok) {
-                    // Hiện thông báo thành công trước khi điều hướng
                     await Toast.fire({
                         icon: 'success',
                         title: 'Đã xóa khách hàng thành công!'
                     });
                     window.location.href = "/ui/customers";
                 } else {
-                    // Lấy thêm thông tin lỗi từ backend nếu có
                     const errorMsg = await res.text();
                     Toast.fire({
                         icon: 'error',
@@ -595,7 +629,6 @@
                 });
             }
         }
-
     </script>
 </div>
 </body>

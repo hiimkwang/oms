@@ -17,7 +17,7 @@ public class SupplierStatsResponse {
     private long totalOrders;          // Tổng số đơn nhập đã tạo
     private BigDecimal totalAmount;    // Tổng giá trị đơn nhập
     private BigDecimal totalDebt;      // Tổng nợ cần trả (UNPAID)
-    private long returnOrders;         // Đơn trả hàng (nếu ông có làm module trả)
+    private long returnOrders;         // Đơn trả hàng
     private List<ReceiptSummary> history; // Danh sách đơn hàng để hiện ở bảng bên dưới
 
     @Data

@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService categoryService;
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
             @RequestParam("name") String name,
@@ -20,11 +21,13 @@ public class CategoryController {
             @RequestParam(value = "image", required = false) MultipartFile image) {
         return ResponseEntity.ok(categoryService.create(name, description, image));
     }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         categoryService.delete(id);
         return ResponseEntity.ok().build();
     }
+
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(
             @PathVariable Long id,
@@ -33,7 +36,6 @@ public class CategoryController {
             @RequestParam(value = "isImageRemoved", defaultValue = "false") boolean isImageRemoved,
             @RequestParam(value = "image", required = false) MultipartFile image) {
 
-        // Gọi Service cập nhật
         Category updatedCat = categoryService.update(id, name, description, isImageRemoved, image);
         return ResponseEntity.ok(updatedCat);
     }

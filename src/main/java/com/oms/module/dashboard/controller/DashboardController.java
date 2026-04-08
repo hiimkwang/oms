@@ -1,6 +1,5 @@
 package com.oms.module.dashboard.controller;
 
-import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.repository.CashTransactionRepository;
 import com.oms.module.order.entity.Order;
 import com.oms.module.order.repository.OrderRepository;
@@ -30,7 +29,7 @@ public class DashboardController {
 
     private final OrderRepository orderRepo;
     private final OrderService orderService;
-    private final CashTransactionRepository cashRepo; // Bảng lưu Phiếu thu/chi
+    private final CashTransactionRepository cashRepo;
 
     @GetMapping({"/", "/ui/dashboard", "/dashboard"})
     public String dashboard(
@@ -102,7 +101,7 @@ public class DashboardController {
         // E. LỢI NHUẬN TRƯỚC THUẾ
         BigDecimal profitBeforeTax = grossProfit.add(otherIncome).subtract(operatingExpenses);
 
-        // F. THUẾ TNDN (Tạm tính 20% nếu có lãi, theo đúng ví dụ của anh)
+        // F. THUẾ TNDN (Tạm tính 20% nếu có lãi)
         BigDecimal tax = BigDecimal.ZERO;
         if (profitBeforeTax.compareTo(BigDecimal.ZERO) > 0) {
             // tax = profitBeforeTax.multiply(new BigDecimal("0.20"));
@@ -144,7 +143,7 @@ public class DashboardController {
         // ==========================================
         List<String> chartLabels = new ArrayList<>();
         List<BigDecimal> chartRevenue = new ArrayList<>();
-        List<BigDecimal> chartExpenses = new ArrayList<>(); // Cột mới cho Chi phí
+        List<BigDecimal> chartExpenses = new ArrayList<>();
         List<BigDecimal> chartProfit = new ArrayList<>();
 
         long daysBetween = java.time.Duration.between(start, end).toDays();
@@ -161,7 +160,6 @@ public class DashboardController {
                 BigDecimal dCogs = orderRepo.sumTotalCOGS(dayStart, dayEnd);
                 if (dCogs == null) dCogs = BigDecimal.ZERO;
 
-                // Sửa đoạn tính chi phí và lợi nhuận ở vòng lặp < 35 ngày
                 BigDecimal dExp = cashRepo.sumOperatingExpensesBetweenDates(dayStart, dayEnd);
                 if (dExp == null) dExp = BigDecimal.ZERO;
 
@@ -171,7 +169,7 @@ public class DashboardController {
                 chartLabels.add(dayStart.getDayOfMonth() + "/" + dayStart.getMonthValue());
                 chartRevenue.add(dRev);
                 chartExpenses.add(dExp);
-                chartProfit.add(dRev.subtract(dCogs).add(dOther).subtract(dExp)); // Cập nhật công thức Chart
+                chartProfit.add(dRev.subtract(dCogs).add(dOther).subtract(dExp));
             }
         }
         // NẾU LỌC DÀI HƠN -> VẼ THEO TỪNG THÁNG
@@ -207,13 +205,13 @@ public class DashboardController {
 
         model.addAttribute("chartLabels", chartLabels);
         model.addAttribute("chartRevenue", chartRevenue);
-        model.addAttribute("chartExpenses", chartExpenses); // Ném mảng Chi phí ra cho JS
+        model.addAttribute("chartExpenses", chartExpenses);
         model.addAttribute("chartProfit", chartProfit);
 
         // ==========================================
         // 4. BẢNG TOP SẢN PHẨM BÁN CHẠY
         // ==========================================
-        // Lấy top 5 sản phẩm (Cần import org.springframework.data.domain.PageRequest)
+        // Lấy top 5 sản phẩm
         List<Object[]> topProducts = orderRepo.findDashboardTopProducts(start, end, org.springframework.data.domain.PageRequest.of(0, 5));
         model.addAttribute("topProducts", topProducts != null ? topProducts : new ArrayList<>());
 

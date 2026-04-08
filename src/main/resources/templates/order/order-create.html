@@ -306,8 +306,11 @@
                         <div class="col-md-6">
                             <label class="form-label-custom text-muted small">Kho xuất hàng (Lấy hàng)</label>
                             <select id="shipFromBranch" class="form-select form-select-custom">
-                                <option value="">-- Chọn kho xuất --</option>
-                                <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
+                                <option th:each="b, iter : ${branches}"
+                                        th:value="${b.id}"
+                                        th:text="${b.name}"
+                                        th:selected="${iter.index == 0}">
+                                </option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -390,8 +393,11 @@
                 <div class="card-body p-3">
                     <label class="card-title-custom">Nguồn đơn / Kênh bán hàng</label>
                     <select id="orderSource" class="form-select form-select-custom mb-2">
-                        <option value="">-- Chọn kênh --</option>
-                        <option th:each="c : ${channels}" th:value="${c.code}" th:text="${c.name}"></option>
+                        <option th:each="c, iter : ${channels}"
+                                th:value="${c.code}"
+                                th:text="${c.name}"
+                                th:selected="${iter.index == 0}">
+                        </option>
                     </select>
                 </div>
             </div>
@@ -434,8 +440,11 @@
                     <div class="mb-3">
                         <label class="form-label-custom text-muted small fw-normal">Bán tại chi nhánh</label>
                         <select id="branchId" class="form-select form-select-custom">
-                            <option value="">-- Hệ thống --</option>
-                            <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
+                            <option th:each="b, iter : ${branches}"
+                                    th:value="${b.id}"
+                                    th:text="${b.name}"
+                                    th:selected="${iter.index == 0}">
+                            </option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -448,12 +457,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label-custom text-muted small fw-normal">Thời gian tạo</label>
-                        <input type="datetime-local" id="orderDate" class="form-control form-control-custom text-muted">
+                        <input type="datetime-local" id="orderDate" class="form-control form-control-custom text-muted" lang="vi-VN">
                     </div>
                     <div class="mb-3">
                         <label class="form-label-custom text-muted small fw-normal">Ngày hẹn giao cho khách</label>
-                        <input type="date" id="expectedDeliveryDate"
-                               class="form-control form-control-custom text-muted">
+                        <input type="date" id="expectedDeliveryDate" class="form-control form-control-custom text-muted" lang="vi-VN">
                     </div>
                 </div>
             </div>
@@ -825,6 +833,14 @@
                 }
 
                 let totalStock = item.stock || 0;
+                try {
+                    const totalRes = await fetch(`/api/v1/inventory/check?sku=${item.sku}`);
+                    if (totalRes.ok) {
+                        const totalData = await totalRes.json();
+                        if (typeof totalData === 'number') totalStock = totalData;
+                        else if (totalData) totalStock = totalData.stock || totalData.quantity || totalData.stockQuantity || totalData.available || 0;
+                    }
+                } catch (e) {}
                 const isEnough = branchStock >= item.quantity;
                 const reqColor = isEnough ? 'text-dark' : 'text-danger fw-bold';
                 const branchColor = isEnough ? 'text-success' : 'text-danger fw-bold';

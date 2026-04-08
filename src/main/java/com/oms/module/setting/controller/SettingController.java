@@ -27,7 +27,6 @@ public class SettingController {
     public String general(Model model) {
         model.addAttribute("activeMenu", "general");
 
-        // Lấy các cấu hình cũ (nếu có) truyền xuống View
         List<String> configKeys = java.util.Arrays.asList("STORE_NAME", "STORE_PHONE", "STORE_ADDRESS", "STORE_LOGO", "STORE_EMAIL");
         model.addAttribute("configs", masterDataService.getSystemConfigMap(configKeys));
 
@@ -46,7 +45,7 @@ public class SettingController {
     @GetMapping("/users")
     public String users(Model model) {
         model.addAttribute("users", userRepository.findAll());
-        model.addAttribute("branches", branchRepository.findAll()); // Để chọn chi nhánh khi tạo NV
+        model.addAttribute("branches", branchRepository.findAll());
         model.addAttribute("activeMenu", "users");
         return "settings/users";
     }

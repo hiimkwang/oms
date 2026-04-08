@@ -34,7 +34,6 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             "(:keyword IS NULL OR s.name LIKE %:keyword% OR s.code LIKE %:keyword% OR s.phone LIKE %:keyword%) AND " +
             "(:assignee IS NULL OR :assignee = '' OR s.assignee = :assignee) AND " +
             "(s.status = 'ACTIVE')")
-        // Hoặc bỏ cái status đi nếu muốn hiện cả ông đã bị "xóa mềm"
     List<Supplier> findSuppliersCustom(@Param("keyword") String keyword, @Param("assignee") String assignee);
     List<Supplier> findByNameContainingIgnoreCaseOrCodeContaining(String name, String code);
 }

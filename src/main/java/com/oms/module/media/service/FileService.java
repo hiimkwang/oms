@@ -42,7 +42,6 @@ public class FileService {
             Path filePath = folderPath.resolve(newFileName);
             file.transferTo(filePath.toFile());
 
-            // Trả về link để lưu vào DB
             return domain + dateFolder + "/" + subFolder + "/" + newFileName;
         } catch (IOException e) {
             throw new RuntimeException("Lỗi lưu file: " + e.getMessage());

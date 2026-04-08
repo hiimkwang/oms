@@ -8,6 +8,5 @@ import java.util.List;
 
 @Repository
 public interface ReceiptActivityRepository extends JpaRepository<ReceiptActivity, Long> {
-    // Lấy lịch sử theo ID đơn nhập, sắp xếp mới nhất lên đầu
     List<ReceiptActivity> findByReceiptIdOrderByCreatedAtDesc(Long receiptId);
 }

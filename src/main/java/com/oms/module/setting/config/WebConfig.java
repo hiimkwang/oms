@@ -1,5 +1,4 @@
-package com.oms.module.setting.config; // Đổi lại package theo project của ông
-
+package com.oms.module.setting.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -13,10 +12,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Cấu hình đường dẫn tuyệt đối cho Spring Boot
         String path = uploadDir.endsWith("/") ? uploadDir : uploadDir + "/";
 
-        registry.addResourceHandler("/media/**")
-                .addResourceLocations("file:" + path); // Dùng "file:" để trỏ ra ổ cứng vật lý
+        registry.addResourceHandler("/media/**").addResourceLocations("file:" + path);
     }
 }

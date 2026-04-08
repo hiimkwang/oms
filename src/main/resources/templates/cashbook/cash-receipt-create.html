@@ -208,8 +208,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label-custom text-primary">Ngày nhận tiền*</label>
-                        <input type="date" id="transactionDate" class="form-control form-control-custom"
-                               th:value="${#calendars.format(#calendars.createNow(), 'yyyy-MM-dd')}">
+                        <input type="date" id="transactionDate" class="form-control form-control-custom" lang="vi-VN"
+                               th:value="${#calendars.format(#calendars.createNow(), 'yyyy-MM-dd')} ">
                     </div>
                     <div class="mb-0">
                         <label class="form-label-custom">Mã tham chiếu</label>
@@ -349,7 +349,7 @@
                 amount: parseFloat(amount),
                 description: document.getElementById('description').value,
                 branchId: document.getElementById('branchId').value,
-                transactionDate: dateVal + "T00:00:00", // Fix ISO LocalDateTime
+                transactionDate: dateVal + "T00:00:00",
                 referenceCode: document.getElementById('referenceCode').value,
                 imageUrls: uploadedImages
             };

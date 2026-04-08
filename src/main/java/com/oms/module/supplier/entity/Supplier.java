@@ -62,7 +62,7 @@ public class Supplier {
     @PrePersist
     public void generateCodeIfEmpty() {
         if (this.code == null || this.code.trim().isEmpty()) {
-            this.code = "NCC" + System.currentTimeMillis(); // Cách sinh mã tạm, ông có thể dùng logic sequence sau
+            this.code = "NCC" + System.currentTimeMillis();
         }
     }
 }

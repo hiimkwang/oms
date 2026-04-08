@@ -1,6 +1,6 @@
 package com.oms.module.receipt.entity;
 
-import com.oms.module.supplier.entity.Supplier; // Nhớ check path này
+import com.oms.module.supplier.entity.Supplier;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -42,7 +42,6 @@ public class Receipt {
     @OrderBy("createdAt DESC") // Tự động sắp xếp timeline
     private List<ReceiptActivity> activities;
 
-    // Thêm field này để fix lỗi chữ "Chưa nhập kho" bị đứng im
     private String importStatus; // PENDING, COMPLETED
     private String status;       // TRADING, CANCELLED
     @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)

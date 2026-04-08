@@ -11,6 +11,7 @@ import com.oms.module.notification.entity.Notification;
 import com.oms.module.notification.service.NotificationService;
 import com.oms.module.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +22,12 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CashbookService {
     private final CashTransactionRepository cashRepo;
     private final CustomerRepository customerRepo;
     private final SupplierRepository supplierRepo;
     private final UserRepository userRepo;
-
-    // 1. Inject NotificationService
     private final NotificationService notificationService;
 
     @Transactional
@@ -75,34 +75,27 @@ public class CashbookService {
 
         CashTransaction savedTransaction = cashRepo.save(transaction);
 
-        // ---------------------------------------------------------
-        // 2. BẮN THÔNG BÁO SAU KHI LƯU GIAO DỊCH THÀNH CÔNG
-        // ---------------------------------------------------------
         try {
             boolean isReceipt = request.getType() == CashTransaction.TransactionType.RECEIPT;
             String typeName = isReceipt ? "Phiếu thu" : "Phiếu chi";
             String title = typeName + " mới: " + finalCode;
 
-            // Format số tiền cho dễ đọc (VD: 1,500,000 đ)
             String formattedAmount = String.format("%,.0f đ", request.getAmount());
             String message = String.format("Đã ghi nhận %s với %s. Số tiền: %s",
                     typeName.toLowerCase(), targetName, formattedAmount);
 
-            // Link chuyển hướng đến chi tiết (Tùy thuộc vào thiết kế Route thực tế của bạn)
             String link = isReceipt ? "/ui/cashbook/receipts/" + savedTransaction.getId()
                     : "/ui/cashbook/payments/" + savedTransaction.getId();
 
             notificationService.create(
                     title,
                     message,
-                    Notification.NotificationType.PAYMENT, // Dùng loại PAYMENT sẽ hiển thị icon màu xanh lá (dựa theo code JS cũ)
+                    Notification.NotificationType.PAYMENT,
                     link
             );
         } catch (Exception e) {
-            // Log lỗi nếu cần thiết để không làm gián đoạn việc tạo phiếu thu/chi
-            System.err.println("Lỗi khi gửi thông báo: " + e.getMessage());
+            log.error("Lỗi khi gửi thông báo: {}{}", e.getMessage(), e);
         }
-        // ---------------------------------------------------------
 
         return savedTransaction;
     }

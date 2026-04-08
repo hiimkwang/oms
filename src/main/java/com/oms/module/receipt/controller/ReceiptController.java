@@ -40,15 +40,12 @@ public class ReceiptController {
         }
     }
 
-    // Nút Xác nhận thanh toán
     @PostMapping("/{id}/payment")
     public ResponseEntity<?> makePayment(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
         try {
-            // Lấy số tiền trả thêm từ payload
             BigDecimal amountToAdd = new BigDecimal(payload.get("amountPaid").toString());
             String method = payload.get("paymentMethod").toString();
 
-            // Gọi Service để cộng dồn tiền và cập nhật trạng thái (PAID hoặc PARTIAL)
             receiptService.addPayment(id, amountToAdd, method);
 
             return ResponseEntity.ok().build();
@@ -56,7 +53,7 @@ public class ReceiptController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-    // Nút Hủy đơn
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<?> cancel(@PathVariable Long id) {
         receiptService.cancelReceipt(id);
@@ -64,14 +61,12 @@ public class ReceiptController {
     }
 
     @GetMapping("/api/v1/suppliers/{code}/stats")
-    public ResponseEntity<SupplierStatsResponse> getSupplierStats(
-            @PathVariable String code,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+    public ResponseEntity<SupplierStatsResponse> getSupplierStats(@PathVariable String code, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
 
         SupplierStatsResponse stats = receiptService.getSupplierStats(code, start, end);
         return ResponseEntity.ok(stats);
     }
+
     @PutMapping("/{code}")
     public ResponseEntity<?> updateReceipt(@PathVariable String code, @RequestBody ReceiptRequest request) {
         try {

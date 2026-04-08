@@ -183,13 +183,16 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
 
+        /* THIẾT KẾ MỚI CHO DROPDOWN THÔNG BÁO */
         .noti-item {
-            padding: 12px 16px;
+            padding: 14px 16px;
             border-bottom: 1px solid #f1f5f9;
             cursor: pointer;
-            transition: 0.2s;
+            transition: background-color 0.2s ease;
             display: flex;
-            gap: 12px;
+            gap: 14px;
+            position: relative;
+            background: #fff;
         }
 
         .noti-item:hover {
@@ -197,37 +200,61 @@
         }
 
         .noti-unread {
-            background-color: #eff6ff;
-            border-left: 3px solid #3b82f6;
+            background-color: #fbfcff; /* Nền xanh cực kỳ nhạt */
+        }
+
+        /* Dấu chấm xanh báo hiệu chưa đọc */
+        .noti-unread::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: #3b82f6;
+            border-radius: 50%;
         }
 
         .noti-icon {
-            width: 36px;
-            height: 36px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            font-size: 1.15rem;
+            margin-left: 6px; /* Cách cái dấu chấm ra 1 xíu */
         }
 
         .noti-title {
             font-size: 13.5px;
-            font-weight: 700;
+            font-weight: 600;
             color: #1e293b;
-            margin-bottom: 2px;
+            margin-bottom: 3px;
+            /* Cắt text nếu quá dài */
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .noti-msg {
             font-size: 12.5px;
             color: #64748b;
             line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .noti-time {
             font-size: 11px;
             color: #94a3b8;
             margin-top: 5px;
+            font-weight: 500;
         }
 
         /* LÀM ĐẸP SWEETALERT2 */
@@ -623,7 +650,7 @@
                 hasResults = true;
                 let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">ĐƠN HÀNG</div>`;
                 data.orders.forEach(o => {
-                    html += `<a href="/ui/orders/${o.code}" class="dropdown-item py-2 d-flex align-items-center">
+                    html += `<a href="/ui/orders/detail/${o.code}" class="dropdown-item py-2 d-flex align-items-center">
                                 <i class="bi bi-cart2 me-2 text-secondary"></i>
                                 <span>Mã: <span class="fw-medium text-dark">${o.code}</span></span>
                              </a>`;
@@ -747,17 +774,33 @@
     }
 
     function getIcon(type) {
-        if (type === 'ORDER') return 'bi-cart-check-fill';
-        if (type === 'PAYMENT') return 'bi-cash-coin';
-        if (type === 'WARNING') return 'bi-exclamation-triangle-fill';
-        return 'bi-info-circle-fill';
+        switch(type) {
+            case 'ORDER': return 'bi-cart-check-fill';
+            case 'PAYMENT': return 'bi-cash-coin';
+            case 'SYSTEM': return 'bi-gear-fill';
+            case 'WARNING': return 'bi-exclamation-triangle-fill';
+            case 'WARRANTY': return 'bi-tools';
+            case 'IMPORT': return 'bi-box-arrow-in-down';
+            case 'RETURN': return 'bi-arrow-counterclockwise';
+            case 'ERROR': return 'bi-x-octagon-fill';
+            case 'INFO':
+            default: return 'bi-info-circle-fill';
+        }
     }
 
     function getIconClass(type) {
-        if (type === 'ORDER') return 'bg-primary-subtle text-primary';
-        if (type === 'PAYMENT') return 'bg-success-subtle text-success';
-        if (type === 'WARNING') return 'bg-danger-subtle text-danger';
-        return 'bg-info-subtle text-info';
+        switch(type) {
+            case 'ORDER': return 'bg-primary-subtle text-primary';
+            case 'PAYMENT': return 'bg-success-subtle text-success';
+            case 'SYSTEM': return 'bg-secondary-subtle text-secondary';
+            case 'WARNING': return 'bg-warning-subtle text-warning';
+            case 'WARRANTY': return 'bg-info-subtle text-info';
+            case 'IMPORT': return 'bg-primary-subtle text-primary';
+            case 'RETURN': return 'bg-warning-subtle text-warning';
+            case 'ERROR': return 'bg-danger-subtle text-danger';
+            case 'INFO':
+            default: return 'bg-info-subtle text-info';
+        }
     }
 
     function formatTimeAgo(dateStr) {

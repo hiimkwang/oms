@@ -224,11 +224,15 @@
                             </div>
                         </td>
                         <td class="text-center">
-                            <div class="fw-bold text-dark" th:text="${p.stockQuantity != null ? p.stockQuantity : 0}">
+                            <div class="fw-bold text-dark"
+                                 th:with="totalStock=${p.variants != null and !#lists.isEmpty(p.variants)} ? ${#aggregates.sum(p.variants.![actualStock])} : 0"
+                                 th:text="${totalStock != null ? totalStock : 0}">
                                 0
                             </div>
-                            <small class="text-muted" th:if="${p.variants != null and !#lists.isEmpty(p.variants)}"
-                                   th:text="'(' + ${#lists.size(p.variants)} + ' phiên bản)'"></small>
+                            <small class="text-muted"
+                                   th:if="${p.variants != null and #lists.size(p.variants) > 1}"
+                                   th:text="'(' + ${#lists.size(p.variants)} + ' phiên bản)'">
+                            </small>
                         </td>
                         <td><span class="text-dark" th:text="${p.category != null ? p.category.name : '---'}"></span>
                         </td>
@@ -269,8 +273,8 @@
                                         </td>
                                         <td class="text-muted small" th:text="${v.sku}"></td>
                                         <td class="text-center fw-bold"
-                                            th:classappend="${v.stockQuantity > 0 ? 'text-success' : 'text-danger'}"
-                                            th:text="${v.stockQuantity}"></td>
+                                            th:classappend="${v.actualStock > 0 ? 'text-success' : 'text-danger'}"
+                                            th:text="${v.actualStock}"></td>
                                         <td class="text-dark fw-bold text-end pe-4"
                                             th:text="${v.price != null ? #numbers.formatDecimal(v.price, 0, 'COMMA', 0, 'POINT') + ' đ' : '---'}"></td>
                                     </tr>

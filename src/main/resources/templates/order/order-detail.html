@@ -123,7 +123,7 @@
             align-items: center;
             z-index: 2;
             color: #94a3b8;
-            width: 25%;
+            flex: 1;
             position: relative;
         }
 
@@ -331,22 +331,26 @@
                     <div class="timeline-step" id="tsConfirmed">
                         <div class="step-icon"></div>
                         <div class="step-title" id="lblConfirmed">Xác nhận</div>
-                        <div class="step-time"></div>
-                    </div>
+                        <div class="step-time" id="tlConfirmed"></div> </div>
                     <div class="timeline-step" id="tsShipping">
                         <div class="step-icon"></div>
                         <div class="step-title" id="lblShipping">Giao hàng</div>
-                        <div class="step-time"></div>
+                        <div class="step-time" id="tlShipping"></div>
                     </div>
                     <div class="timeline-step" id="tsCompleted">
                         <div class="step-icon"></div>
                         <div class="step-title" id="lblCompleted">Hoàn thành</div>
-                        <div class="step-time"></div>
+                        <div class="step-time" id="tlCompleted"></div>
                     </div>
                     <div class="timeline-step" id="tsCancel" style="display: none;">
                         <div class="step-icon"></div>
                         <div class="step-title text-danger" id="lblCancelled">Đã hủy</div>
-                        <div class="step-time"></div>
+                        <div class="step-time" id="tlCancelled"></div>
+                    </div>
+                    <div class="timeline-step" id="tsReturned" style="display: none;">
+                        <div class="step-icon"></div>
+                        <div class="step-title text-warning" id="lblReturned">Hoàn trả</div>
+                        <div class="step-time" id="tlReturned"></div>
                     </div>
                 </div>
             </div>
@@ -737,6 +741,12 @@
             }
         }
 
+        function getActionTime(actionKeywords) {
+            if (!currentOrder.activities) return '';
+            const act = currentOrder.activities.find(a => actionKeywords.some(kw => a.action.toLowerCase().includes(kw.toLowerCase())));
+            return act ? formatDateTime(act.createdAt) : '';
+        }
+
         function renderViewMode() {
             const st = currentOrder.status || 'CREATED';
             const stLabel = statusLabelMap[st] || st;
@@ -767,23 +777,35 @@
             const pMethodMap = {'CASH': 'Tiền mặt', 'TRANSFER': 'Chuyển khoản', 'SWIPE': 'Quẹt thẻ'};
             document.getElementById('viewPaymentMethod').innerText = pMethodMap[currentOrder.paymentMethod] || 'Thanh toán sau';
 
-            // Cập nhật nhãn Timeline theo Master Data
+            // 1. Cập nhật Text cho Label
             document.getElementById('lblCreated').innerText = statusLabelMap['CREATED'] || 'Khởi tạo';
             document.getElementById('lblConfirmed').innerText = statusLabelMap['CONFIRMED'] || 'Đã xác nhận';
             document.getElementById('lblShipping').innerText = statusLabelMap['SHIPPING'] || 'Giao hàng';
             document.getElementById('lblCompleted').innerText = statusLabelMap['COMPLETED'] || 'Hoàn thành';
             document.getElementById('lblCancelled').innerText = statusLabelMap['CANCELLED'] || 'Đã hủy';
+            document.getElementById('lblReturned').innerText = statusLabelMap['RETURNED'] || 'Hoàn trả';
 
+            // 2. Lấy thời gian từ lịch sử thao tác
             document.getElementById('tlPlaced').innerText = formatDateTime(currentOrder.createdAt);
+            document.getElementById('tlConfirmed').innerText = getActionTime(['Xác nhận', 'Chuyển trạng thái']);
+            document.getElementById('tlShipping').innerText = getActionTime(['Giao hàng']);
+            document.getElementById('tlCompleted').innerText = getActionTime(['Hoàn thành']);
+            document.getElementById('tlCancelled').innerText = getActionTime(['Hủy']);
+            document.getElementById('tlReturned').innerText = getActionTime(['Trả hàng', 'Hoàn trả']);
 
-            // Đặt mặc định Class cho Timeline (Sẽ có 4 step hiển thị)
+            // 3. Reset CSS Timeline
             document.getElementById('tsCreated').className = 'timeline-step';
             document.getElementById('tsConfirmed').className = 'timeline-step';
             document.getElementById('tsShipping').className = 'timeline-step';
             document.getElementById('tsCompleted').className = 'timeline-step';
-            document.getElementById('tsCancel').style.display = 'none';
 
-            // Xử lý Timeline cho trạng thái DRAFT (Nháp)
+            document.getElementById('tsConfirmed').style.display = 'flex';
+            document.getElementById('tsShipping').style.display = 'flex';
+            document.getElementById('tsCompleted').style.display = 'flex';
+            document.getElementById('tsCancel').style.display = 'none';
+            document.getElementById('tsReturned').style.display = 'none';
+
+            // 4. Áp dụng CSS theo trạng thái thực tế
             if (st === 'DRAFT') {
                 document.getElementById('lblCreated').innerText = statusLabelMap['DRAFT'] || 'Nháp';
                 document.getElementById('tsCreated').classList.add('active');
@@ -801,12 +823,22 @@
                 document.getElementById('tsConfirmed').classList.add('completed');
                 document.getElementById('tsShipping').classList.add('completed');
                 document.getElementById('tsCompleted').classList.add('completed');
-            } else if (st === 'CANCELLED' || st === 'RETURNED') {
+            } else if (st === 'CANCELLED') {
                 document.getElementById('tsConfirmed').style.display = 'none';
                 document.getElementById('tsShipping').style.display = 'none';
                 document.getElementById('tsCompleted').style.display = 'none';
                 document.getElementById('tsCancel').style.display = 'flex';
+                document.getElementById('tsCreated').classList.add('completed');
                 document.getElementById('tsCancel').classList.add('active');
+            } else if (st === 'RETURNED') {
+                document.getElementById('tsCompleted').style.display = 'flex';
+                document.getElementById('tsReturned').style.display = 'flex';
+
+                document.getElementById('tsCreated').classList.add('completed');
+                document.getElementById('tsConfirmed').classList.add('completed');
+                document.getElementById('tsShipping').classList.add('completed');
+                document.getElementById('tsCompleted').classList.add('completed');
+                document.getElementById('tsReturned').classList.add('active');
             }
 
             const totalItemAmount = (currentOrder.details || []).reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
@@ -1040,9 +1072,15 @@
                         const searchResult = await res.json();
                         let html = '';
                         searchResult.forEach((v) => {
-                            html += `<li class="p-2 border-bottom dropdown-item-hover d-flex justify-content-between align-items-center" onclick="addEditCart('${v.sku}', '${v.productName}', ${v.price})">
-                                    <div><div class="fw-bold text-primary" style="font-size: 13px;">${v.productName}</div><div class="text-muted" style="font-size: 11px;">SKU: ${v.sku}</div></div>
-                                    <div class="fw-bold text-dark" style="font-size: 13px;">${formatMoney(v.price)}</div></li>`;
+                            const fullName = v.productName + (v.variantName ? ' - ' + v.variantName : '');
+
+                            html += `<li class="p-2 border-bottom dropdown-item-hover d-flex justify-content-between align-items-center" onclick="addEditCart('${v.sku}', \`${fullName}\`, ${v.price})">
+                                    <div>
+                                        <div class="fw-bold text-primary" style="font-size: 13px;">${fullName}</div>
+                                        <div class="text-muted" style="font-size: 11px;">SKU: ${v.sku}</div>
+                                    </div>
+                                    <div class="fw-bold text-dark" style="font-size: 13px;">${formatMoney(v.price)}</div>
+                                </li>`;
                         });
                         list.innerHTML = html || '<li class="p-2 text-muted small">Không tìm thấy</li>';
                         list.classList.add('show');

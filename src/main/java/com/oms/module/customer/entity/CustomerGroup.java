@@ -3,6 +3,7 @@ package com.oms.module.customer.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -27,5 +28,5 @@ public class CustomerGroup {
     @Column(name = "color_code", length = 10)
     private String colorCode;
     @Column(columnDefinition = "TEXT")
-    private String conditions; // Lưu chuỗi JSON chứa các điều kiện
+    private String conditions;
 }

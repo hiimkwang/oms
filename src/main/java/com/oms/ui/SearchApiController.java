@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -36,32 +35,18 @@ public class SearchApiController {
             return ResponseEntity.ok(results);
         }
 
-        var products = productRepository.searchAndFilterProducts(keyword, null, null)
-                .stream().limit(5)
-                .map(p -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("id", p.getId());
-                    map.put("name", p.getName());
-                    map.put("code", p.getSku() != null ? p.getSku() : "");
-                    map.put("imageUrl", p.getImageUrl() != null ? p.getImageUrl() : "");
-                    return map;
-                })
-                .collect(Collectors.toList());
+        var products = productRepository.searchAndFilterProducts(keyword, null, null).stream().limit(5).map(p -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", p.getId());
+            map.put("name", p.getName());
+            map.put("code", p.getSku() != null ? p.getSku() : "");
+            map.put("imageUrl", p.getImageUrl() != null ? p.getImageUrl() : "");
+            return map;
+        }).collect(Collectors.toList());
 
-        var customers = customerRepository.searchByKeyword(keyword)
-                .stream().limit(5)
-                .map(c -> Map.of(
-                        "id", c.getId(),
-                        "name", c.getFullName(),
-                        "phone", c.getPhone() != null ? c.getPhone() : "",
-                        "code", c.getCode() != null ? c.getCode() : "" // THÊM DÒNG NÀY ĐỂ LẤY MÃ KHÁCH HÀNG
-                ))
-                .collect(Collectors.toList());
+        var customers = customerRepository.searchByKeyword(keyword).stream().limit(5).map(c -> Map.of("id", c.getId(), "name", c.getFullName(), "phone", c.getPhone() != null ? c.getPhone() : "", "code", c.getCode() != null ? c.getCode() : "")).collect(Collectors.toList());
 
-        var orders = orderRepository.searchByKeyword(keyword)
-                .stream().limit(5)
-                .map(o -> Map.of("id", o.getId(), "code", o.getOrderCode()))
-                .collect(Collectors.toList());
+        var orders = orderRepository.searchByKeyword(keyword).stream().limit(5).map(o -> Map.of("id", o.getId(), "code", o.getOrderCode())).collect(Collectors.toList());
 
         results.put("products", products);
         results.put("customers", customers);

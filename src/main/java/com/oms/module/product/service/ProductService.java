@@ -2,15 +2,14 @@ package com.oms.module.product.service;
 
 import com.oms.module.category.entity.Category;
 import com.oms.module.category.repository.CategoryRepository;
+import com.oms.module.inventory.entity.Inventory;
+import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.product.dto.ProductRequest;
 import com.oms.module.product.dto.ProductVariantRequest;
 import com.oms.module.product.entity.Product;
 import com.oms.module.product.entity.ProductVariant;
 import com.oms.module.product.repository.ProductRepository;
 import com.oms.module.product.repository.ProductVariantRepository;
-// Import thêm Inventory
-import com.oms.module.inventory.entity.Inventory;
-import com.oms.module.inventory.repository.InventoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,10 +25,9 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
     private final CategoryRepository categoryRepository;
-    // Bổ sung repo quản lý kho
     private final InventoryRepository inventoryRepository;
 
-    // ================= 1. TẠO MỚI SẢN PHẨM (ĐÃ CHUẨN HÓA KHO BÃI) =================
+    // ================= 1. TẠO MỚI SẢN PHẨM =================
     @Transactional
     public Product createProduct(ProductRequest request) {
         // 1. Tự sinh SKU mẹ nếu rỗng
@@ -40,26 +38,12 @@ public class ProductService {
 
         Category category = null;
         if (request.getCategoryId() != null) {
-            category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục này trong hệ thống!"));
+            category = categoryRepository.findById(request.getCategoryId()).orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục này trong hệ thống!"));
         }
 
         // 2. Tạo Product (Sản phẩm gốc)
         Boolean isManageStock = request.getManageStock() != null ? request.getManageStock() : true;
-        Product product = Product.builder()
-                .sku(sku)
-                .name(request.getName())
-                .category(category)
-                .brand(request.getBrand())
-                .conditionStatus(request.getConditionStatus())
-                .unit(request.getUnit())
-                .minStockLevel(request.getMinStockLevel())
-                .price(request.getPrice())
-                .imageUrl(request.getImageUrl())
-                .description(request.getDescription())
-                .warrantyPeriod(request.getWarrantyPeriod())
-                .manageStock(isManageStock) // Bổ sung cờ quản lý kho
-                .stockQuantity(0) // Tạm gán 0, sẽ cộng dồn từ biến thể lên
+        Product product = Product.builder().sku(sku).name(request.getName()).category(category).brand(request.getBrand()).conditionStatus(request.getConditionStatus()).unit(request.getUnit()).minStockLevel(request.getMinStockLevel()).price(request.getPrice()).imageUrl(request.getImageUrl()).description(request.getDescription()).warrantyPeriod(request.getWarrantyPeriod()).manageStock(isManageStock).stockQuantity(0) // Tạm gán 0, sẽ cộng dồn từ biến thể lên
                 .build();
 
         // Lưu Product mẹ trước để lấy ID gán cho các Variant con
@@ -79,15 +63,7 @@ public class ProductService {
 
                 int vStock = vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0;
 
-                ProductVariant variant = ProductVariant.builder()
-                        .product(product)
-                        .variantName(vReq.getVariantName())
-                        .sku(varSku)
-                        .imageUrl(vReq.getImageUrl())
-                        .price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice())
-                        .costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO)
-                        .stockQuantity(vStock)
-                        .build();
+                ProductVariant variant = ProductVariant.builder().product(product).variantName(vReq.getVariantName()).sku(varSku).imageUrl(vReq.getImageUrl()).price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice()).costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO).stockQuantity(vStock).build();
 
                 variant = productVariantRepository.save(variant);
                 variantList.add(variant);
@@ -103,15 +79,8 @@ public class ProductService {
             // Tự sinh 1 biến thể "Mặc định" để hệ thống Kho vận hành đồng nhất
             int vStock = request.getStockQuantity() != null ? request.getStockQuantity() : 0;
 
-            ProductVariant defaultVariant = ProductVariant.builder()
-                    .product(product)
-                    .variantName("Mặc định")
-                    .sku(sku) // Lấy luôn SKU mẹ cho gọn
-                    .imageUrl(request.getImageUrl())
-                    .price(request.getPrice())
-                    .costPrice(BigDecimal.ZERO)
-                    .stockQuantity(vStock)
-                    .build();
+            ProductVariant defaultVariant = ProductVariant.builder().product(product).variantName("Mặc định").sku(sku) // Lấy luôn SKU mẹ cho gọn
+                    .imageUrl(request.getImageUrl()).price(request.getPrice()).costPrice(BigDecimal.ZERO).stockQuantity(vStock).build();
 
             defaultVariant = productVariantRepository.save(defaultVariant);
             variantList.add(defaultVariant);
@@ -152,8 +121,7 @@ public class ProductService {
             return productOpt.get();
         }
 
-        ProductVariant variant = productVariantRepository.findBySku(sku)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm hoặc biến thể với SKU: " + sku));
+        ProductVariant variant = productVariantRepository.findBySku(sku).orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm hoặc biến thể với SKU: " + sku));
 
         return variant.getProduct();
     }
@@ -164,8 +132,7 @@ public class ProductService {
         Product existingProduct = getProductBySku(sku);
         Category category = null;
         if (request.getCategoryId() != null) {
-            category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục!"));
+            category = categoryRepository.findById(request.getCategoryId()).orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục!"));
             existingProduct.setCategory(category);
         }
 
@@ -186,8 +153,7 @@ public class ProductService {
         }
 
         if (request.getVariants() != null && !request.getVariants().isEmpty()) {
-            Map<String, ProductVariant> existingVariantsMap = existingProduct.getVariants().stream()
-                    .collect(Collectors.toMap(ProductVariant::getSku, v -> v));
+            Map<String, ProductVariant> existingVariantsMap = existingProduct.getVariants().stream().collect(Collectors.toMap(ProductVariant::getSku, v -> v));
 
             List<ProductVariant> updatedVariants = new ArrayList<>();
             int totalStock = 0;
@@ -205,19 +171,10 @@ public class ProductService {
                     variant.setImageUrl(vReq.getImageUrl());
                     variant.setPrice(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice());
                     variant.setCostPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO);
-                    // Thông thường khi update SP, ta không update tồn kho ở đây mà phải qua phiếu kiểm kho.
-                    // Tạm giữ logic cũ của anh
+
                     variant.setStockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : variant.getStockQuantity());
                 } else {
-                    variant = ProductVariant.builder()
-                            .product(existingProduct)
-                            .variantName(vReq.getVariantName())
-                            .sku(varSku)
-                            .imageUrl(vReq.getImageUrl())
-                            .price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice())
-                            .costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO)
-                            .stockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0)
-                            .build();
+                    variant = ProductVariant.builder().product(existingProduct).variantName(vReq.getVariantName()).sku(varSku).imageUrl(vReq.getImageUrl()).price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice()).costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO).stockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0).build();
                 }
                 totalStock += variant.getStockQuantity();
                 updatedVariants.add(variant);
@@ -228,7 +185,11 @@ public class ProductService {
             existingProduct.setStockQuantity(totalStock);
 
         } else {
-            // Tạm thời giữ nguyên logic nếu update SP Đơn (Mặc định)
+            if (existingProduct.getVariants() != null && existingProduct.getVariants().size() == 1) {
+                ProductVariant defaultVariant = existingProduct.getVariants().get(0);
+                defaultVariant.setPrice(request.getPrice());
+                defaultVariant.setImageUrl(request.getImageUrl());
+            }
             existingProduct.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : existingProduct.getStockQuantity());
         }
 
@@ -285,19 +246,14 @@ public class ProductService {
     }
 
     public List<ProductVariant> searchVariantsForOrder(String keyword) {
-        return productVariantRepository.searchAndFilterVariants(
-                keyword, null, null, null, null, null
-        );
+        return productVariantRepository.searchAndFilterVariants(keyword, null, null, null, null, null);
     }
 
     @Transactional
     public void syncProductTotalStock(Long productId) {
         Product product = productRepository.findById(productId).orElse(null);
         if (product != null) {
-            // Cộng tổng số lượng từ tất cả các biến thể
-            int totalStock = product.getVariants().stream()
-                    .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
-                    .sum();
+            int totalStock = product.getVariants().stream().mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0).sum();
 
             product.setStockQuantity(totalStock);
             productRepository.save(product);

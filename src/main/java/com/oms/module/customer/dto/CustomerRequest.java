@@ -1,12 +1,10 @@
 package com.oms.module.customer.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -53,9 +51,7 @@ public class CustomerRequest {
     private String budgetCode;
     private String invoicePhone;
     private String invoiceEmail;
-
-    // --- 3 THẰNG ÔNG ĐANG TÌM ĐÂY ---
-    private Long orderCount;          // Tham số thứ 10+ (tùy constructor)
-    private LocalDateTime lastOrder;  // Tham số thứ 11+
-    private Double totalSpent;        // Tham số thứ 12+
+    private Long orderCount;
+    private LocalDateTime lastOrder;
+    private Double totalSpent;
 }

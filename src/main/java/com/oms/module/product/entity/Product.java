@@ -49,14 +49,12 @@ public class Product {
     @Column(name = "avg_import_price", precision = 15, scale = 2)
     private BigDecimal avgImportPrice;
 
-    // ĐÃ ĐỔI TÊN THÀNH price
     @Column(name = "price", precision = 15, scale = 2)
     private BigDecimal price;
 
     @Column(name = "warranty_period", length = 50)
     private String warrantyPeriod;
 
-    // ĐÃ ĐỔI TÊN THÀNH description
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 

@@ -25,8 +25,6 @@ public class ReportService {
         Double totalRevenue = salesRevenue + otherIncome;
 
         // 3. Tính Giá vốn hàng bán (COGS)
-        // Lưu ý: Để tính chuẩn xác 100% giống file DATA_XUAT.csv, bạn cần lưu trường `costPrice` vào OrderDetail khi tạo đơn.
-        // Ở đây tôi đang giả lập giá vốn chiếm 75% doanh thu bán hàng làm ví dụ (Biên lợi nhuận 25%).
         Double costOfGoodsSold = salesRevenue * 0.75;
 
         // => Lãi gộp
@@ -38,16 +36,6 @@ public class ReportService {
         // => Lợi Nhuận Ròng
         Double netProfit = grossProfit - operatingExpenses;
 
-        return ProfitReportResponse.builder()
-                .month(month)
-                .year(year)
-                .salesRevenue(salesRevenue)
-                .otherIncome(otherIncome)
-                .totalRevenue(totalRevenue)
-                .costOfGoodsSold(costOfGoodsSold)
-                .grossProfit(grossProfit)
-                .operatingExpenses(operatingExpenses)
-                .netProfit(netProfit)
-                .build();
+        return ProfitReportResponse.builder().month(month).year(year).salesRevenue(salesRevenue).otherIncome(otherIncome).totalRevenue(totalRevenue).costOfGoodsSold(costOfGoodsSold).grossProfit(grossProfit).operatingExpenses(operatingExpenses).netProfit(netProfit).build();
     }
 }

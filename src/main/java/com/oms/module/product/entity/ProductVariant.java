@@ -26,16 +26,17 @@ public class ProductVariant {
     @Column(name = "sku", unique = true)
     private String sku;
 
-    // ĐỔI SANG BigDecimal
     @Column(name = "price", precision = 15, scale = 2)
     private BigDecimal price;
 
-    // ĐỔI SANG BigDecimal
     @Column(name = "cost_price", precision = 15, scale = 2)
     private BigDecimal costPrice;
 
     @Column(name = "stock_quantity")
     private Integer stockQuantity;
+
+    @org.hibernate.annotations.Formula("(SELECT COALESCE(SUM(i.stock), 0) FROM inventory i WHERE i.variant_id = id)")
+    private Integer actualStock;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
@@ -49,6 +50,7 @@ public class ProductVariant {
         }
         return "Sản phẩm không xác định";
     }
+
     @Column(name = "image_url")
     private String imageUrl;
 }

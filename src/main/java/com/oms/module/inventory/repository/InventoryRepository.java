@@ -22,6 +22,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     // 3. Xem toàn bộ tồn kho của 1 chi nhánh (Dùng cho Báo cáo Chi nhánh)
     List<Inventory> findByBranchId(Long branchId);
+
     @Query("SELECT i, v, p FROM Inventory i " +
             "JOIN ProductVariant v ON i.variantId = v.id " +
             "JOIN Product p ON v.product.id = p.id " +
@@ -44,7 +45,11 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     // Lấy số tồn kho vật lý dựa vào mã SKU và Chi nhánh
     @Query("SELECT i.stock FROM Inventory i, ProductVariant v WHERE i.variantId = v.id AND i.branchId = :branchId AND v.sku = :sku")
     Integer getStockByBranchAndSku(@Param("branchId") Long branchId, @Param("sku") String sku);
+
     // Tính tổng giá trị tồn kho toàn hệ thống
     @Query("SELECT COALESCE(SUM(i.stock * v.costPrice), 0) FROM Inventory i JOIN ProductVariant v ON i.variantId = v.id")
     BigDecimal sumTotalInventoryValue();
+
+    @Query("SELECT SUM(i.stock) FROM Inventory i JOIN ProductVariant v ON i.variantId = v.id WHERE v.sku = :sku")
+    Integer getTotalStockBySku(@Param("sku") String sku);
 }
