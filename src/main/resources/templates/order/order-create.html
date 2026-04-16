@@ -1134,8 +1134,9 @@
                 });
 
                 if (res.ok) {
+                    const data = await res.json();
                     Toast.fire({icon: 'success', title: 'Thành công!'}).then(() => {
-                        window.location.href = "/ui/orders";
+                        window.location.href = '/ui/orders/detail/' + data.orderCode;
                     });
                 } else {
                     const err = await res.json();

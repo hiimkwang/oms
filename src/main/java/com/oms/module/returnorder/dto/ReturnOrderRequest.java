@@ -10,6 +10,7 @@ public class ReturnOrderRequest {
     private String reason;
     private String note;
     private BigDecimal returnFee;
+    private BigDecimal shopReturnFee;
     private List<ReturnItemRequest> details;
 
     @Data

@@ -201,17 +201,27 @@
                     <div class="detail-card-title border-bottom pb-2">Thông tin tài chính</div>
                     <div class="summary-box mt-3">
                         <div class="d-flex justify-content-between text-muted mb-2">
-                            <span>Tổng giá trị hàng trả:</span>
+                            <span>Giá trị hàng trả lại:</span>
                             <span class="fw-medium text-dark"
                                   th:text="${#numbers.formatDecimal(returnOrder.totalRefundAmount + returnOrder.returnFee, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
                         </div>
+
                         <div class="d-flex justify-content-between text-muted mb-2 pb-2 border-bottom">
-                            <span>Phí trả hàng (Trừ vào khách):</span>
+                            <span>Phí thu của Khách:</span>
                             <span class="text-danger fw-bold"
                                   th:text="'-' + ${#numbers.formatDecimal(returnOrder.returnFee, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
                         </div>
+
+                        <div class="d-flex justify-content-between text-muted mb-3 pb-3 border-bottom"
+                             th:if="${returnOrder.shopReturnFee != null}">
+                            <span>Phí Shop tự chịu (Phát sinh):</span>
+                            <span class="text-warning-emphasis fw-bold"
+                                  th:text="${#numbers.formatDecimal(returnOrder.shopReturnFee, 0, 'COMMA', 0, 'POINT')} + '₫'"
+                                  title="Khoản này được tính vào chi phí vận hành, không trừ vào tiền hoàn khách"></span>
+                        </div>
+
                         <div class="d-flex justify-content-between fw-bold text-primary fs-5 mt-2">
-                            <span>Thực tế hoàn khách:</span>
+                            <span>Khách nhận lại:</span>
                             <span th:text="${#numbers.formatDecimal(returnOrder.totalRefundAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
                         </div>
                     </div>

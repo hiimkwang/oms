@@ -1,6 +1,7 @@
 package com.oms.module.returnorder.service;
 
 import com.oms.module.account.entity.User;
+import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.repository.CashTransactionRepository;
 import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.notification.entity.Notification;
@@ -60,31 +61,22 @@ public class ReturnOrderService {
 
         originalOrder.setStatus(RETURNED);
 
-        OrderActivity orderLog = OrderActivity.builder()
-                .order(originalOrder)
-                .action("Chuyển trạng thái")
-                .description("Đơn hàng chuyển sang trạng thái TRẢ HÀNG do có phiếu yêu cầu: " + returnCode)
-                .createdBy(user)
-                .createdAt(java.time.LocalDateTime.now())
-                .build();
+        OrderActivity orderLog = OrderActivity.builder().order(originalOrder).action("Chuyển trạng thái").description("Đơn hàng chuyển sang trạng thái TRẢ HÀNG do có phiếu yêu cầu: " + returnCode).createdBy(user).createdAt(java.time.LocalDateTime.now()).build();
 
         if (originalOrder.getActivities() == null) {
             originalOrder.setActivities(new java.util.ArrayList<>());
         }
         originalOrder.getActivities().add(orderLog);
         orderRepo.save(originalOrder);
+
         try {
-            notificationService.create(
-                    "Đơn hàng bị trả lại: " + originalOrder.getOrderCode(),
-                    "Đơn hàng đã được chuyển sang trạng thái TRẢ HÀNG.",
-                    Notification.NotificationType.ORDER,
-                    "/ui/orders/detail/" + originalOrder.getOrderCode()
-            );
+            notificationService.create("Đơn hàng bị trả lại: " + originalOrder.getOrderCode(), "Đơn hàng đã được chuyển sang trạng thái TRẢ HÀNG.", Notification.NotificationType.ORDER, "/ui/orders/detail/" + originalOrder.getOrderCode());
         } catch (Exception e) {
             log.error("Lỗi Noti đơn hàng: {}", e.getMessage());
         }
 
-        ReturnOrder returnOrder = ReturnOrder.builder().returnCode(returnCode).originalOrder(originalOrder).reason(request.getReason()).note(request.getNote()).returnFee(request.getReturnFee() != null ? request.getReturnFee() : BigDecimal.ZERO).refundStatus(UNPAID).restockStatus(RESTOCK_PENDING).status(PENDING).createdBy(user).build();
+        ReturnOrder returnOrder = ReturnOrder.builder().returnCode(returnCode).originalOrder(originalOrder).reason(request.getReason()).note(request.getNote()).returnFee(request.getReturnFee() != null ? request.getReturnFee() : BigDecimal.ZERO) // Phí khách chịu
+                .shopReturnFee(request.getShopReturnFee() != null ? request.getShopReturnFee() : BigDecimal.ZERO).refundStatus(UNPAID).restockStatus(RESTOCK_PENDING).status(PENDING).createdBy(user).build();
 
         BigDecimal totalRefund = BigDecimal.ZERO;
         List<ReturnOrderDetail> details = new ArrayList<>();
@@ -138,13 +130,30 @@ public class ReturnOrderService {
             throw new RuntimeException("Phiếu này đã được hoàn tiền!");
         }
 
-        com.oms.module.cashbook.entity.CashTransaction payment = com.oms.module.cashbook.entity.CashTransaction.builder().code("PC-HT-" + System.currentTimeMillis()).type(com.oms.module.cashbook.entity.CashTransaction.TransactionType.PAYMENT).paymentMethod(com.oms.module.cashbook.entity.CashTransaction.PaymentMethod.valueOf(method)).targetGroup(com.oms.module.cashbook.entity.CashTransaction.TargetGroup.CUSTOMER).targetId(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getId() : null).targetName(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getFullName() : "Khách trả hàng").amount(returnOrder.getTotalRefundAmount()).reason("Hoàn tiền cho khách").description("Hoàn tiền phiếu trả hàng " + returnOrder.getReturnCode() + " (Đơn gốc: " + returnOrder.getOriginalOrder().getOrderCode() + ")").transactionDate(java.time.LocalDateTime.now()).creatorName(getCurrentUserName()).build();
-        cashRepo.save(payment);
+        // 1. TẠO PHIẾU CHI: HOÀN TIỀN CHO KHÁCH (Như cũ)
+        if (returnOrder.getTotalRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
+            com.oms.module.cashbook.entity.CashTransaction refundPayment = com.oms.module.cashbook.entity.CashTransaction.builder().code("PC-HT-" + System.currentTimeMillis()).type(com.oms.module.cashbook.entity.CashTransaction.TransactionType.PAYMENT).paymentMethod(com.oms.module.cashbook.entity.CashTransaction.PaymentMethod.valueOf(method)).targetGroup(com.oms.module.cashbook.entity.CashTransaction.TargetGroup.CUSTOMER).targetId(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getId() : null).targetName(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getFullName() : "Khách trả hàng").amount(returnOrder.getTotalRefundAmount()).reason("Hoàn tiền cho khách").description("Hoàn tiền phiếu trả hàng " + returnOrder.getReturnCode() + " (Đơn gốc: " + returnOrder.getOriginalOrder().getOrderCode() + ")").transactionDate(java.time.LocalDateTime.now()).creatorName(getCurrentUserName()).build();
+            cashRepo.save(refundPayment);
+        }
+
+        // 2. TẠO PHIẾU CHI (MỚI): CHI PHÍ PHÁT SINH SHOP TỰ CHỊU
+        if (returnOrder.getShopReturnFee() != null && returnOrder.getShopReturnFee().compareTo(BigDecimal.ZERO) > 0) {
+            com.oms.module.cashbook.entity.CashTransaction shopFeePayment = com.oms.module.cashbook.entity.CashTransaction.builder().code("PC-PH-" + (System.currentTimeMillis() + 1)) // Cộng 1ms để tránh trùng mã code
+                    .type(com.oms.module.cashbook.entity.CashTransaction.TransactionType.PAYMENT).paymentMethod(com.oms.module.cashbook.entity.CashTransaction.PaymentMethod.valueOf(method)).targetGroup(com.oms.module.cashbook.entity.CashTransaction.TargetGroup.OTHER) // Ghi nhận là chi phí Khác/Nội bộ
+                    .targetName("Chi phí vận hành (Trả hàng)").amount(returnOrder.getShopReturnFee()).reason("Phí phát sinh hàng hoàn").description("Chi phí Shop tự chịu cho phiếu trả hàng " + returnOrder.getReturnCode() + " (Đơn gốc: " + returnOrder.getOriginalOrder().getOrderCode() + ")").transactionDate(java.time.LocalDateTime.now()).creatorName(getCurrentUserName()).build();
+            cashRepo.save(shopFeePayment);
+        }
 
         returnOrder.setRefundStatus(REFUNDED);
         checkAndCompleteReturn(returnOrder);
 
-        logActivity(returnOrder, "Xác nhận hoàn tiền", "Đã hoàn " + returnOrder.getTotalRefundAmount() + "đ qua " + method);
+        // Lưu log có ghi chú thêm về khoản phí shop chịu
+        String logDesc = "Đã hoàn " + returnOrder.getTotalRefundAmount() + "đ qua " + method;
+        if (returnOrder.getShopReturnFee() != null && returnOrder.getShopReturnFee().compareTo(BigDecimal.ZERO) > 0) {
+            logDesc += " (Ghi nhận thêm " + returnOrder.getShopReturnFee() + "đ chi phí Shop chịu vào Sổ quỹ)";
+        }
+
+        logActivity(returnOrder, "Xác nhận xuất quỹ hoàn tiền", logDesc);
         returnRepo.save(returnOrder);
     }
 
@@ -181,9 +190,6 @@ public class ReturnOrderService {
             returnOrder.setStatus(COMPLETED);
             logActivity(returnOrder, "Hoàn tất phiếu trả hàng", "Đã xử lý xong các bước hoàn tiền và nhập kho.");
 
-            // ---------------------------------------------------------
-            // 3. BẮN THÔNG BÁO KHI PHIẾU TRẢ HÀNG HOÀN TẤT
-            // ---------------------------------------------------------
             try {
                 notificationService.create("Hoàn tất trả hàng: " + returnOrder.getReturnCode(), "Đã xử lý xong hoàn tiền và nhập lại kho cho đơn gốc " + returnOrder.getOriginalOrder().getOrderCode(), Notification.NotificationType.RETURN, "/ui/returns/" + returnOrder.getReturnCode());
             } catch (Exception e) {

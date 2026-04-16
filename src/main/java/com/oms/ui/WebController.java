@@ -456,4 +456,15 @@ public class WebController {
 
         return "returnorder/return-detail";
     }
+
+
+    @GetMapping("/import-pricing")
+    public String importPricingCalculator(Model model) {
+        return "tools/import-pricing";
+    }
+
+    @GetMapping("/selling-pricing")
+    public String sellingPricingCalculator(Model model) {
+        return "tools/selling-pricing";
+    }
 }

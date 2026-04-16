@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -41,12 +42,29 @@ public class SearchApiController {
             map.put("name", p.getName());
             map.put("code", p.getSku() != null ? p.getSku() : "");
             map.put("imageUrl", p.getImageUrl() != null ? p.getImageUrl() : "");
+
+            // BỔ SUNG ĐOẠN NÀY: Lấy thêm danh sách biến thể nhét vào JSON
+            if (p.getVariants() != null && !p.getVariants().isEmpty()) {
+                List<Map<String, Object>> variants = p.getVariants().stream().map(v -> {
+                    Map<String, Object> vMap = new HashMap<>();
+                    vMap.put("id", v.getId());
+                    vMap.put("variantName", v.getVariantName());
+                    vMap.put("sku", v.getSku());
+                    return vMap;
+                }).collect(Collectors.toList());
+                map.put("variants", variants); // Ném mảng variants xuống Frontend
+            }
+
             return map;
         }).collect(Collectors.toList());
 
-        var customers = customerRepository.searchByKeyword(keyword).stream().limit(5).map(c -> Map.of("id", c.getId(), "name", c.getFullName(), "phone", c.getPhone() != null ? c.getPhone() : "", "code", c.getCode() != null ? c.getCode() : "")).collect(Collectors.toList());
+        var customers = customerRepository.searchByKeyword(keyword).stream().limit(5)
+                .map(c -> Map.of("id", c.getId(), "name", c.getFullName(), "phone", c.getPhone() != null ? c.getPhone() : "", "code", c.getCode() != null ? c.getCode() : ""))
+                .collect(Collectors.toList());
 
-        var orders = orderRepository.searchByKeyword(keyword).stream().limit(5).map(o -> Map.of("id", o.getId(), "code", o.getOrderCode())).collect(Collectors.toList());
+        var orders = orderRepository.searchByKeyword(keyword).stream().limit(5)
+                .map(o -> Map.of("id", o.getId(), "code", o.getOrderCode()))
+                .collect(Collectors.toList());
 
         results.put("products", products);
         results.put("customers", customers);

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::content})}">
+<head>
+    <title>Phân tích Giá bán & Lợi nhuận</title>
+</head>
+<body>
+<div th:fragment="content">
+
+    <style>
+        /* --- CORE STYLES --- */
+        body {
+            background-color: #f8fafc;
+        }
+
+        /* ===== BẮT ĐẦU KHUNG NHẬP LIỆU TỔNG HỢP ===== */
+        .modern-input-wrapper {
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            background-color: #fff;
+            transition: all 0.2s ease-in-out;
+            overflow: hidden !important; /* Khóa không cho phần tử con tràn ra ngoài góc bo */
+        }
+
+        .modern-input-wrapper:hover {
+            border-color: #94a3b8;
+        }
+
+        /* Phép thuật: Sáng viền và đổ bóng CẢ CỤM khi focus */
+        .modern-input-wrapper:focus-within {
+            border-color: #0d6efd !important;
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15) !important;
+        }
+
+        /* Ép tắt toàn bộ viền của ô input và các icon/chữ đi kèm (XÓA GẠCH GIỮA) */
+        .modern-input-wrapper .modern-input,
+        .modern-input-wrapper .modern-addon,
+        .modern-input-wrapper .modern-input:focus {
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+
+        .modern-input-wrapper .modern-input {
+            background-color: transparent !important;
+        }
+
+        .modern-input-wrapper .modern-addon {
+            background-color: #f1f5f9; /* Màu nền mặc định */
+            color: #64748b;
+        }
+
+        /* ===== KẾT THÚC KHUNG NHẬP LIỆU ===== */
+
+        .fee-item {
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            background-color: #fff;
+        }
+
+        .fee-item:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .prod-search-dropdown {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .prod-search-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .prod-search-dropdown::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .form-switch .form-check-input {
+            width: 2.25em;
+            height: 1.15em;
+            cursor: pointer;
+        }
+
+        .highlight-value {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+        }
+
+        /* GIAO DIỆN BÁO CÁO HIỆN ĐẠI (GRADIENT CARDS) */
+        .scenario-box {
+            border-radius: 1rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+        }
+
+        .scenario-box:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Card Theme Colors */
+        .theme-primary {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        .theme-success {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        }
+
+        /* Inner box blur effect */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 0.75rem;
+        }
+
+        .nav-pills .nav-link {
+            color: #64748b;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            transition: all 0.2s;
+        }
+
+        .nav-pills .nav-link:hover {
+            background-color: #f1f5f9;
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+            color: #fff;
+            box-shadow: 0 4px 6px -1px rgba(13, 110, 253, 0.2);
+        }
+
+        .fee-list-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .fee-list-container::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .fee-list-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .group-header {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin: 15px 0 5px 5px;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark m-0">Công cụ Phân tích Giá & Lợi nhuận</h4>
+            <p class="text-muted small mb-0 mt-1">Mô phỏng chi phí vận hành và định giá niêm yết</p>
+        </div>
+        <button class="btn btn-white border shadow-sm fw-medium text-secondary" onclick="resetCurrentTab()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Làm mới toàn bộ
+        </button>
+    </div>
+
+    <ul class="nav nav-pills mb-4 bg-white p-1 rounded-3 shadow-sm d-inline-flex border" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pills-pricing-tab" data-bs-toggle="pill" data-bs-target="#pills-pricing"
+                    type="button" role="tab">
+                <i class="bi bi-tag-fill me-2"></i> 1. Định giá đăng bán (Shopee)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pills-profit-tab" data-bs-toggle="pill" data-bs-target="#pills-profit"
+                    type="button" role="tab">
+                <i class="bi bi-calculator-fill me-2"></i> 2. Bảng tính nháp Lợi nhuận (Vận hành)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="pills-tabContent">
+
+        <div class="tab-pane fade show active" id="pills-pricing" role="tabpanel">
+            <div class="row g-4">
+
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-header bg-white py-3 border-bottom"><h6 class="m-0 fw-bold text-primary">1. Giá
+                            vốn sản phẩm</h6></div>
+                        <div class="card-body p-4">
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold text-muted small mb-2">Tìm nhanh để lấy Giá
+                                    vốn</label>
+                                <div class="modern-input-wrapper d-flex">
+                                    <div class="modern-addon px-3 d-flex align-items-center"><i
+                                            class="bi bi-search"></i></div>
+                                    <input type="text" class="form-control modern-input px-3 py-2 fw-medium"
+                                           placeholder="Tìm tên / SKU..." oninput="searchProduct(this, 'pricingCost')"
+                                           autocomplete="off">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label fw-semibold text-muted small mb-2">Giá vốn nhập kho
+                                    (VNĐ)</label>
+                                <div class="modern-input-wrapper d-flex bg-light">
+                                    <input type="text" id="pricingCost"
+                                           class="form-control modern-input fw-bold text-dark fs-5 px-3 py-2 text-end"
+                                           value="0" oninput="formatAndCalcPricing(this)">
+                                    <div class="modern-addon px-3 d-flex align-items-center fw-semibold bg-light">
+                                        đ
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-dark">2. Cấu hình Phí Shopee</h6>
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3"
+                                  id="pricingTotalFeeDisplay">0%</span>
+                        </div>
+                        <div class="card-body p-3 bg-light rounded-bottom-4 fee-list-container"
+                             id="pricingFeeContainer"></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="sticky-top" style="top: 1.5rem; z-index: 10;">
+                        <div class="scenario-box theme-primary p-4 mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-primary fw-bold m-0 text-uppercase" style="letter-spacing: 1px;"><i
+                                        class="bi bi-bullseye me-2"></i>Định giá bán gợi ý</h6>
+                            </div>
+
+                            <div class="glass-panel p-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="text-dark fw-medium">Lợi nhuận mong muốn (VNĐ):</span>
+                                    <div class="modern-input-wrapper d-flex align-items-stretch border-primary border-opacity-50"
+                                         style="width: 150px;">
+                                        <input type="text" id="pricingDesiredProfit"
+                                               class="form-control modern-input fw-bold text-primary fs-6 px-2 py-1 text-end"
+                                               value="0" oninput="formatAndCalcPricing(this)">
+                                        <div class="modern-addon px-2 d-flex align-items-center fw-bold bg-primary bg-opacity-10 text-primary">
+                                            đ
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-end pt-3 border-top border-primary border-opacity-10">
+                                    <span class="text-secondary fw-medium mb-1">Cần đăng bán với giá:</span>
+                                    <h1 class="highlight-value text-primary mb-0" id="pricingSuggestedPrice">0 đ</h1>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="scenario-box theme-success p-4">
+                            <h6 class="text-success fw-bold mb-3 text-uppercase" style="letter-spacing: 1px;"><i
+                                    class="bi bi-wallet2 me-2"></i>Mô phỏng Lợi nhuận thực tế</h6>
+
+                            <div class="glass-panel p-4">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-muted small mb-1">Giá niêm yết (Đăng
+                                            bán)</label>
+                                        <div class="modern-input-wrapper d-flex border-success border-opacity-25">
+                                            <input type="text" id="pricingListedPrice"
+                                                   class="form-control modern-input fw-bold text-dark px-2 py-1 text-end"
+                                                   value="0" oninput="formatAndCalcPricing(this)">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold text-muted small mb-1">Mã giảm giá Shop tự
+                                            tạo</label>
+                                        <div class="modern-input-wrapper d-flex border-danger border-opacity-25">
+                                            <input type="text" id="pricingShopVoucher"
+                                                   class="form-control modern-input fw-bold text-danger px-2 py-1 text-end"
+                                                   value="0" oninput="formatAndCalcPricing(this)">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between mb-2 small">
+                                    <span class="text-muted">Khách hàng trả:</span>
+                                    <span class="fw-bold text-dark" id="pricingCustomerPays">0 đ</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-3 pb-3 border-bottom border-success border-opacity-10 small">
+                                    <span class="text-muted">Tổng phí Shopee thu:</span>
+                                    <span class="fw-bold text-danger" id="pricingShopeeFee">- 0 đ</span>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-end">
+                                    <span class="text-dark fw-bold mb-1">Lợi nhuận bỏ túi:</span>
+                                    <div class="text-end">
+                                        <h2 class="highlight-value text-success mb-0" style="font-size: 2rem;"
+                                            id="pricingActualProfit">0 đ</h2>
+                                        <span class="badge bg-success text-white px-2 py-1 mt-1 rounded-pill"
+                                              id="pricingActualMargin">Biên LN: 0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-profit" role="tabpanel">
+            <div class="row g-4">
+
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-header bg-white py-3 border-bottom"><h6 class="m-0 fw-bold text-success">1. Giá
+                            nhập & Giá bán lẻ</h6></div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-muted small mb-2">Tìm nhanh sản phẩm</label>
+                                <div class="modern-input-wrapper d-flex">
+                                    <div class="modern-addon px-3 d-flex align-items-center"><i
+                                            class="bi bi-search"></i></div>
+                                    <input type="text" class="form-control modern-input px-3 py-2 fw-medium"
+                                           placeholder="Tìm tên / SKU..." oninput="searchProduct(this, 'profitCost')"
+                                           autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-muted small mb-2">Tỷ giá (¥ - VNĐ)</label>
+                                    <div class="modern-input-wrapper d-flex">
+                                        <input type="text" id="profitExchangeRate"
+                                               class="form-control modern-input fw-bold text-dark px-3 py-1 text-end"
+                                               value="0"
+                                               oninput="formatNumberInput(this); autoCalcCost(); formatAndCalcProfit()">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-muted small mb-2">Giá 1688 (¥)</label>
+                                    <div class="modern-input-wrapper d-flex">
+                                        <input type="number" step="0.1" id="profitPrice1688"
+                                               class="form-control modern-input fw-bold text-dark px-3 py-1 text-end"
+                                               value="0" oninput="autoCalcCost(); formatAndCalcProfit()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 border-top pt-3 mt-1">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-muted small mb-2">Giá vốn xuất kho</label>
+                                    <div class="modern-input-wrapper d-flex bg-light">
+                                        <input type="text" id="profitCost"
+                                               class="form-control modern-input fw-bold text-danger fs-5 px-3 py-2 text-end"
+                                               value="0" oninput="formatAndCalcProfit(this)">
+                                        <div class="modern-addon px-3 d-flex align-items-center fw-semibold bg-light">
+                                            đ
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold text-muted small mb-2">Giá Bán Lẻ (Thực
+                                        tế)</label>
+                                    <div class="modern-input-wrapper d-flex border-success border-opacity-50">
+                                        <input type="text" id="profitSell"
+                                               class="form-control modern-input fw-bold text-success fs-5 px-3 py-2 text-end"
+                                               value="0" oninput="formatAndCalcProfit(this)">
+                                        <div class="modern-addon px-3 d-flex align-items-center text-success fw-semibold bg-success bg-opacity-10">
+                                            đ
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 fw-bold text-danger">2. Bảng Phí Vận Hành (P&L)</h6>
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3"
+                                  id="profitTotalFeeDisplay">0%</span>
+                        </div>
+                        <div class="card-body p-3 bg-light rounded-bottom-4 fee-list-container"
+                             id="profitFeeContainer"></div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="sticky-top" style="top: 1.5rem; z-index: 10;">
+                        <div class="scenario-box theme-success p-4 p-xl-5 d-flex flex-column border-success border-opacity-25">
+                            <h6 class="text-success fw-bold mb-4 text-uppercase text-center"
+                                style="letter-spacing: 1px;"><i class="bi bi-bar-chart-line-fill me-2"></i>Báo Cáo Lợi
+                                Nhuận (P&L)</h6>
+
+                            <div class="glass-panel p-4 text-center mb-4">
+                                <span class="text-dark fw-medium d-block mb-1">Lợi nhuận ròng / Sản phẩm</span>
+                                <h1 class="highlight-value text-success mb-3" id="profitResultNet">0 đ</h1>
+
+                                <div class="d-flex justify-content-center gap-2">
+                                    <span class="badge bg-success text-white px-3 py-2 rounded-pill shadow-sm"
+                                          id="profitResultMargin" title="Lợi nhuận / Giá vốn">Lãi / Vốn: 0%</span>
+                                    <span class="badge bg-white text-secondary border border-secondary border-opacity-25 px-3 py-2 rounded-pill"
+                                          id="profitMarkup" title="Giá bán / Giá vốn">% Giá nhập: 0%</span>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel p-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="text-dark fw-semibold">Sản lượng bán / tháng:</span>
+                                    <div class="modern-input-wrapper d-flex" style="width: 100px;">
+                                        <input type="text" id="profitVolume"
+                                               class="form-control modern-input fw-bold text-dark fs-5 px-2 py-1 text-center"
+                                               value="0" oninput="formatAndCalcProfit(this)">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-end pt-3 border-top border-success border-opacity-10">
+                                    <span class="text-success fw-bold mb-1 text-uppercase" style="font-size: 0.85rem;">Tổng LN Dự Kiến</span>
+                                    <h2 class="fw-bold text-success mb-0" id="profitTotalMonth">0 đ</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="globalSearchDropdown" class="dropdown-menu w-100 shadow-lg p-0 prod-search-dropdown border-0"
+         style="display: none; position: absolute; z-index: 1050; border-radius: 8px; max-width: 400px;"></div>
+    <script th:inline="javascript">
+        // ==========================================
+        // CẤU HÌNH DATA 2 TAB (Đã bổ sung mục "Phí Khác")
+        // ==========================================
+
+        const pricingFees = [
+            {group: "Phí Sàn tính theo %"},
+            {id: "p_fee1", name: "Phí ngành hàng", defaultValue: 11.0, type: "PERCENT", active: true},
+            {id: "p_fee2", name: "Phí thanh toán", defaultValue: 4.91, type: "PERCENT", active: true},
+            {id: "p_fee3", name: "Thuế", defaultValue: 1.5, type: "PERCENT", active: true},
+            {id: "p_fee4", name: "Voucher Extra", defaultValue: 2.5, type: "PERCENT", active: true},
+            {id: "p_fee5", name: "Freeship Extra", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "p_fee6", name: "Quảng cáo / Affiliate", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "p_fee7", name: "Phí thuê kho", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "p_fee_other_pct", name: "Phí khác (%)", defaultValue: 0.0, type: "PERCENT", active: false},
+            {group: "Chi phí cố định (VNĐ)"},
+            {id: "p_fee8", name: "Phí hạ tầng", defaultValue: 3000, type: "FIXED", active: true},
+            {id: "p_fee9", name: "Phí PiShip", defaultValue: 1620, type: "FIXED", active: true},
+            {id: "p_fee10", name: "Phí đóng gói", defaultValue: 0, type: "FIXED", active: false},
+            {id: "p_fee_other_fixed", name: "Phí khác (VNĐ)", defaultValue: 0, type: "FIXED", active: false}
+        ];
+
+        const profitFees = [
+            {group: "Phí vận hành"},
+            {id: "o_fee1", name: "Vận chuyển Trung Quốc", defaultValue: 3.0, type: "PERCENT", active: true},
+            {id: "o_fee2", name: "Nhân viên MKT", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "o_fee3", name: "Nhân viên CSKH", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "o_fee4", name: "Nhân viên kho", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "o_fee5", name: "Phí văn phòng", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "o_fee6", name: "Phí thuê kho", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "o_fee7", name: "Phí vận hành (điện, nước...)", defaultValue: 0.5, type: "PERCENT", active: true},
+            {id: "o_fee8", name: "Phí bao bì + đóng gói", defaultValue: 1.0, type: "PERCENT", active: true},
+            {id: "o_fee9", name: "Quà tặng + Thư cảm ơn", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "o_fee10", name: "Hoàn hàng - Lỗi hỏng", defaultValue: 3.0, type: "PERCENT", active: true},
+            {id: "o_fee11", name: "Chi phí khác (%)", defaultValue: 2.0, type: "PERCENT", active: true},
+            {
+                id: "o_fee_other_fixed_vh",
+                name: "Phí vận hành khác (VNĐ)",
+                defaultValue: 0,
+                type: "FIXED",
+                active: false
+            },
+            {group: "Phí bán hàng (Shopee/TikTok)"},
+            {id: "o_fee12", name: "Phí quảng cáo", defaultValue: 1.0, type: "PERCENT", active: true},
+            {id: "o_fee13", name: "Phí cố định sàn", defaultValue: 8.0, type: "PERCENT", active: true},
+            {id: "o_fee14", name: "Phí thanh toán", defaultValue: 0.0, type: "PERCENT", active: false},
+            {id: "o_fee15", name: "Freeship", defaultValue: 0.0, type: "PERCENT", active: false},
+            {
+                id: "o_fee_other_pct_bh",
+                name: "Phí bán hàng khác (%)",
+                defaultValue: 0.0,
+                type: "PERCENT",
+                active: false
+            },
+            {id: "o_fee_other_fixed_bh", name: "Phí bán hàng khác (VNĐ)", defaultValue: 0, type: "FIXED", active: false}
+        ];
+
+        let searchTimer;
+        let currentTargetCostInput = '';
+
+        document.addEventListener("DOMContentLoaded", () => {
+            renderFees(pricingFees, 'pricingFeeContainer', 'formatAndCalcPricing');
+            renderFees(profitFees, 'profitFeeContainer', 'formatAndCalcProfit');
+            formatAndCalcPricing();
+            formatAndCalcProfit();
+
+            document.addEventListener('click', function (e) {
+                const dropdown = document.getElementById('globalSearchDropdown');
+                if (dropdown && !dropdown.contains(e.target) && !e.target.closest('.modern-input')) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        });
+
+        // ==========================================
+        // RENDER UI CHUẨN (Đã xóa class border của Bootstrap)
+        // ==========================================
+        function renderFees(feeArray, containerId, calcFunctionName) {
+            let html = '';
+            feeArray.forEach(item => {
+                if (item.group) {
+                    html += `<div class="group-header">${item.group}</div>`;
+                } else {
+                    const isPercent = item.type === 'PERCENT';
+                    const addon = isPercent ? '%' : 'đ';
+                    const inputProps = isPercent
+                        ? `type="number" step="0.01" oninput="${calcFunctionName}()"`
+                        : `type="text" oninput="formatNumberInput(this); ${calcFunctionName}()"`;
+                    const valStr = isPercent ? item.defaultValue : item.defaultValue.toLocaleString('en-US');
+                    const colorClass = isPercent ? 'text-primary' : 'text-danger';
+
+                    html += `
+                <div class="fee-item px-3 py-2 rounded-3 mb-2 d-flex justify-content-between align-items-center shadow-sm">
+                    <div class="form-check form-switch mb-0 d-flex align-items-center">
+                        <input class="form-check-input mt-0 me-2" type="checkbox" id="check_${item.id}" ${item.active ? 'checked' : ''} onchange="${calcFunctionName}()">
+                        <label class="form-check-label fw-medium text-dark" style="font-size: 0.85rem;" for="check_${item.id}">${item.name}</label>
+                    </div>
+                    <div class="modern-input-wrapper d-flex align-items-stretch" style="width: ${isPercent ? '90px' : '110px'};">
+                        <input ${inputProps} id="val_${item.id}" class="form-control modern-input fw-bold ${colorClass} px-2 py-1 text-end" style="font-size: 0.85rem;" value="${valStr}">
+                        <div class="modern-addon px-2 d-flex align-items-center text-muted fw-medium" style="font-size: 0.75rem;">${addon}</div>
+                    </div>
+                </div>`;
+                }
+            });
+            document.getElementById(containerId).innerHTML = html;
+        }
+
+        // Tiện ích Format Số (Xóa ký tự lạ, thêm dấu phẩy)
+        window.formatNumberInput = function (input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (value === '') {
+                input.value = '';
+                return;
+            }
+            input.value = parseInt(value, 10).toLocaleString('en-US');
+        };
+
+        function parseNum(id) {
+            const val = document.getElementById(id)?.value;
+            if (!val) return 0;
+            return parseFloat(val.toString().replace(/,/g, '')) || 0;
+        }
+
+        function calculateTotalFees(feeArray) {
+            let totalPercent = 0;
+            let totalFixed = 0;
+            feeArray.forEach(fee => {
+                if (fee.id && document.getElementById(`check_${fee.id}`).checked) {
+                    const val = parseFloat(document.getElementById(`val_${fee.id}`).value.toString().replace(/,/g, '')) || 0;
+                    if (fee.type === 'PERCENT') totalPercent += val;
+                    else totalFixed += val;
+                }
+            });
+            return {percent: totalPercent, fixed: totalFixed};
+        }
+
+        // Auto tính Giá vốn quy đổi
+        window.autoCalcCost = function () {
+            const rate = parseNum("profitExchangeRate");
+            const cny = parseFloat(document.getElementById("profitPrice1688").value) || 0;
+            const costVnd = Math.round(rate * cny);
+            document.getElementById("profitCost").value = costVnd > 0 ? costVnd.toLocaleString('en-US') : "0";
+        }
+
+        // ==========================================
+        // LOGIC TAB 1: ĐỊNH GIÁ BÁN SHOPEE
+        // ==========================================
+        window.formatAndCalcPricing = function (input) {
+            if (input && (input.id === 'pricingCost' || input.id === 'pricingDesiredProfit' || input.id === 'pricingListedPrice' || input.id === 'pricingShopVoucher')) {
+                formatNumberInput(input);
+            }
+
+            const costPrice = parseNum("pricingCost");
+            const desiredProfit = parseNum("pricingDesiredProfit");
+            const listedPrice = parseNum("pricingListedPrice");
+            const shopVoucher = parseNum("pricingShopVoucher");
+
+            const fees = calculateTotalFees(pricingFees);
+            const fixedStr = fees.fixed > 0 ? ` + ${fees.fixed.toLocaleString('en-US')}đ` : '';
+            document.getElementById("pricingTotalFeeDisplay").innerText = `${fees.percent.toFixed(2)}%${fixedStr}`;
+
+            // Kịch bản A: Giá bán gợi ý
+            const denominator = 1 - (fees.percent / 100);
+            const resSuggestedPriceEl = document.getElementById("pricingSuggestedPrice");
+
+            if (costPrice === 0 && desiredProfit === 0 && fees.fixed === 0) {
+                resSuggestedPriceEl.innerText = "0 đ";
+            } else if (denominator <= 0) {
+                resSuggestedPriceEl.innerText = "Lỗi % Phí!";
+                resSuggestedPriceEl.className = "highlight-value text-danger mb-0";
+            } else {
+                const suggestedPrice = (costPrice + desiredProfit + fees.fixed) / denominator;
+                resSuggestedPriceEl.innerText = Math.round(suggestedPrice).toLocaleString('en-US') + " đ";
+                resSuggestedPriceEl.className = "highlight-value text-primary mb-0";
+            }
+
+            // Kịch bản B: Lợi nhuận thực tế
+            const customerPays = listedPrice > shopVoucher ? listedPrice - shopVoucher : 0;
+            document.getElementById("pricingCustomerPays").innerText = Math.round(customerPays).toLocaleString('en-US') + " đ";
+
+            const shopeeFee = (customerPays * (fees.percent / 100)) + fees.fixed;
+            document.getElementById("pricingShopeeFee").innerText = "- " + Math.round(shopeeFee).toLocaleString('en-US') + " đ";
+
+            const actualProfit = customerPays - shopeeFee - costPrice;
+            const resActualProfitEl = document.getElementById("pricingActualProfit");
+
+            // Cập nhật UI nếu trống
+            if (listedPrice === 0) {
+                resActualProfitEl.innerText = "0 đ";
+                resActualProfitEl.className = "highlight-value text-secondary mb-0";
+                document.getElementById("pricingActualMargin").innerText = `Biên LN: 0%`;
+                document.getElementById("pricingActualMargin").className = "badge bg-secondary text-white px-2 py-1 mt-1 rounded-pill";
+            } else {
+                resActualProfitEl.innerText = Math.round(actualProfit).toLocaleString('en-US') + " đ";
+                resActualProfitEl.className = actualProfit >= 0 ? "highlight-value text-success mb-0" : "highlight-value text-danger mb-0";
+
+                const margin = customerPays > 0 ? (actualProfit / customerPays) * 100 : 0;
+                const resMarginEl = document.getElementById("pricingActualMargin");
+                resMarginEl.innerText = `Biên LN: ${margin.toFixed(1)}%`;
+                resMarginEl.className = margin >= 0 ? "badge bg-success text-white px-2 py-1 mt-1 rounded-pill" : "badge bg-danger text-white px-2 py-1 mt-1 rounded-pill";
+            }
+        };
+
+        // ==========================================
+        // LOGIC TAB 2: BÁO CÁO LỢI NHUẬN (P&L)
+        // ==========================================
+        window.formatAndCalcProfit = function (input) {
+            if (input && (input.id === 'profitSell' || input.id === 'profitCost' || input.id === 'profitVolume')) formatNumberInput(input);
+
+            const sellPrice = parseNum("profitSell");
+            const costPrice = parseNum("profitCost");
+            const volume = parseNum("profitVolume");
+
+            const fees = calculateTotalFees(profitFees);
+            const fixedStr = fees.fixed > 0 ? ` + ${fees.fixed.toLocaleString('en-US')}đ` : '';
+            document.getElementById("profitTotalFeeDisplay").innerText = `${fees.percent.toFixed(2)}%${fixedStr}`;
+
+            const totalFeeAmount = (sellPrice * (fees.percent / 100)) + fees.fixed;
+            const netProfit = sellPrice - costPrice - totalFeeAmount;
+
+            const netMargin = costPrice > 0 ? (netProfit / costPrice) * 100 : 0;
+            const markup = costPrice > 0 ? (sellPrice / costPrice) * 100 : 0;
+            const totalMonthProfit = netProfit * volume;
+
+            const resNetEl = document.getElementById("profitResultNet");
+            const resMonthEl = document.getElementById("profitTotalMonth");
+
+            // Xử lý hiển thị 0 khi trống input
+            if (sellPrice === 0 && costPrice === 0 && fees.fixed === 0) {
+                resNetEl.innerText = "0 đ";
+                resNetEl.className = "highlight-value text-secondary mb-3";
+                resMonthEl.innerText = "0 đ";
+                resMonthEl.className = "fw-bold text-secondary mb-0";
+                document.getElementById("profitResultMargin").className = "badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-2 rounded-pill shadow-sm";
+                document.getElementById("profitResultMargin").innerText = `Lãi / Vốn: 0%`;
+                document.getElementById("profitMarkup").innerText = `% Giá nhập: 0%`;
+            } else {
+                resNetEl.innerText = Math.round(netProfit).toLocaleString('en-US') + " đ";
+                resNetEl.className = netProfit >= 0 ? "highlight-value text-success mb-3" : "highlight-value text-danger mb-3";
+
+                document.getElementById("profitResultMargin").innerText = `Lãi / Vốn: ${netMargin.toFixed(1)}%`;
+                document.getElementById("profitResultMargin").className = netMargin >= 0 ? "badge bg-success text-white px-3 py-2 rounded-pill shadow-sm" : "badge bg-danger text-white px-3 py-2 rounded-pill shadow-sm";
+
+                document.getElementById("profitMarkup").innerText = `% Giá nhập: ${markup.toFixed(1)}%`;
+
+                resMonthEl.innerText = Math.round(totalMonthProfit).toLocaleString('en-US') + " đ";
+                resMonthEl.className = totalMonthProfit >= 0 ? "fw-bold text-success mb-0" : "fw-bold text-danger mb-0";
+            }
+        };
+
+        // ==========================================
+        // GLOBAL DROPDOWN SEARCH & RESET
+        // ==========================================
+        window.searchProduct = function (inputElem, targetCostId) {
+            currentTargetCostInput = targetCostId;
+            const keyword = inputElem.value.trim();
+            const dropdown = document.getElementById('globalSearchDropdown');
+
+            if (keyword.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            const rect = inputElem.parentElement.getBoundingClientRect();
+            dropdown.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.width = rect.width + 'px';
+
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        dropdown.innerHTML = '';
+                        if (data.products && data.products.length > 0) {
+                            data.products.forEach(p => {
+                                const imgSrc = p.imageUrl || 'https://placehold.co/40x40?text=SP';
+                                if (p.variants && p.variants.length > 0) {
+                                    p.variants.forEach(v => {
+                                        createSearchItem(dropdown, inputElem, p.name + (v.variantName !== 'Mặc định' ? ` - ${v.variantName}` : ''), v.sku || p.code, imgSrc, p.costPrice);
+                                    });
+                                } else {
+                                    createSearchItem(dropdown, inputElem, p.name, p.code, imgSrc, p.costPrice);
+                                }
+                            });
+                            dropdown.style.display = 'block';
+                        } else {
+                            dropdown.innerHTML = '<div class="p-3 text-center text-muted small">Không tìm thấy</div>';
+                            dropdown.style.display = 'block';
+                        }
+                    });
+            }, 300);
+        };
+
+        function createSearchItem(dropdown, inputElem, name, sku, imgSrc, costPrice) {
+            const div = document.createElement('div');
+            div.className = 'dropdown-item py-2 px-3 border-bottom d-flex align-items-center gap-3 cursor-pointer hover-bg-light';
+            div.innerHTML = `
+            <img src="${imgSrc}" class="rounded-3 border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
+            <div class="flex-grow-1 overflow-hidden">
+                <div class="fw-semibold text-dark text-truncate" style="font-size: 0.85rem;">${name}</div>
+                <div class="text-secondary mt-1" style="font-size: 0.75rem;">SKU: ${sku}</div>
+            </div>
+        `;
+            div.onclick = () => {
+                inputElem.value = name;
+                dropdown.style.display = 'none';
+                // Tự động điền giá vốn (ưu tiên p.costPrice từ API, nếu không random để demo)
+                const mockCost = costPrice ? costPrice : Math.floor(Math.random() * 500000) + 100000;
+                document.getElementById(currentTargetCostInput).value = mockCost.toLocaleString('en-US');
+
+                if (currentTargetCostInput === 'pricingCost') formatAndCalcPricing();
+                else formatAndCalcProfit();
+            };
+            dropdown.appendChild(div);
+        }
+
+        // Reset về mặc định
+        window.resetCurrentTab = function () {
+            const activeTab = document.querySelector('.nav-pills .active').id;
+
+            if (activeTab === 'pills-pricing-tab') {
+                document.getElementById("pricingCost").value = "0";
+                document.getElementById("pricingDesiredProfit").value = "0";
+                document.getElementById("pricingListedPrice").value = "0";
+                document.getElementById("pricingShopVoucher").value = "0";
+                pricingFees.forEach(fee => {
+                    if (fee.id) {
+                        document.getElementById(`check_${fee.id}`).checked = fee.active;
+                        document.getElementById(`val_${fee.id}`).value = fee.type === 'PERCENT' ? fee.defaultValue : fee.defaultValue.toLocaleString('en-US');
+                    }
+                });
+                formatAndCalcPricing();
+            } else {
+                document.getElementById("profitExchangeRate").value = "0";
+                document.getElementById("profitPrice1688").value = "0";
+                document.getElementById("profitCost").value = "0";
+                document.getElementById("profitSell").value = "0";
+                document.getElementById("profitVolume").value = "0";
+                profitFees.forEach(fee => {
+                    if (fee.id) {
+                        document.getElementById(`check_${fee.id}`).checked = fee.active;
+                        document.getElementById(`val_${fee.id}`).value = fee.type === 'PERCENT' ? fee.defaultValue : fee.defaultValue.toLocaleString('en-US');
+                    }
+                });
+                formatAndCalcProfit();
+            }
+            document.querySelectorAll('input[placeholder="Tìm tên / SKU..."]').forEach(el => el.value = '');
+        }
+    </script>
+</div>
+</body>
+</html>

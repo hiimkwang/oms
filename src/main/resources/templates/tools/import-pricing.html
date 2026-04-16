@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::content})}">
+<head>
+    <title>Bảng Tính Giá Nhập Nháp</title>
+    <style>
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .cursor-pointer:hover {
+            background-color: #f8fafc;
+        }
+
+        .prod-search-dropdown {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .prod-search-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .prod-search-dropdown::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+
+
+        /* ========================================================= */
+
+        /* Input lưới trong bảng (Cho cột SL và Giá) */
+        .grid-input {
+            border: 1px solid transparent;
+            background-color: transparent;
+            transition: all 0.2s;
+            border-radius: 6px;
+        }
+
+        .grid-input:hover {
+            border-color: #cbd5e1;
+            background-color: #f8fafc;
+        }
+
+        .grid-input:focus {
+            border-color: #3b82f6 !important;
+            background-color: #fff !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+            outline: none !important;
+        }
+
+        .table-modern th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+<div th:fragment="content">
+    <style>
+        /* ===== KHUNG NHẬP LIỆU TỔNG HỢP ===== */
+        .input-group.calc-input-group {
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 8px !important;
+            background-color: #ffffff !important;
+            overflow: hidden !important; /* Giữ các phần tử con không chọc thủng góc bo tròn */
+        }
+
+        /* Xóa sạch viền và hiệu ứng mặc định của các phần tử con */
+        .input-group.calc-input-group > .input-group-text,
+        .input-group.calc-input-group > .form-control {
+            border: none !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
+            outline: none !important;
+            color: #475569;
+        }
+
+        /* Màu nền riêng cho đơn vị đ */
+        .input-group.calc-input-group > .end-text {
+            background-color: #f8fafc !important;
+        }
+
+        /* Phép thuật: Sáng viền CẢ CỤM khi click vào bất kỳ đâu bên trong */
+        .input-group.calc-input-group:focus-within {
+            border-color: #0d6efd !important;
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15) !important;
+        }
+
+        /* ===== GIỮ LẠI CÁC CSS KHÁC CỦA BẠN DƯỚI NÀY ===== */
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .cursor-pointer:hover {
+            background-color: #f8fafc;
+        }
+
+        .prod-search-dropdown {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .prod-search-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .prod-search-dropdown::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .grid-input {
+            border: 1px solid transparent;
+            background-color: transparent;
+            transition: all 0.2s;
+            border-radius: 6px;
+        }
+
+        .grid-input:hover {
+            border-color: #cbd5e1;
+            background-color: #f8fafc;
+        }
+
+        .grid-input:focus {
+            border-color: #3b82f6 !important;
+            background-color: #fff !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+            outline: none !important;
+        }
+
+        .table-modern th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+    </style>
+    <div id="printArea">
+
+        <div class="d-none d-print-block text-center mb-4">
+            <h3 class="fw-bold text-dark">BẢNG TÍNH GIÁ NHẬP DỰ KIẾN</h3>
+            <p class="text-muted" id="printTime"></p>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+            <div>
+                <h4 class="fw-bold text-dark m-0">Phân Bổ Chi Phí & Tính Giá Nhập Hàng Trung Quốc</h4>
+                <div class="d-flex align-items-center mt-1">
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill"
+                          id="saveStatus" style="font-size: 0.75rem;">
+                        <i class="bi bi-cloud-check me-1"></i>Sẵn sàng
+                    </span>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-light border shadow-sm fw-medium" onclick="resetCalculator()">
+                    <i class="bi bi-arrow-counterclockwise text-secondary me-1"></i> Làm mới
+                </button>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex align-items-center no-print">
+                <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-3">
+                    <i class="bi bi-sliders text-primary fs-5"></i>
+                </div>
+                <h6 class="m-0 fw-bold text-dark">Tham số phân bổ</h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-muted small mb-2">Tỷ giá (¥/VNĐ)</label>
+                        <div class="input-group input-group-lg calc-input-group has-end shadow-sm">
+                            <span class="input-group-text start-icon"><i class="bi bi-currency-exchange"></i></span>
+                            <input type="text" id="paramTyGia" class="form-control fw-bold text-primary fs-5"
+                                   value="3,948" oninput="formatNumberInput(this); calculateAll()">
+                            <span class="input-group-text end-text fw-medium">đ</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-muted small mb-2">Tổng phí vận chuyển (VNĐ)</label>
+                        <div class="input-group input-group-lg calc-input-group has-end shadow-sm">
+                            <span class="input-group-text start-icon"><i class="bi bi-truck"></i></span>
+                            <input type="text" id="paramTongShip" class="form-control fw-bold text-danger fs-5"
+                                   value="644,420" oninput="formatNumberInput(this); calculateAll()">
+                            <span class="input-group-text end-text fw-medium">đ</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-muted small mb-2">Tổng chi phí khác (VNĐ)</label>
+                        <div class="input-group input-group-lg calc-input-group has-end shadow-sm">
+                            <span class="input-group-text start-icon"><i class="bi bi-box-seam"></i></span>
+                            <input type="text" id="paramChiPhiKhac" class="form-control fw-bold text-warning fs-5"
+                                   value="430,000" oninput="formatNumberInput(this); calculateAll()">
+                            <span class="input-group-text end-text fw-medium">đ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="bg-success bg-opacity-10 p-2 rounded-3 me-3 no-print">
+                        <i class="bi bi-table text-success fs-5"></i>
+                    </div>
+                    <h6 class="m-0 fw-bold text-dark">Chi tiết sản phẩm</h6>
+                </div>
+                <button class="btn btn-sm btn-success shadow-sm fw-medium no-print" onclick="addRow()">
+                    <i class="bi bi-plus-lg me-1"></i> Thêm sản phẩm
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-modern table-hover align-middle mb-0 text-center" id="calcTable"
+                           style="font-size: 0.85rem;">
+                        <thead>
+                        <tr>
+                            <th width="4%" class="text-muted">STT</th>
+                            <th width="20%" class="text-start">Tên SP / Biến thể</th>
+                            <th width="7%">SL</th>
+                            <th width="8%">Giá ¥</th>
+                            <th width="8%" class="bg-light text-primary">Tiền ¥</th>
+                            <th width="9%">Tiền (đ)</th>
+                            <th width="9%">Ship (đ)</th>
+                            <th width="9%">Khác (đ)</th>
+                            <th width="11%" class="bg-warning bg-opacity-10 text-dark">Tổng Vốn (đ)</th>
+                            <th width="11%" class="bg-success bg-opacity-10 text-success">Giá vốn/1 SP (đ)</th>
+                            <th width="4%" class="no-print"></th>
+                        </tr>
+                        </thead>
+                        <tbody id="calcTableBody" class="border-top-0"></tbody>
+                        <tfoot class="bg-light fw-bold" style="font-size: 0.9rem;">
+                        <tr>
+                            <td colspan="2" class="text-end text-muted py-3">TỔNG CỘNG:</td>
+                            <td id="sumSL" class="text-dark py-3">0</td>
+                            <td class="py-3">-</td>
+                            <td id="sumTienTe" class="text-primary py-3">0 ¥</td>
+                            <td id="sumTienVnd" class="py-3">0 đ</td>
+                            <td id="sumPhiShip" class="py-3">0 đ</td>
+                            <td id="sumPhiKhac" class="py-3">0 đ</td>
+                            <td id="sumTongVon" class="text-danger fs-6 py-3">0 đ</td>
+                            <td class="py-3">-</td>
+                            <td class="no-print py-3"></td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        let rowCount = 0;
+        let searchTimer;
+
+        window.formatNumberInput = function (input) {
+            let value = input.value.replace(/[^0-9.]/g, '');
+            if (value === '') {
+                input.value = '';
+                return;
+            }
+            let parts = value.split('.');
+            let intPart = parts[0];
+            let decPart = parts.length > 1 ? '.' + parts[1] : '';
+            if (intPart) intPart = parseInt(intPart, 10).toLocaleString('en-US');
+            input.value = intPart + decPart;
+        };
+
+        window.parseNumber = function (val) {
+            if (!val) return 0;
+            return parseFloat(val.toString().replace(/,/g, '')) || 0;
+        };
+
+        const formatVND = (num) => {
+            if (isNaN(num) || num === 0) return "0 đ";
+            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " đ";
+        };
+
+        const formatCYN = (num) => {
+            if (isNaN(num) || num === 0) return "0.00 ¥";
+            return num.toFixed(2) + " ¥";
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const now = new Date();
+            document.getElementById('printTime').innerText = 'Ngày in: ' + now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN');
+
+            loadDraft();
+            document.addEventListener('click', function (e) {
+                document.querySelectorAll('.prod-search-dropdown').forEach(dropdown => {
+                    if (!dropdown.parentElement.contains(e.target)) {
+                        dropdown.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        window.addRow = function (initName = "", initQty = 1, initPriceCyn = 0) {
+            rowCount++;
+            const tbody = document.getElementById("calcTableBody");
+            if (!tbody) return;
+
+            const strQty = initQty ? initQty.toLocaleString('en-US') : "";
+            const strPrice = initPriceCyn ? initPriceCyn.toLocaleString('en-US') : "";
+
+            const tr = document.createElement("tr");
+            tr.id = `row_${rowCount}`;
+
+            // ÁP DỤNG CLASS TỪ LOGIN CHO Ô TÌM KIẾM
+            tr.innerHTML = `
+            <td class="text-muted fw-medium row-index">${rowCount}</td>
+            <td class="px-2">
+                <div class="position-relative text-start">
+                    <div class="input-group input-group-sm calc-input-group shadow-sm">
+                        <span class="input-group-text start-icon no-print"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control input-name" placeholder="Tìm tên hoặc mã SP..." oninput="searchProductInput(this, ${rowCount})" autocomplete="off">
+                    </div>
+                    <div id="dropdown_${rowCount}" class="dropdown-menu w-100 shadow-lg p-0 prod-search-dropdown border-0" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1050; border-radius: 8px;"></div>
+                </div>
+            </td>
+            <td class="px-2"><input type="text" class="form-control grid-input text-center input-qty px-1 py-1" oninput="formatNumberInput(this); calculateAll()"></td>
+            <td class="px-2"><input type="text" class="form-control grid-input text-center input-price-cyn px-1 py-1" oninput="formatNumberInput(this); calculateAll()"></td>
+            <td class="bg-light fw-medium out-total-cyn text-primary align-middle">0.00 ¥</td>
+            <td class="out-total-vnd text-muted align-middle">0 đ</td>
+            <td class="out-ship text-muted align-middle">0 đ</td>
+            <td class="out-other text-muted align-middle">0 đ</td>
+            <td class="bg-warning bg-opacity-10 fw-bold out-total-capital text-dark align-middle">0 đ</td>
+            <td class="bg-success bg-opacity-10 fw-bold text-success fs-6 out-unit-capital align-middle">0 đ</td>
+            <td class="no-print align-middle">
+                <button class="btn btn-sm btn-light text-danger rounded-circle p-1" style="width: 28px; height: 28px;" onclick="removeRow(${rowCount})" title="Xóa dòng">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </td>
+        `;
+            tbody.appendChild(tr);
+
+            tr.querySelector(".input-name").value = initName;
+            tr.querySelector(".input-qty").value = strQty || "1";
+            tr.querySelector(".input-price-cyn").value = strPrice || "0";
+
+            reindexRows();
+            calculateAll();
+        };
+
+        window.removeRow = function (id) {
+            document.getElementById(`row_${id}`)?.remove();
+            reindexRows();
+            calculateAll();
+        };
+
+        function reindexRows() {
+            document.querySelectorAll("#calcTableBody tr").forEach((row, index) => {
+                const indexTd = row.querySelector(".row-index");
+                if (indexTd) indexTd.innerText = index + 1;
+            });
+        }
+
+        window.searchProductInput = function (inputElem, rowId) {
+            const keyword = inputElem.value.trim();
+            const dropdown = document.getElementById(`dropdown_${rowId}`);
+
+            if (keyword.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        dropdown.innerHTML = '';
+                        if (data.products && data.products.length > 0) {
+                            data.products.forEach(p => {
+                                const imgSrc = p.imageUrl ? p.imageUrl : 'https://placehold.co/40x40?text=SP';
+
+                                if (p.variants && p.variants.length > 0) {
+                                    p.variants.forEach(v => {
+                                        const variantStr = (v.variantName && v.variantName !== 'Mặc định') ? ` - ${v.variantName}` : '';
+                                        const displayName = p.name + variantStr;
+                                        const displaySku = v.sku ? v.sku : p.code;
+                                        createDropdownItem(dropdown, inputElem, displayName, displaySku, imgSrc);
+                                    });
+                                } else {
+                                    createDropdownItem(dropdown, inputElem, p.name, p.code, imgSrc);
+                                }
+                            });
+                            dropdown.style.display = 'block';
+                        } else {
+                            dropdown.innerHTML = '<div class="p-3 text-center text-muted small">Không tìm thấy</div>';
+                            dropdown.style.display = 'block';
+                        }
+                    })
+                    .catch(err => console.error("Lỗi tìm kiếm:", err));
+            }, 300);
+        };
+
+        function createDropdownItem(dropdown, inputElem, displayName, sku, imgSrc) {
+            const div = document.createElement('div');
+            div.className = 'dropdown-item py-2 px-3 border-bottom d-flex align-items-center gap-3 cursor-pointer';
+            div.style.whiteSpace = 'normal';
+            div.innerHTML = `
+            <img src="${imgSrc}" class="rounded-3 border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
+            <div class="flex-grow-1 overflow-hidden">
+                <div class="fw-semibold text-dark text-truncate" style="font-size: 0.85rem;">${displayName}</div>
+                <div class="text-secondary mt-1" style="font-size: 0.75rem;"><i class="bi bi-upc-scan me-1"></i>${sku}</div>
+            </div>
+        `;
+            div.onclick = () => {
+                inputElem.value = displayName;
+                dropdown.style.display = 'none';
+                inputElem.closest('tr').querySelector('.input-qty').focus();
+                calculateAll();
+            };
+            dropdown.appendChild(div);
+        }
+
+        window.calculateAll = function () {
+            const tyGia = parseNumber(document.getElementById("paramTyGia")?.value);
+            const tongShip = parseNumber(document.getElementById("paramTongShip")?.value);
+            const tongKhac = parseNumber(document.getElementById("paramChiPhiKhac")?.value);
+
+            const rows = document.querySelectorAll("#calcTableBody tr");
+            let sumSL = 0, sumTienTe = 0;
+            let draftItems = [];
+
+            rows.forEach(row => {
+                const name = row.querySelector(".input-name").value;
+                const qty = parseNumber(row.querySelector(".input-qty").value);
+                const priceCYN = parseNumber(row.querySelector(".input-price-cyn").value);
+
+                sumSL += qty;
+                sumTienTe += (qty * priceCYN);
+
+                if (name || qty > 0 || priceCYN > 0) {
+                    draftItems.push({name: name, qty: qty, priceCyn: priceCYN});
+                }
+            });
+
+            let sumTienVnd = 0, sumPhiShip = 0, sumPhiKhac = 0, sumTongVon = 0;
+            rows.forEach(row => {
+                const qty = parseNumber(row.querySelector(".input-qty").value);
+                const priceCYN = parseNumber(row.querySelector(".input-price-cyn").value);
+
+                const totalCYN = qty * priceCYN;
+                const totalVND = totalCYN * tyGia;
+                const ratio = sumTienTe > 0 ? (totalCYN / sumTienTe) : 0;
+                const allocatedShip = tongShip * ratio;
+                const allocatedOther = tongKhac * ratio;
+
+                const totalCapitalVND = totalVND + allocatedShip + allocatedOther;
+                const unitCapitalVND = qty > 0 ? (totalCapitalVND / qty) : 0;
+
+                sumTienVnd += totalVND;
+                sumPhiShip += allocatedShip;
+                sumPhiKhac += allocatedOther;
+                sumTongVon += totalCapitalVND;
+
+                row.querySelector(".out-total-cyn").innerText = formatCYN(totalCYN);
+                row.querySelector(".out-total-vnd").innerText = formatVND(totalVND);
+                row.querySelector(".out-ship").innerText = formatVND(allocatedShip);
+                row.querySelector(".out-other").innerText = formatVND(allocatedOther);
+                row.querySelector(".out-total-capital").innerText = formatVND(totalCapitalVND);
+                row.querySelector(".out-unit-capital").innerText = formatVND(unitCapitalVND);
+            });
+
+            document.getElementById("sumSL").innerText = sumSL.toLocaleString('en-US');
+            document.getElementById("sumTienTe").innerText = formatCYN(sumTienTe);
+            document.getElementById("sumTienVnd").innerText = formatVND(sumTienVnd);
+            document.getElementById("sumPhiShip").innerText = formatVND(sumPhiShip);
+            document.getElementById("sumPhiKhac").innerText = formatVND(sumPhiKhac);
+            document.getElementById("sumTongVon").innerText = formatVND(sumTongVon);
+
+            localStorage.setItem("oms_pricing_draft", JSON.stringify({
+                tyGia: tyGia, tongShip: tongShip, tongKhac: tongKhac, items: draftItems
+            }));
+
+            const statusEl = document.getElementById("saveStatus");
+            statusEl.innerHTML = `<i class="bi bi-cloud-check me-1"></i>Đã lưu tự động lúc ${new Date().toLocaleTimeString('vi-VN')}`;
+            statusEl.className = "text-success fw-medium";
+        };
+
+        window.loadDraft = function () {
+            const draftStr = localStorage.getItem("oms_pricing_draft");
+            if (draftStr) {
+                try {
+                    const draft = JSON.parse(draftStr);
+                    document.getElementById("paramTyGia").value = draft.tyGia ? draft.tyGia.toLocaleString('en-US') : "3,948";
+                    document.getElementById("paramTongShip").value = draft.tongShip ? draft.tongShip.toLocaleString('en-US') : "0";
+                    document.getElementById("paramChiPhiKhac").value = draft.tongKhac ? draft.tongKhac.toLocaleString('en-US') : "0";
+
+                    if (draft.items && draft.items.length > 0) {
+                        document.getElementById("calcTableBody").innerHTML = "";
+                        rowCount = 0;
+                        draft.items.forEach(item => addRow(item.name, item.qty, item.priceCyn));
+                    } else addRow();
+                } catch (e) {
+                    addRow();
+                }
+            } else addRow();
+        };
+
+        window.resetCalculator = function () {
+            Swal.fire({
+                title: 'Làm mới bảng tính?',
+                text: "Toàn bộ dữ liệu nhập nháp hiện tại sẽ bị xóa sạch!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: '<i class="bi bi-trash3 me-1"></i> Đồng ý, xóa nháp!',
+                cancelButtonText: 'Hủy bỏ',
+                reverseButtons: true,
+                customClass: {
+                    popup: 'border-0 shadow-lg rounded-4',
+                    title: 'fs-5 fw-bold text-dark',
+                    htmlContainer: 'text-muted'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem("oms_pricing_draft");
+                    document.getElementById("calcTableBody").innerHTML = "";
+                    rowCount = 0;
+                    document.getElementById("paramTyGia").value = "3,948";
+                    document.getElementById("paramTongShip").value = "0";
+                    document.getElementById("paramChiPhiKhac").value = "0";
+                    addRow();
+
+                    const statusEl = document.getElementById("saveStatus");
+                    statusEl.innerHTML = "<i class=\"bi bi-stars me-1\"></i>Đã tạo bảng mới";
+                    statusEl.className = "text-secondary fw-medium";
+
+                    if (typeof Toast !== 'undefined') {
+                        Toast.fire({
+                            icon: 'success',
+                            title: '<span class="fw-medium ms-1" style="font-size:14px;">Đã làm mới bảng tính!</span>'
+                        });
+                    }
+                }
+            });
+        };
+    </script>
+</div>
+</body>
+</html>

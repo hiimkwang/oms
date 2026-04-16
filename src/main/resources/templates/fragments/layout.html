@@ -141,9 +141,16 @@
         }
 
         body.sidebar-collapsed .logo-wrapper {
-            padding: 20px 0 10px 0 !important;
+            padding: 20px 0 20px 0 !important;
+            margin: 0 !important; /* Reset margin để logo không bị đẩy lệch */
             justify-content: center !important;
+            gap: 0 !important; /* Xóa khoảng trống ảo của flexbox khi ẩn chữ */
             border-bottom: none !important;
+        }
+
+        /* Đảm bảo chữ ẩn hoàn toàn không chiếm diện tích */
+        body.sidebar-collapsed .logo-text {
+            display: none !important;
         }
 
         /* ====================================================== */
@@ -257,7 +264,7 @@
             font-weight: 500;
         }
 
-        /* LÀM ĐẸP SWEETALERT2 */
+        /* LÀM ĐẸP SWEETALERT2 MỚI NHẤT */
         .swal2-popup {
             border-radius: 16px !important;
             padding: 1.5rem !important;
@@ -305,6 +312,39 @@
             color: #475569 !important;
             border: 1px solid #e2e8f0 !important;
         }
+
+        /* ======================================================
+           TOAST NOTIFICATION (CHUẨN SAAS HIỆN ĐẠI)
+           ====================================================== */
+
+        .swal2-toast-modern {
+            padding: 14px 24px !important;
+            border-radius: 12px !important;
+            background: #f8fafc !important;
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            border: 1px solid #cbd5e1 !important;
+            margin-bottom: 24px !important;
+            margin-right: 24px !important;
+            width: auto !important;
+            max-width: 450px !important;
+            align-items: center !important;
+        }
+
+        .swal2-toast-modern .swal2-icon {
+            font-size: 13px !important;
+            margin: 0 16px 0 0 !important;
+            border-width: 3px !important;
+        }
+
+        .swal2-toast-modern .swal2-title {
+            font-size: 15.5px !important;
+            font-weight: 600 !important;
+            color: #0f172a !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1.5 !important;
+            align-self: center !important;
+        }
     </style>
 </head>
 <body>
@@ -312,7 +352,7 @@
     <div class="oms-sidebar vh-100 position-fixed overflow-auto d-flex flex-column" id="mainSidebar">
 
         <a href="/"
-           class="logo-wrapper p-4 mb-2 d-flex align-items-center gap-3 border-bottom border-secondary border-opacity-25 mx-2 pb-4 text-decoration-none transition-transform">
+           class="logo-wrapper py-4 px-3 mb-2 d-flex align-items-center gap-2 border-bottom border-secondary border-opacity-25 text-decoration-none transition-transform">
             <div class="d-flex align-items-center justify-content-center flex-shrink-0"
                  style="width: 48px; height: 48px;">
                 <img th:if="${storeLogo != null && !storeLogo.isEmpty()}" th:src="${storeLogo}" alt="Logo"
@@ -375,6 +415,21 @@
                         <li><a href="/ui/inventory" class="nav-link py-2 fs-6"><span>Tồn kho</span></a></li>
                         <li><a href="/ui/imports" class="nav-link py-2 fs-6"><span>Nhập hàng</span></a></li>
                         <li><a href="/ui/suppliers" class="nav-link py-2 fs-6"><span>Nhà cung cấp</span></a></li>
+                    </ul>
+                </div>
+            </li>
+            <li class="nav-item mb-1">
+                <a class="nav-link justify-content-between" data-bs-toggle="collapse" href="#menuTools">
+                    <div class="d-flex align-items-center"><i class="bi bi-calculator me-2"></i>
+                        <span>Công cụ định giá</span></div>
+                    <i class="bi bi-chevron-down small transition-transform"></i>
+                </a>
+                <div class="collapse" id="menuTools">
+                    <ul class="nav flex-column ms-3 ps-3 border-start border-secondary mt-1 mb-2">
+                        <li><a href="/ui/tools/import-pricing" class="nav-link py-2 fs-6"><span>Tính giá nhập kho</span></a>
+                        </li>
+                        <li><a href="/ui/tools/selling-pricing"
+                               class="nav-link py-2 fs-6"><span>Phân tích giá & Lãi sàn</span></a></li>
                     </ul>
                 </div>
             </li>
@@ -516,154 +571,152 @@
             </div>
         </main>
     </div>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- XỬ LÝ COLLAPSE SIDEBAR ---
+        document.addEventListener("DOMContentLoaded", function () {
+            const body = document.body;
+            const toggleBtn = document.getElementById('sidebarToggleBtn');
 
-<script>
-    // --- XỬ LÝ COLLAPSE SIDEBAR ---
-    document.addEventListener("DOMContentLoaded", function () {
-        const body = document.body;
-        const toggleBtn = document.getElementById('sidebarToggleBtn');
-
-        if (localStorage.getItem('sidebar-collapsed') === 'true') {
-            body.classList.add('sidebar-collapsed');
-        }
-
-        toggleBtn.addEventListener('click', function () {
-            body.classList.toggle('sidebar-collapsed');
-            localStorage.setItem('sidebar-collapsed', body.classList.contains('sidebar-collapsed'));
-        });
-
-        const collapseLinks = document.querySelectorAll('.oms-sidebar .nav-link[data-bs-toggle="collapse"]');
-        collapseLinks.forEach(link => {
-            link.addEventListener('click', function () {
-                if (body.classList.contains('sidebar-collapsed')) {
-                    body.classList.remove('sidebar-collapsed');
-                    localStorage.setItem('sidebar-collapsed', 'false');
-                }
-            });
-        });
-    });
-
-    // --- XỬ LÝ ACTIVE MENU KHI ĐIỀU HƯỚNG ---
-    document.addEventListener("DOMContentLoaded", function () {
-        const currentPath = window.location.pathname;
-        const navLinks = document.querySelectorAll('.oms-sidebar .nav-link');
-
-        navLinks.forEach(link => {
-            const href = link.getAttribute('href');
-            if (!href || href === '#') return;
-
-            let isMatch = false;
-            const isSubMenu = link.closest('.collapse');
-
-            if (href === '/') {
-                isMatch = (currentPath === '/');
-            } else if (isSubMenu) {
-                isMatch = (currentPath === href);
-            } else {
-                isMatch = currentPath.startsWith(href);
+            if (localStorage.getItem('sidebar-collapsed') === 'true') {
+                body.classList.add('sidebar-collapsed');
             }
 
-            if (isMatch) {
-                const parentCollapse = link.closest('.collapse');
+            toggleBtn.addEventListener('click', function () {
+                body.classList.toggle('sidebar-collapsed');
+                localStorage.setItem('sidebar-collapsed', body.classList.contains('sidebar-collapsed'));
+            });
 
-                if (parentCollapse) {
-                    link.classList.add('fw-bold', 'text-white');
-                    link.style.color = "#fff";
-                    parentCollapse.classList.add('show');
-
-                    const triggerElement = document.querySelector(`[href="#${parentCollapse.id}"]`);
-                    if (triggerElement) {
-                        triggerElement.setAttribute('aria-expanded', 'true');
-                        triggerElement.classList.add('text-white');
-                        const icon = triggerElement.querySelector('.bi-chevron-down');
-                        if (icon) icon.style.transform = 'rotate(180deg)';
+            const collapseLinks = document.querySelectorAll('.oms-sidebar .nav-link[data-bs-toggle="collapse"]');
+            collapseLinks.forEach(link => {
+                link.addEventListener('click', function () {
+                    if (body.classList.contains('sidebar-collapsed')) {
+                        body.classList.remove('sidebar-collapsed');
+                        localStorage.setItem('sidebar-collapsed', 'false');
                     }
+                });
+            });
+        });
+
+        // --- XỬ LÝ ACTIVE MENU KHI ĐIỀU HƯỚNG ---
+        document.addEventListener("DOMContentLoaded", function () {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.oms-sidebar .nav-link');
+
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (!href || href === '#') return;
+
+                let isMatch = false;
+                const isSubMenu = link.closest('.collapse');
+
+                if (href === '/') {
+                    isMatch = (currentPath === '/');
+                } else if (isSubMenu) {
+                    isMatch = (currentPath === href);
                 } else {
-                    link.classList.add('active');
+                    isMatch = currentPath.startsWith(href);
                 }
+
+                if (isMatch) {
+                    const parentCollapse = link.closest('.collapse');
+
+                    if (parentCollapse) {
+                        link.classList.add('fw-bold', 'text-white');
+                        link.style.color = "#fff";
+                        parentCollapse.classList.add('show');
+
+                        const triggerElement = document.querySelector(`[href="#${parentCollapse.id}"]`);
+                        if (triggerElement) {
+                            triggerElement.setAttribute('aria-expanded', 'true');
+                            triggerElement.classList.add('text-white');
+                            const icon = triggerElement.querySelector('.bi-chevron-down');
+                            if (icon) icon.style.transform = 'rotate(180deg)';
+                        }
+                    } else {
+                        link.classList.add('active');
+                    }
+                }
+            });
+
+            const collapseElements = document.querySelectorAll('.collapse');
+            collapseElements.forEach(coll => {
+                coll.addEventListener('show.bs.collapse', function () {
+                    const trigger = document.querySelector(`[href="#${this.id}"] .bi-chevron-down`);
+                    if (trigger) trigger.style.transform = 'rotate(180deg)';
+                });
+                coll.addEventListener('hide.bs.collapse', function () {
+                    const trigger = document.querySelector(`[href="#${this.id}"] .bi-chevron-down`);
+                    if (trigger) trigger.style.transform = 'rotate(0deg)';
+                });
+            });
+
+            // Tìm kiếm toàn cục (Ctrl+K)
+            document.addEventListener('keydown', function (event) {
+                if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+                    event.preventDefault();
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput) searchInput.focus();
+                }
+            });
+
+            // Ajax Tìm kiếm
+            const searchInput = document.getElementById('searchInput');
+            const searchDropdown = document.getElementById('searchDropdown');
+            let searchTimeout;
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const keyword = this.value.trim();
+                    if (keyword.length === 0) {
+                        searchDropdown.style.display = 'none';
+                        return;
+                    }
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`)
+                            .then(response => response.json())
+                            .then(data => renderSearchResults(data, keyword))
+                            .catch(err => console.error("Lỗi tìm kiếm:", err));
+                    }, 300);
+                });
+
+                document.addEventListener('click', function (e) {
+                    if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+                        searchDropdown.style.display = 'none';
+                    }
+                });
+
+                searchInput.addEventListener('focus', function () {
+                    if (this.value.trim().length > 0 && searchDropdown.innerHTML.trim() !== '') {
+                        searchDropdown.style.display = 'block';
+                    }
+                });
             }
-        });
 
-        const collapseElements = document.querySelectorAll('.collapse');
-        collapseElements.forEach(coll => {
-            coll.addEventListener('show.bs.collapse', function () {
-                const trigger = document.querySelector(`[href="#${this.id}"] .bi-chevron-down`);
-                if (trigger) trigger.style.transform = 'rotate(180deg)';
-            });
-            coll.addEventListener('hide.bs.collapse', function () {
-                const trigger = document.querySelector(`[href="#${this.id}"] .bi-chevron-down`);
-                if (trigger) trigger.style.transform = 'rotate(0deg)';
-            });
-        });
+            function renderSearchResults(data, keyword) {
+                searchDropdown.innerHTML = '';
+                let hasResults = false;
 
-        // Tìm kiếm toàn cục (Ctrl+K)
-        document.addEventListener('keydown', function (event) {
-            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-                event.preventDefault();
-                const searchInput = document.getElementById('searchInput');
-                if (searchInput) searchInput.focus();
-            }
-        });
-
-        // Ajax Tìm kiếm
-        const searchInput = document.getElementById('searchInput');
-        const searchDropdown = document.getElementById('searchDropdown');
-        let searchTimeout;
-
-        if (searchInput) {
-            searchInput.addEventListener('input', function () {
-                const keyword = this.value.trim();
-                if (keyword.length === 0) {
-                    searchDropdown.style.display = 'none';
-                    return;
-                }
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    fetch(`/api/search?keyword=${encodeURIComponent(keyword)}`)
-                        .then(response => response.json())
-                        .then(data => renderSearchResults(data, keyword))
-                        .catch(err => console.error("Lỗi tìm kiếm:", err));
-                }, 300);
-            });
-
-            document.addEventListener('click', function (e) {
-                if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
-                    searchDropdown.style.display = 'none';
-                }
-            });
-
-            searchInput.addEventListener('focus', function () {
-                if (this.value.trim().length > 0 && searchDropdown.innerHTML.trim() !== '') {
-                    searchDropdown.style.display = 'block';
-                }
-            });
-        }
-
-        function renderSearchResults(data, keyword) {
-            searchDropdown.innerHTML = '';
-            let hasResults = false;
-
-            if (data.orders && data.orders.length > 0) {
-                hasResults = true;
-                let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">ĐƠN HÀNG</div>`;
-                data.orders.forEach(o => {
-                    html += `<a href="/ui/orders/detail/${o.code}" class="dropdown-item py-2 d-flex align-items-center">
+                if (data.orders && data.orders.length > 0) {
+                    hasResults = true;
+                    let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">ĐƠN HÀNG</div>`;
+                    data.orders.forEach(o => {
+                        html += `<a href="/ui/orders/detail/${o.code}" class="dropdown-item py-2 d-flex align-items-center">
                                 <i class="bi bi-cart2 me-2 text-secondary"></i>
                                 <span>Mã: <span class="fw-medium text-dark">${o.code}</span></span>
                              </a>`;
-                });
-                searchDropdown.innerHTML += html;
-            }
+                    });
+                    searchDropdown.innerHTML += html;
+                }
 
-            if (data.products && data.products.length > 0) {
-                hasResults = true;
-                let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">SẢN PHẨM</div>`;
-                data.products.forEach(p => {
-                    const imgSrc = p.imageUrl ? p.imageUrl : 'https://placehold.co/100x100?text=No+Image';
-                    html += `<a href="/ui/products/${p.code}" class="dropdown-item py-2">
+                if (data.products && data.products.length > 0) {
+                    hasResults = true;
+                    let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">SẢN PHẨM</div>`;
+                    data.products.forEach(p => {
+                        const imgSrc = p.imageUrl ? p.imageUrl : 'https://placehold.co/100x100?text=No+Image';
+                        html += `<a href="/ui/products/${p.code}" class="dropdown-item py-2">
                                 <div class="d-flex align-items-center">
                                     <div class="flex-shrink-0 me-3">
                                         <img src="${imgSrc}" alt="${p.name}" class="rounded border shadow-sm" style="width: 45px; height: 45px; object-fit: cover;">
@@ -674,15 +727,15 @@
                                     </div>
                                 </div>
                              </a>`;
-                });
-                searchDropdown.innerHTML += html;
-            }
+                    });
+                    searchDropdown.innerHTML += html;
+                }
 
-            if (data.customers && data.customers.length > 0) {
-                hasResults = true;
-                let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">KHÁCH HÀNG</div>`;
-                data.customers.forEach(c => {
-                    html += `<a href="/ui/customers/${c.code}" class="dropdown-item py-2">
+                if (data.customers && data.customers.length > 0) {
+                    hasResults = true;
+                    let html = `<div class="px-3 py-2 bg-light border-bottom text-muted fw-bold" style="font-size: 0.75rem;">KHÁCH HÀNG</div>`;
+                    data.customers.forEach(c => {
+                        html += `<a href="/ui/customers/${c.code}" class="dropdown-item py-2">
                                 <div class="d-flex align-items-center">
                                     <i class="bi bi-person me-2 text-secondary"></i>
                                     <div>
@@ -691,52 +744,52 @@
                                     </div>
                                 </div>
                              </a>`;
-                });
-                searchDropdown.innerHTML += html;
-            }
+                    });
+                    searchDropdown.innerHTML += html;
+                }
 
-            if (!hasResults) {
-                searchDropdown.innerHTML = `<div class="p-3 text-center text-muted small">Không tìm thấy kết quả nào cho "${keyword}"</div>`;
-            }
+                if (!hasResults) {
+                    searchDropdown.innerHTML = `<div class="p-3 text-center text-muted small">Không tìm thấy kết quả nào cho "${keyword}"</div>`;
+                }
 
-            searchDropdown.style.display = 'block';
+                searchDropdown.style.display = 'block';
+            }
+        });
+
+        // --- THÔNG BÁO ---
+        document.addEventListener("DOMContentLoaded", function () {
+            updateUnreadCount();
+            setInterval(updateUnreadCount, 60000);
+        });
+
+        async function updateUnreadCount() {
+            try {
+                const res = await fetch('/api/notifications/unread-count');
+                const data = await res.json();
+                const badge = document.getElementById('notiBadge');
+                if (data.count > 0) {
+                    badge.innerText = data.count > 99 ? '99+' : data.count;
+                    badge.classList.remove('d-none');
+                } else {
+                    badge.classList.add('d-none');
+                }
+            } catch (e) {
+                console.error("Lỗi lấy count:", e);
+            }
         }
-    });
 
-    // --- THÔNG BÁO ---
-    document.addEventListener("DOMContentLoaded", function () {
-        updateUnreadCount();
-        setInterval(updateUnreadCount, 60000);
-    });
+        async function loadNotifications() {
+            const list = document.getElementById('notiList');
+            try {
+                const res = await fetch('/api/notifications/latest');
+                const data = await res.json();
 
-    async function updateUnreadCount() {
-        try {
-            const res = await fetch('/api/notifications/unread-count');
-            const data = await res.json();
-            const badge = document.getElementById('notiBadge');
-            if (data.count > 0) {
-                badge.innerText = data.count > 99 ? '99+' : data.count;
-                badge.classList.remove('d-none');
-            } else {
-                badge.classList.add('d-none');
-            }
-        } catch (e) {
-            console.error("Lỗi lấy count:", e);
-        }
-    }
+                if (data.length === 0) {
+                    list.innerHTML = '<div class="text-center py-4 text-muted small">Không có thông báo nào</div>';
+                    return;
+                }
 
-    async function loadNotifications() {
-        const list = document.getElementById('notiList');
-        try {
-            const res = await fetch('/api/notifications/latest');
-            const data = await res.json();
-
-            if (data.length === 0) {
-                list.innerHTML = '<div class="text-center py-4 text-muted small">Không có thông báo nào</div>';
-                return;
-            }
-
-            list.innerHTML = data.map(n => `
+                list.innerHTML = data.map(n => `
             <div class="noti-item ${n.read ? '' : 'noti-unread'}" onclick="handleNotiClick(${n.id}, '${n.link}')">
                 <div class="noti-icon ${getIconClass(n.type)}">
                     <i class="bi ${getIcon(n.type)}"></i>
@@ -748,115 +801,136 @@
                 </div>
             </div>
         `).join('');
-        } catch (e) {
-            list.innerHTML = '<div class="text-center py-4 text-danger small">Lỗi tải dữ liệu</div>';
-        }
-    }
-
-    async function handleNotiClick(id, link) {
-        await fetch(`/api/notifications/mark-read/${id}`, {method: 'POST'});
-        window.location.href = link;
-    }
-
-    async function markAllRead() {
-        try {
-            const response = await fetch('/api/notifications/mark-all-read', {method: 'POST'});
-            if (response.ok) {
-                const badge = document.getElementById('notiBadge');
-                badge.innerText = '0';
-                badge.classList.add('d-none');
-
-                await loadNotifications();
+            } catch (e) {
+                list.innerHTML = '<div class="text-center py-4 text-danger small">Lỗi tải dữ liệu</div>';
             }
-        } catch (e) {
-            console.error("Lỗi khi đánh dấu đã đọc:", e);
         }
-    }
 
-    function getIcon(type) {
-        switch(type) {
-            case 'ORDER': return 'bi-cart-check-fill';
-            case 'PAYMENT': return 'bi-cash-coin';
-            case 'SYSTEM': return 'bi-gear-fill';
-            case 'WARNING': return 'bi-exclamation-triangle-fill';
-            case 'WARRANTY': return 'bi-tools';
-            case 'IMPORT': return 'bi-box-arrow-in-down';
-            case 'RETURN': return 'bi-arrow-counterclockwise';
-            case 'ERROR': return 'bi-x-octagon-fill';
-            case 'INFO':
-            default: return 'bi-info-circle-fill';
+        async function handleNotiClick(id, link) {
+            await fetch(`/api/notifications/mark-read/${id}`, {method: 'POST'});
+            window.location.href = link;
         }
-    }
 
-    function getIconClass(type) {
-        switch(type) {
-            case 'ORDER': return 'bg-primary-subtle text-primary';
-            case 'PAYMENT': return 'bg-success-subtle text-success';
-            case 'SYSTEM': return 'bg-secondary-subtle text-secondary';
-            case 'WARNING': return 'bg-warning-subtle text-warning';
-            case 'WARRANTY': return 'bg-info-subtle text-info';
-            case 'IMPORT': return 'bg-primary-subtle text-primary';
-            case 'RETURN': return 'bg-warning-subtle text-warning';
-            case 'ERROR': return 'bg-danger-subtle text-danger';
-            case 'INFO':
-            default: return 'bg-info-subtle text-info';
+        async function markAllRead() {
+            try {
+                const response = await fetch('/api/notifications/mark-all-read', {method: 'POST'});
+                if (response.ok) {
+                    const badge = document.getElementById('notiBadge');
+                    badge.innerText = '0';
+                    badge.classList.add('d-none');
+
+                    await loadNotifications();
+                }
+            } catch (e) {
+                console.error("Lỗi khi đánh dấu đã đọc:", e);
+            }
         }
-    }
 
-    function formatTimeAgo(dateStr) {
-        const date = new Date(dateStr);
-        const now = new Date();
-        const diffInSec = Math.floor((now - date) / 1000);
-        if (diffInSec < 60) return 'Vừa xong';
-        if (diffInSec < 3600) return Math.floor(diffInSec / 60) + ' phút trước';
-        if (diffInSec < 86400) return Math.floor(diffInSec / 3600) + ' giờ trước';
-        return date.toLocaleDateString('vi-VN');
-    }
-
-</script>
-<script th:inline="javascript">
-    /*<![CDATA[*/
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 1500,
-        timerProgressBar: true,
-        showCloseButton: true,
-        background: '#ffffff',
-        color: '#1e293b',
-        padding: '0.75rem 1rem',
-        width: 'auto',
-        customClass: {
-            popup: 'shadow-sm border border-light',
-            closeButton: 'text-muted'
-        },
-        showClass: {
-            popup: 'animate__animated animate__fadeInRight animate__faster'
-        },
-        hideClass: {
-            popup: 'animate__animated animate__fadeOutRight animate__faster'
-        },
-        didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer)
-            toast.addEventListener('mouseleave', Swal.resumeTimer)
+        function getIcon(type) {
+            switch (type) {
+                case 'ORDER':
+                    return 'bi-cart-check-fill';
+                case 'PAYMENT':
+                    return 'bi-cash-coin';
+                case 'SYSTEM':
+                    return 'bi-gear-fill';
+                case 'WARNING':
+                    return 'bi-exclamation-triangle-fill';
+                case 'WARRANTY':
+                    return 'bi-tools';
+                case 'IMPORT':
+                    return 'bi-box-arrow-in-down';
+                case 'RETURN':
+                    return 'bi-arrow-counterclockwise';
+                case 'ERROR':
+                    return 'bi-x-octagon-fill';
+                case 'INFO':
+                default:
+                    return 'bi-info-circle-fill';
+            }
         }
-    });
 
-    var successMsg = /*[[${successMessage}]]*/ null;
-    var errorMsg = /*[[${errorMessage}]]*/ null;
+        function getIconClass(type) {
+            switch (type) {
+                case 'ORDER':
+                    return 'bg-primary-subtle text-primary';
+                case 'PAYMENT':
+                    return 'bg-success-subtle text-success';
+                case 'SYSTEM':
+                    return 'bg-secondary-subtle text-secondary';
+                case 'WARNING':
+                    return 'bg-warning-subtle text-warning';
+                case 'WARRANTY':
+                    return 'bg-info-subtle text-info';
+                case 'IMPORT':
+                    return 'bg-primary-subtle text-primary';
+                case 'RETURN':
+                    return 'bg-warning-subtle text-warning';
+                case 'ERROR':
+                    return 'bg-danger-subtle text-danger';
+                case 'INFO':
+                default:
+                    return 'bg-info-subtle text-info';
+            }
+        }
 
-    if (successMsg) {
-        Toast.fire({
-            icon: 'success',
-            title: `<span class="fw-medium ms-1" style="font-size:14px;">${successMsg}</span>`
+        function formatTimeAgo(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffInSec = Math.floor((now - date) / 1000);
+            if (diffInSec < 60) return 'Vừa xong';
+            if (diffInSec < 3600) return Math.floor(diffInSec / 60) + ' phút trước';
+            if (diffInSec < 86400) return Math.floor(diffInSec / 3600) + ' giờ trước';
+            return date.toLocaleDateString('vi-VN');
+        }
+
+    </script>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'bottom-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: false,
+            showCloseButton: false,
+            customClass: {
+                popup: 'swal2-toast-modern',
+                title: 'swal2-title'
+            },
+            showClass: {
+                popup: 'animate__animated animate__fadeInUp animate__faster'
+            },
+            hideClass: {
+                popup: 'animate__animated animate__fadeOutDown animate__faster'
+            },
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
         });
-    }
 
-    if (errorMsg) {
-        Toast.fire({icon: 'error', title: `<span class="fw-medium ms-1" style="font-size:14px;">${errorMsg}</span>`});
-    }
-    /*]]>*/
-</script>
+        var successMsg = /*[[${successMessage}]]*/ null;
+        var errorMsg = /*[[${errorMessage}]]*/ null;
+
+        if (successMsg) {
+            Toast.fire({
+                icon: 'success',
+                title: successMsg
+            });
+        }
+
+        if (errorMsg) {
+            Toast.fire({
+                icon: 'error',
+                title: errorMsg
+            });
+        }
+        /*]]>*/
+    </script>
+</div>
+
+
 </body>
 </html>

@@ -35,7 +35,8 @@ public class ReturnOrder {
     @Column(columnDefinition = "TEXT")
     private String note; // Ghi chú
 
-    private BigDecimal returnFee; // Phí trả hàng (Shop chịu)
+    private BigDecimal returnFee; // Phí trả hàng (Khách chịu)
+    private BigDecimal shopReturnFee; // Phí trả hàng (Shop chịu)
     private BigDecimal totalRefundAmount; // Tổng tiền cần hoàn cho khách
 
     // Trạng thái xử lý

@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,14 +96,20 @@ public class ReportController {
             loadTimeCharts(model, startTime, endTime);
             loadTopProducts(model, startTime, endTime);
             loadChannelAndBranchRevenue(model, startTime, endTime);
-            List<Object[]> profitByDateRaw = orderRepo.findProfitByDate(startTime, endTime);
+
+            // XÓA DÒNG NÀY: List<Object[]> profitByDateRaw = orderRepo.findProfitByDate(startTime, endTime);
             List<BigDecimal> marginData = new ArrayList<>();
             List<BigDecimal> revData = (List<BigDecimal>) model.getAttribute("revData");
-            if (revData != null && !revData.isEmpty()) {
-                for (int i = 0; i < profitByDateRaw.size(); i++) {
-                    BigDecimal profit = (BigDecimal) profitByDateRaw.get(i)[1];
+
+            // LẤY DỮ LIỆU ĐÃ ĐƯỢC ĐỒNG BỘ TỪ loadTimeCharts
+            List<BigDecimal> profitData = (List<BigDecimal>) model.getAttribute("profitData");
+
+            if (revData != null && profitData != null && !revData.isEmpty()) {
+                for (int i = 0; i < revData.size(); i++) {
+                    BigDecimal profit = profitData.get(i);
                     BigDecimal rev = revData.get(i);
-                    marginData.add(rev.compareTo(BigDecimal.ZERO) > 0 ? profit.divide(rev, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100")) : BigDecimal.ZERO);
+                    marginData.add(rev.compareTo(BigDecimal.ZERO) > 0 ?
+                            profit.divide(rev, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100")) : BigDecimal.ZERO);
                 }
             }
             model.addAttribute("marginData", marginData);
@@ -211,27 +218,82 @@ public class ReportController {
         model.addAttribute("inventoryValue", invVal != null ? invVal : BigDecimal.ZERO);
     }
 
-    private void loadTimeCharts(Model model, LocalDateTime startTime, LocalDateTime endTime) {
-        List<Object[]> revByDateRaw = orderRepo.findRevenueByDate(startTime, endTime);
-        List<Object[]> orderByDateRaw = orderRepo.findOrderCountByDate(startTime, endTime);
+    private void loadTimeCharts(Model model, LocalDateTime start, LocalDateTime end) {
         List<String> dateLabels = new ArrayList<>();
         List<BigDecimal> revData = new ArrayList<>();
         List<Long> orderData = new ArrayList<>();
         List<BigDecimal> aovData = new ArrayList<>();
+        List<BigDecimal> profitData = new ArrayList<>(); // Mảng chứa lợi nhuận thực tế
 
-        for (Object[] obj : revByDateRaw) {
-            String date = obj[0].toString();
-            BigDecimal rev = (BigDecimal) obj[1];
-            dateLabels.add(date);
-            revData.add(rev);
-            Long count = orderByDateRaw.stream().filter(o -> o[0].toString().equals(date)).map(o -> ((Number) o[1]).longValue()).findFirst().orElse(0L);
-            orderData.add(count);
-            aovData.add(count > 0 ? rev.divide(BigDecimal.valueOf(count), 0, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+        long daysBetween = java.time.Duration.between(start, end).toDays();
+
+        // NẾU LỌC DƯỚI 35 NGÀY -> VẼ THEO TỪNG NGÀY
+        if (daysBetween <= 35) {
+            for (int i = 0; i <= daysBetween; i++) {
+                LocalDateTime dayStart = start.plusDays(i).with(LocalTime.MIN);
+                LocalDateTime dayEnd = dayStart.with(LocalTime.MAX);
+
+                BigDecimal dRev = orderRepo.sumNetRevenue(dayStart, dayEnd);
+                if (dRev == null) dRev = BigDecimal.ZERO;
+
+                BigDecimal dCogs = orderRepo.sumTotalCOGS(dayStart, dayEnd);
+                if (dCogs == null) dCogs = BigDecimal.ZERO;
+
+                BigDecimal dOpExp = cashTransactionRepository.sumOperatingExpensesBetweenDates(dayStart, dayEnd);
+                if (dOpExp == null) dOpExp = BigDecimal.ZERO;
+
+                BigDecimal dOther = cashTransactionRepository.sumOtherIncomeBetweenDates(dayStart, dayEnd);
+                if (dOther == null) dOther = BigDecimal.ZERO;
+
+                Long dCount = orderRepo.countTotalOrders(dayStart, dayEnd);
+                if (dCount == null) dCount = 0L;
+
+                dateLabels.add(dayStart.getDayOfMonth() + "/" + dayStart.getMonthValue());
+                revData.add(dRev);
+                orderData.add(dCount);
+                aovData.add(dCount > 0 ? dRev.divide(BigDecimal.valueOf(dCount), 0, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+                profitData.add(dRev.subtract(dCogs).add(dOther).subtract(dOpExp));
+            }
         }
+        // NẾU LỌC DÀI HƠN -> VẼ THEO TỪNG THÁNG
+        else {
+            YearMonth startMonth = YearMonth.from(start);
+            YearMonth endMonth = YearMonth.from(end);
+
+            while (!startMonth.isAfter(endMonth)) {
+                LocalDateTime mStart = startMonth.atDay(1).atTime(LocalTime.MIN);
+                LocalDateTime mEnd = startMonth.atEndOfMonth().atTime(LocalTime.MAX);
+
+                BigDecimal mRev = orderRepo.sumNetRevenue(mStart, mEnd);
+                if (mRev == null) mRev = BigDecimal.ZERO;
+
+                BigDecimal mCogs = orderRepo.sumTotalCOGS(mStart, mEnd);
+                if (mCogs == null) mCogs = BigDecimal.ZERO;
+
+                BigDecimal mOpExp = cashTransactionRepository.sumOperatingExpensesBetweenDates(mStart, mEnd);
+                if (mOpExp == null) mOpExp = BigDecimal.ZERO;
+
+                BigDecimal mOther = cashTransactionRepository.sumOtherIncomeBetweenDates(mStart, mEnd);
+                if (mOther == null) mOther = BigDecimal.ZERO;
+
+                Long mCount = orderRepo.countTotalOrders(mStart, mEnd);
+                if (mCount == null) mCount = 0L;
+
+                dateLabels.add("T" + startMonth.getMonthValue() + "/" + startMonth.getYear());
+                revData.add(mRev);
+                orderData.add(mCount);
+                aovData.add(mCount > 0 ? mRev.divide(BigDecimal.valueOf(mCount), 0, RoundingMode.HALF_UP) : BigDecimal.ZERO);
+                profitData.add(mRev.subtract(mCogs).add(mOther).subtract(mOpExp));
+
+                startMonth = startMonth.plusMonths(1);
+            }
+        }
+
         model.addAttribute("dateLabels", dateLabels);
         model.addAttribute("revData", revData);
         model.addAttribute("orderData", orderData);
         model.addAttribute("aovData", aovData);
+        model.addAttribute("profitData", profitData); // Đẩy profitData ra model
     }
 
     private void loadTopProducts(Model model, LocalDateTime startTime, LocalDateTime endTime) {

@@ -52,7 +52,7 @@ public class DashboardController {
             switch (preset) {
                 case "thisMonth":
                     start = now.withDayOfMonth(1).with(LocalTime.MIN);
-                    end = now.with(TemporalAdjusters.lastDayOfMonth()).with(LocalTime.MAX);
+                    end = now.with(LocalTime.MAX);
                     break;
                 case "thisQuarter":
                     int currentMonth = now.getMonthValue();
@@ -62,12 +62,12 @@ public class DashboardController {
                     break;
                 case "thisYear":
                     start = now.withDayOfYear(1).with(LocalTime.MIN);
-                    end = now.with(TemporalAdjusters.lastDayOfYear()).with(LocalTime.MAX);
+                    end = now.with(LocalTime.MAX);
                     break;
                 case "thisWeek":
                 default:
                     start = now.with(DayOfWeek.MONDAY).with(LocalTime.MIN);
-                    end = now.with(DayOfWeek.SUNDAY).with(LocalTime.MAX);
+                    end = now.with(LocalTime.MAX);
                     break;
             }
         }

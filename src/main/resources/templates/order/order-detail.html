@@ -331,7 +331,8 @@
                     <div class="timeline-step" id="tsConfirmed">
                         <div class="step-icon"></div>
                         <div class="step-title" id="lblConfirmed">Xác nhận</div>
-                        <div class="step-time" id="tlConfirmed"></div> </div>
+                        <div class="step-time" id="tlConfirmed"></div>
+                    </div>
                     <div class="timeline-step" id="tsShipping">
                         <div class="step-icon"></div>
                         <div class="step-title" id="lblShipping">Giao hàng</div>
@@ -652,22 +653,42 @@
                         </table>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-7">
+                    <div class="row g-3">
+                        <div class="col-md-12">
                             <label class="form-label-custom">Ghi chú (Tùy chọn)</label>
                             <textarea id="returnNote" class="form-control form-control-custom" rows="2"
                                       placeholder="Tình trạng hàng hóa, yêu cầu của khách..."></textarea>
                         </div>
-                        <div class="col-md-5">
-                            <label class="form-label-custom text-danger">Chi phí trả hàng <i
-                                    class="bi bi-info-circle ms-1"></i></label>
-                            <div class="input-group">
-                                <input type="number" id="returnFee"
-                                       class="form-control form-control-custom text-end text-danger fw-bold" value="0">
-                                <span class="input-group-text bg-light text-muted">₫</span>
+
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light border rounded-3 h-100">
+                                <label class="form-label-custom text-danger">Phí thu của Khách <i
+                                        class="bi bi-info-circle ms-1"
+                                        title="Sẽ trừ vào tiền hoàn lại cho khách"></i></label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" id="returnFee"
+                                           class="form-control text-end text-danger fw-bold" value="0">
+                                    <span class="input-group-text bg-white text-muted">₫</span>
+                                </div>
+                                <small class="text-muted d-block mt-2" style="font-size:11px;">*Khoản phí do khách hàng
+                                    chịu (VD: phí bóc seal), sẽ tự động khấu trừ vào <b>số tiền hoàn</b>.</small>
                             </div>
-                            <small class="text-muted d-block mt-1" style="font-size:11px;">*Khoản phí do khách hàng
-                                chịu, sẽ tự động khấu trừ vào <b>số tiền hoàn</b> cho khách hàng.</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3 h-100">
+                                <label class="form-label-custom text-warning-emphasis">Chi phí Shop chịu <i
+                                        class="bi bi-info-circle ms-1"
+                                        title="Chi phí phát sinh shop phải trả (VD: Phí ship hoàn)"></i></label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" id="returnShopFee"
+                                           class="form-control text-end text-warning-emphasis fw-bold" value="0">
+                                    <span class="input-group-text bg-white text-muted">₫</span>
+                                </div>
+                                <small class="text-muted d-block mt-2" style="font-size:11px;">*Khoản phí do Shop chịu
+                                    (VD: phí ship hoàn về, phí lưu kho bãi). Không ảnh hưởng tiền hoàn của
+                                    khách.</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1123,7 +1144,17 @@
             const dis = parseFloat(document.getElementById('editDiscountInput').value) || 0;
             const fee = parseFloat(document.getElementById('editShippingFeeInput').value) || 0;
             let final = sub - dis + fee;
-            document.getElementById('viewFinalTotal').innerText = formatMoney(final > 0 ? final : 0);
+            final = final > 0 ? final : 0;
+
+            // Cập nhật Khách phải trả
+            document.getElementById('viewFinalTotal').innerText = formatMoney(final);
+
+            // CẬP NHẬT: Tự động đổi COD thu hộ (nếu chưa thanh toán trước)
+            const currentPaid = parseFloat(currentOrder.amountPaid) || 0;
+            const newCod = final - currentPaid;
+            document.getElementById('viewCodAmount').innerText = formatMoney(newCod > 0 ? newCod : 0);
+            // Lưu tạm vào biến để hàm Submit có thể lấy gửi lên Backend
+            currentOrder.calculatedCodAmount = newCod > 0 ? newCod : 0;
         }
 
         async function submitFullOrderUpdate() {
@@ -1168,7 +1199,10 @@
                 shippingAddress: shippingAddress,
                 expectedDeliveryDate: exDate || null,
                 shippingFee: shippingFee,
-                codAmount: currentOrder.codAmount,
+
+                // ĐÂY LÀ DÒNG ĐÃ ĐƯỢC FIX: Lấy số COD mới tính nếu đang ở chế độ sửa
+                codAmount: isEditing ? (currentOrder.calculatedCodAmount || 0) : currentOrder.codAmount,
+
                 shipWeight: currentOrder.shipWeight,
                 paymentStatus: newPaymentStatus,
                 paymentMethod: currentOrder.paymentMethod,
@@ -1356,13 +1390,15 @@
                 title: 'Vui lòng điền số lượng trả cho ít nhất 1 sản phẩm!'
             });
 
-            const fee = parseFloat(document.getElementById('returnFee').value) || 0;
+            const customerFee = parseFloat(document.getElementById('returnFee').value) || 0;
+            const shopFee = parseFloat(document.getElementById('returnShopFee').value) || 0;
 
             const payload = {
                 originalOrderCode: currentOrder.orderCode,
                 reason: document.getElementById('returnReason').value,
                 note: document.getElementById('returnNote').value,
-                returnFee: fee,
+                returnFee: customerFee, // Gửi phí khách chịu
+                shopReturnFee: shopFee, // MỚI: Gửi phí shop chịu lên Backend
                 details: items
             };
 
