@@ -73,7 +73,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // 3. Top sản phẩm bán chạy nhất
 //    @Query("SELECT d.productName, SUM(d.quantity) FROM OrderDetail d WHERE d.order.status NOT IN ('CANCELLED', 'CREATED') AND d.order.createdAt BETWEEN :start AND :end GROUP BY d.productName ORDER BY SUM(d.quantity) DESC")
 //    List<Object[]> findTopSellingProducts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
-    @Query("SELECT CASE WHEN v.variantName IS NOT NULL AND v.variantName <> 'Mặc định' " + "THEN CONCAT(d.productName, ' - ', v.variantName) ELSE d.productName END, " + "SUM(d.quantity) " + "FROM OrderDetail d JOIN d.order o LEFT JOIN ProductVariant v ON d.sku = v.sku " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY d.productName, v.variantName " + "ORDER BY SUM(d.quantity) DESC")
+    @Query("SELECT d.productName, SUM(d.quantity) " + "FROM OrderDetail d JOIN d.order o " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY d.productName " + "ORDER BY SUM(d.quantity) DESC")
     List<Object[]> findTopSellingProducts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
 
     // 4. Doanh thu theo Chi nhánh
@@ -125,14 +125,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     //    @Query("SELECT d.productName, SUM(d.quantity) FROM OrderDetail d JOIN d.order o WHERE o.salesChannelCode IN :channels AND o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end GROUP BY d.productName ORDER BY SUM(d.quantity) DESC")
 //    List<Object[]> findChannelTabTopProducts(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
-    @Query("SELECT CASE WHEN v.variantName IS NOT NULL AND v.variantName <> 'Mặc định' " + "THEN CONCAT(d.productName, ' - ', v.variantName) ELSE d.productName END, " + "SUM(d.quantity) " + "FROM OrderDetail d JOIN d.order o LEFT JOIN ProductVariant v ON d.sku = v.sku " + "WHERE o.salesChannelCode IN :channels AND o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY d.productName, v.variantName " + "ORDER BY SUM(d.quantity) DESC")
+    @Query("SELECT d.productName, SUM(d.quantity) " + "FROM OrderDetail d JOIN d.order o " + "WHERE o.salesChannelCode IN :channels AND o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY d.productName " + "ORDER BY SUM(d.quantity) DESC")
     List<Object[]> findChannelTabTopProducts(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
 
     //    @Query("SELECT d.productName, SUM(d.quantity) FROM OrderDetail d JOIN d.order o WHERE o.salesChannelCode IN :channels AND o.status IN ('CANCELLED', 'RETURNED') AND o.createdAt BETWEEN :start AND :end GROUP BY d.productName ORDER BY SUM(d.quantity) DESC")
 //    List<Object[]> findChannelTabTopReturnedProducts(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
-    @Query("SELECT CASE " + "WHEN v.variantName IS NOT NULL AND v.variantName <> 'Mặc định' " + "AND d.productName NOT LIKE CONCAT('%', v.variantName, '%') " + "THEN CONCAT(d.productName, ' - ', v.variantName) " + "ELSE d.productName END, " + "SUM(d.quantity) " + "FROM OrderDetail d JOIN d.order o LEFT JOIN ProductVariant v ON d.sku = v.sku " + "WHERE o.salesChannelCode IN :channels AND o.status IN ('CANCELLED', 'RETURNED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY d.productName, v.variantName " + "ORDER BY SUM(d.quantity) DESC")
+    @Query("SELECT d.productName, SUM(d.quantity) " + "FROM OrderDetail d JOIN d.order o " + "WHERE o.salesChannelCode IN :channels AND o.status IN ('CANCELLED', 'RETURNED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY d.productName " + "ORDER BY SUM(d.quantity) DESC")
     List<Object[]> findChannelTabTopReturnedProducts(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
 
-    @Query("SELECT v.imageUrl, " + "CASE WHEN v.variantName IS NOT NULL AND v.variantName <> 'Mặc định' " + "     THEN CONCAT(d.productName, ' - ', v.variantName) " + "     ELSE d.productName END, " + "d.sku, SUM(d.quantity), SUM(d.quantity * d.unitPrice) " + "FROM OrderDetail d JOIN d.order o LEFT JOIN ProductVariant v ON d.sku = v.sku " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY v.imageUrl, d.productName, v.variantName, d.sku " + "ORDER BY SUM(d.quantity) DESC")
+    // Bảng Top sản phẩm ngoài màn hình Dashboard chính (Vẫn giữ LEFT JOIN v để lấy cái imageUrl)
+    @Query("SELECT v.imageUrl, d.productName, d.sku, SUM(d.quantity), SUM(d.quantity * d.unitPrice) " + "FROM OrderDetail d JOIN d.order o LEFT JOIN ProductVariant v ON d.sku = v.sku " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY v.imageUrl, d.productName, d.sku " + "ORDER BY SUM(d.quantity) DESC")
     List<Object[]> findDashboardTopProducts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
 }
