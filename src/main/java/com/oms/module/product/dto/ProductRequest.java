@@ -21,7 +21,7 @@ public class ProductRequest {
     private Long branchId;
     @NotBlank(message = "Đơn vị tính không được để trống")
     private String unit;
-
+    private List<ProductAttributeRequest> attributes;
     private Integer minStockLevel = 0;
     private Integer stockQuantity = 0;
 

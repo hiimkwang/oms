@@ -178,8 +178,8 @@
                     <div class="row g-2 mb-3 align-items-start attr-row">
                         <div class="col-md-3">
                             <label class="form-label">Tên thuộc tính</label>
-                            <input type="text" class="form-control oms-input attr-name-input" value="Kích thước"
-                                   placeholder="VD: Kích thước...">
+                            <input type="text" class="form-control oms-input attr-name-input" value="Phân loại"
+                                   placeholder="VD: Phân loại...">
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">Giá trị</label>
@@ -477,7 +477,7 @@
             combos.forEach((combo, index) => {
                 let variantSuffix = Array.isArray(combo) ? combo.join('-') : combo;
                 variantSuffix = variantSuffix.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, '-');
-                const variantSku = baseSku === 'AUTO' ? `AUTO-${variantSuffix}` : `${baseSku}-${variantSuffix}`;
+                const variantSku = baseSku === 'AUTO' ? `${variantSuffix}` : `${baseSku}-${variantSuffix}`;
 
                 let rowHtml = '<tr>';
                 combo.forEach(val => {
@@ -551,8 +551,23 @@
                 branchId: parseInt(branchIdVal), // Truyền ID Kho xuống Backend
                 minStockLevel: 0,
                 description: document.getElementById("description").value,
+                attributes: [], // Đã thêm để hứng thuộc tính
                 variants: []
             };
+
+            // THU THẬP THUỘC TÍNH (MÀU SẮC, KÍCH THƯỚC...)
+            document.querySelectorAll('.attr-row').forEach(row => {
+                const nameInput = row.querySelector('.attr-name-input');
+                const attrName = nameInput ? nameInput.value.trim() : '';
+                const tagInput = row.querySelector('.tag-input');
+
+                if (attrName && tagInput && tagInput.tomselect) {
+                    const values = tagInput.tomselect.getValue().split(',').filter(v => v.trim() !== '');
+                    if (values.length > 0) {
+                        payload.attributes.push({name: attrName, values: values});
+                    }
+                }
+            });
 
             const variantRows = document.querySelectorAll('#variantTableBody tr');
             variantRows.forEach(row => {

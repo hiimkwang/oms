@@ -73,6 +73,9 @@ public class Product {
     @Column(name = "manage_stock")
     private Boolean manageStock;
 
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductAttribute> attributes;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

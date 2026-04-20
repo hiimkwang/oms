@@ -7,6 +7,7 @@ import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.product.dto.ProductRequest;
 import com.oms.module.product.dto.ProductVariantRequest;
 import com.oms.module.product.entity.Product;
+import com.oms.module.product.entity.ProductAttribute;
 import com.oms.module.product.entity.ProductVariant;
 import com.oms.module.product.repository.ProductRepository;
 import com.oms.module.product.repository.ProductVariantRepository;
@@ -30,10 +31,10 @@ public class ProductService {
     // ================= 1. TẠO MỚI SẢN PHẨM =================
     @Transactional
     public Product createProduct(ProductRequest request) {
-        // 1. Tự sinh SKU mẹ nếu rỗng
+        // 1. Tự sinh SKU mẹ nếu rỗng dựa trên tên sản phẩm
         String sku = request.getSku();
         if (sku == null || sku.trim().isEmpty() || "AUTO".equals(sku)) {
-            sku = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+            sku = generateSlugFromName(request.getName());
         }
 
         Category category = null;
@@ -48,7 +49,19 @@ public class ProductService {
 
         // Lưu Product mẹ trước để lấy ID gán cho các Variant con
         product = productRepository.save(product);
+        final Product savedProduct = product;
 
+        // Lưu Cấu hình Thuộc tính (Màu sắc, Size...)
+        if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
+            List<ProductAttribute> attributes = request.getAttributes().stream().map(attrReq ->
+                    ProductAttribute.builder()
+                            .product(savedProduct) // Dùng biến final ở đây
+                            .name(attrReq.getName())
+                            .values(attrReq.getValues())
+                            .build()
+            ).collect(Collectors.toList());
+            product.setAttributes(attributes);
+        }
         List<ProductVariant> variantList = new ArrayList<>();
         int totalStock = 0;
 
@@ -58,7 +71,8 @@ public class ProductService {
             for (ProductVariantRequest vReq : request.getVariants()) {
                 String varSku = vReq.getSku();
                 if (varSku == null || varSku.trim().isEmpty() || varSku.startsWith("AUTO")) {
-                    varSku = sku + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+                    // Đã sửa thành gen theo tên biến thể: SKU_MẸ - TÊN_BIẾN_THỂ
+                    varSku = sku + "-" + generateSlugFromName(vReq.getVariantName());
                 }
 
                 int vStock = vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0;
@@ -76,11 +90,9 @@ public class ProductService {
             }
         } else {
             // TRƯỜNG HỢP B: SẢN PHẨM ĐƠN (KHÔNG CÓ BIẾN THỂ)
-            // Tự sinh 1 biến thể "Mặc định" để hệ thống Kho vận hành đồng nhất
             int vStock = request.getStockQuantity() != null ? request.getStockQuantity() : 0;
 
-            ProductVariant defaultVariant = ProductVariant.builder().product(product).variantName("Mặc định").sku(sku) // Lấy luôn SKU mẹ cho gọn
-                    .imageUrl(request.getImageUrl()).price(request.getPrice()).costPrice(BigDecimal.ZERO).stockQuantity(vStock).build();
+            ProductVariant defaultVariant = ProductVariant.builder().product(product).variantName("Mặc định").sku(sku).imageUrl(request.getImageUrl()).price(request.getPrice()).costPrice(BigDecimal.ZERO).stockQuantity(vStock).build();
 
             defaultVariant = productVariantRepository.save(defaultVariant);
             variantList.add(defaultVariant);
@@ -137,7 +149,6 @@ public class ProductService {
         }
 
         existingProduct.setName(request.getName());
-        existingProduct.setCategory(category);
         existingProduct.setBrand(request.getBrand());
         existingProduct.setConditionStatus(request.getConditionStatus());
         existingProduct.setUnit(request.getUnit());
@@ -147,7 +158,6 @@ public class ProductService {
         existingProduct.setDescription(request.getDescription());
         existingProduct.setWarrantyPeriod(request.getWarrantyPeriod());
 
-        // Update cờ quản lý kho nếu có
         if (request.getManageStock() != null) {
             existingProduct.setManageStock(request.getManageStock());
         }
@@ -155,33 +165,32 @@ public class ProductService {
         if (request.getVariants() != null && !request.getVariants().isEmpty()) {
             Map<String, ProductVariant> existingVariantsMap = existingProduct.getVariants().stream().collect(Collectors.toMap(ProductVariant::getSku, v -> v));
 
-            List<ProductVariant> updatedVariants = new ArrayList<>();
-            int totalStock = 0;
-
             for (ProductVariantRequest vReq : request.getVariants()) {
                 String varSku = vReq.getSku();
-                if (varSku == null || varSku.trim().isEmpty() || varSku.startsWith("AUTO")) {
-                    varSku = existingProduct.getSku() + "-" + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+                boolean isAutoGenerateSku = (varSku == null || varSku.trim().isEmpty() || varSku.startsWith("AUTO"));
+
+                if (isAutoGenerateSku) {
+                    // Đã sửa gen SKU theo tên biến thể
+                    varSku = existingProduct.getSku() + "-" + generateSlugFromName(vReq.getVariantName());
                 }
 
-                ProductVariant variant;
-                if (existingVariantsMap.containsKey(varSku)) {
-                    variant = existingVariantsMap.get(varSku);
+                if (!isAutoGenerateSku && existingVariantsMap.containsKey(varSku)) {
+                    // BIẾN THỂ CŨ -> Cập nhật thông tin
+                    ProductVariant variant = existingVariantsMap.get(varSku);
                     variant.setVariantName(vReq.getVariantName());
                     variant.setImageUrl(vReq.getImageUrl());
                     variant.setPrice(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice());
                     variant.setCostPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO);
-
                     variant.setStockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : variant.getStockQuantity());
                 } else {
-                    variant = ProductVariant.builder().product(existingProduct).variantName(vReq.getVariantName()).sku(varSku).imageUrl(vReq.getImageUrl()).price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice()).costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO).stockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0).build();
+                    // BIẾN THỂ MỚI -> Thêm trực tiếp vào danh sách hiện tại (Không xóa biến thể cũ)
+                    ProductVariant newVariant = ProductVariant.builder().product(existingProduct).variantName(vReq.getVariantName()).sku(varSku).imageUrl(vReq.getImageUrl()).price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice()).costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO).stockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0).build();
+                    existingProduct.getVariants().add(newVariant);
                 }
-                totalStock += variant.getStockQuantity();
-                updatedVariants.add(variant);
             }
 
-            existingProduct.getVariants().clear();
-            existingProduct.getVariants().addAll(updatedVariants);
+            // Tính lại tổng tồn kho
+            int totalStock = existingProduct.getVariants().stream().mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0).sum();
             existingProduct.setStockQuantity(totalStock);
 
         } else {
@@ -192,7 +201,23 @@ public class ProductService {
             }
             existingProduct.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : existingProduct.getStockQuantity());
         }
+        // Cập nhật Cấu hình Thuộc tính
+        if (request.getAttributes() != null) {
+            if (existingProduct.getAttributes() != null) {
+                existingProduct.getAttributes().clear(); // Hibernate sẽ tự lo việc xóa bản ghi cũ nhờ orphanRemoval
+            } else {
+                existingProduct.setAttributes(new ArrayList<>());
+            }
 
+            List<ProductAttribute> updatedAttributes = request.getAttributes().stream().map(attrReq ->
+                    ProductAttribute.builder()
+                            .product(existingProduct)
+                            .name(attrReq.getName())
+                            .values(attrReq.getValues())
+                            .build()
+            ).collect(Collectors.toList());
+            existingProduct.getAttributes().addAll(updatedAttributes);
+        }
         return productRepository.save(existingProduct);
     }
 
@@ -264,5 +289,18 @@ public class ProductService {
     public void deleteProductsBulk(List<Long> ids) {
         productVariantRepository.deleteByProductIdIn(ids);
         productRepository.deleteAllByIdInBatch(ids);
+    }
+
+    // ================= HÀM TIỆN ÍCH TẠO SKU =================
+    private String generateSlugFromName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        }
+        // Loại bỏ dấu tiếng Việt
+        String normalized = java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFD);
+        String noAccent = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "").replaceAll("Đ", "D").replaceAll("đ", "d");
+        // Bỏ ký tự đặc biệt, thay khoảng trắng bằng dấu gạch ngang và viết hoa
+        String baseSku = noAccent.replaceAll("[^a-zA-Z0-9\\s-]", "").trim().replaceAll("\\s+", "-").toUpperCase();
+        return baseSku;
     }
 }
