@@ -156,15 +156,17 @@
                     <div class="col-md-6">
                         <label class="form-label">Giá bán</label>
                         <div class="input-group">
-                            <input type="number" id="price" class="form-control oms-input text-end py-2"
-                                   th:value="${product.price}" oninput="generateVariantTable()">
+                            <input type="text" id="price" class="form-control oms-input text-end py-2"
+                                   th:value="${product.price != null ? #numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT') : '0'}"
+                                   oninput="formatNumberInput(this); generateVariantTable()">
                             <span class="input-group-text bg-light text-muted border-light">đ</span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Giá so sánh</label>
                         <div class="input-group">
-                            <input type="number" class="form-control oms-input text-end py-2" placeholder="0">
+                            <input type="text" class="form-control oms-input text-end py-2" placeholder="0"
+                                   oninput="formatNumberInput(this)">
                             <span class="input-group-text bg-light text-muted border-light">đ</span>
                         </div>
                     </div>
@@ -231,19 +233,33 @@
                         <table class="table table-bordered align-middle text-center mb-0">
                             <thead id="variantTableHead">
                             <tr th:if="${not #lists.isEmpty(product.variants)}">
-                                <th class="text-start ps-3">Phân loại</th>
+                                <th:block th:if="${not #lists.isEmpty(product.attributes)}">
+                                    <th class="text-start ps-3" th:each="attr : ${product.attributes}" th:text="${attr.name}"></th>
+                                </th:block>
+                                <th:block th:unless="${not #lists.isEmpty(product.attributes)}">
+                                    <th class="text-start ps-3">Phân loại</th>
+                                </th:block>
+
                                 <th width="80">Ảnh</th>
                                 <th width="130">Giá bán</th>
                                 <th width="130">Giá nhập (Vốn)</th>
-                                <th width="100">Tồn kho <i class="bi bi-lock text-muted ms-1"
-                                                           title="Không sửa được tồn kho"></i></th>
+                                <th width="100">Tồn kho <i class="bi bi-lock text-muted ms-1" title="Không sửa được tồn kho"></i></th>
                                 <th width="160">Mã SKU</th>
                             </tr>
                             </thead>
                             <tbody id="variantTableBody">
                             <tr th:each="v : ${product.variants}" th:if="${v.variantName != 'Mặc định'}">
-                                <td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part"
-                                    th:text="${v.variantName}"></td>
+
+                                <th:block th:if="${not #lists.isEmpty(product.attributes)}">
+                                    <td th:each="part : ${v.variantName.split(' - ')}"
+                                        class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part"
+                                        th:text="${part}"></td>
+                                </th:block>
+                                <th:block th:unless="${not #lists.isEmpty(product.attributes)}">
+                                    <td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part"
+                                        th:text="${v.variantName}"></td>
+                                </th:block>
+
                                 <td>
                                     <div class="d-flex justify-content-center">
                                         <label style="cursor: pointer; margin: 0;">
@@ -263,15 +279,17 @@
                                                th:value="${v.imageUrl != null ? v.imageUrl : ''}">
                                     </div>
                                 </td>
-                                <td><input type="number"
+                                <td><input type="text"
                                            class="form-control form-control-sm text-end oms-input var-price"
-                                           th:value="${v.price}"></td>
-                                <td><input type="number"
+                                           th:value="${v.price != null ? #numbers.formatDecimal(v.price, 0, 'COMMA', 0, 'POINT') : '0'}"
+                                           oninput="formatNumberInput(this)"></td>
+                                <td><input type="text"
                                            class="form-control form-control-sm text-end oms-input var-cost"
-                                           th:value="${v.costPrice}"></td>
+                                           th:value="${v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') : '0'}"
+                                           oninput="formatNumberInput(this)"></td>
                                 <td><input type="number"
                                            class="form-control form-control-sm text-center oms-input var-stock bg-light"
-                                           th:value="${v.stockQuantity}"
+                                           th:value="${v.actualStock != null ? v.actualStock : 0}"
                                            th:disabled="${product.manageStock != null and product.manageStock}"
                                            title="Vui lòng dùng chức năng Điều chỉnh kho"></td>
                                 <td><input type="text"
@@ -308,7 +326,7 @@
                     </div>
                     <div style="width: 150px;">
                         <input type="number" id="stockQuantity" class="form-control oms-input text-end fw-bold bg-light"
-                               th:value="${product.stockQuantity}"
+                               th:value="${product.variants != null and !#lists.isEmpty(product.variants)} ? ${#aggregates.sum(product.variants.![actualStock])} : 0"
                                th:disabled="${product.manageStock != null and product.manageStock}">
                     </div>
                 </div>
@@ -363,6 +381,22 @@
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
     <script th:inline="javascript">
+        // Hàm format số có dấu phẩy khi người dùng gõ phím
+        function formatNumberInput(input) {
+            let value = input.value.replace(/[^0-9]/g, ''); // Bỏ mọi ký tự không phải số
+            if (value) {
+                input.value = new Intl.NumberFormat('en-US').format(value);
+            } else {
+                input.value = '';
+            }
+        }
+
+        // Hàm tiện ích lấy số thực tế (xóa dấu phẩy) để tính toán hoặc gửi API
+        function getRawNumber(value) {
+            if (!value) return 0;
+            return parseFloat(value.toString().replace(/,/g, '')) || 0;
+        }
+
         document.addEventListener("DOMContentLoaded", function () {
             const smartSelectConfig = {
                 create: function (input, callback) {
@@ -447,7 +481,7 @@
             generateVariantTable();
         }
 
-        // Hàm hỗ trợ gen SKU chuẩn hóa (Giống hệt Backend Java)
+        // Hàm hỗ trợ gen SKU chuẩn hóa
         const generateSlug = (str) => {
             if (!str) return "AUTO";
             return str.normalize("NFD")
@@ -501,7 +535,7 @@
 
             singleProductStockArea.classList.add('d-none');
 
-            // Render Header (Đã gỡ bỏ cột Xóa)
+            // Render Header
             let headerHtml = '<tr>';
             validAttributes.forEach(attr => headerHtml += `<th class="text-start ps-3">${attr.name}</th>`);
             headerHtml += `
@@ -530,7 +564,6 @@
             };
 
             const combos = cartesian(validAttributes.map(a => a.values));
-            const basePrice = document.getElementById('price').value || 0;
             let baseSku = document.getElementById('sku').value.trim() || generateSlug(document.getElementById("name").value);
 
             let bodyHtml = '';
@@ -552,15 +585,20 @@
                 if (matchName) delete existingVariants[matchName];
 
                 let finalSku = data && data.sku ? data.sku : generatedSku;
-                let finalPrice = data && data.price ? data.price : basePrice;
-                let finalCost = data && data.cost ? data.cost : 0;
                 let finalStock = data && data.stock ? data.stock : 0;
                 let finalImage = data && data.imageUrl ? data.imageUrl : '';
+
+                // Xử lý giá bằng getRawNumber để đảm bảo không bị lỗi tính toán
+                let finalPriceRaw = data && data.price ? getRawNumber(data.price) : getRawNumber(document.getElementById('price').value);
+                let finalCostRaw = data && data.cost ? getRawNumber(data.cost) : 0;
+
+                // Format lại thành dấu phẩy để gán cho input hiển thị
+                let finalPriceFmt = finalPriceRaw > 0 ? new Intl.NumberFormat('en-US').format(finalPriceRaw) : '0';
+                let finalCostFmt = finalCostRaw > 0 ? new Intl.NumberFormat('en-US').format(finalCostRaw) : '0';
 
                 let rowHtml = '<tr>';
                 combo.forEach(val => rowHtml += `<td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part">${val}</td>`);
 
-                // Cấu trúc HTML đã fix lỗi hiển thị dư máy ảnh
                 rowHtml += `
             <td>
                 <div class="d-flex justify-content-center">
@@ -574,16 +612,21 @@
                     <input type="hidden" class="var-image" value="${finalImage}">
                 </div>
             </td>
-            <td><input type="number" class="form-control form-control-sm text-end oms-input var-price" value="${finalPrice}"></td>
-            <td><input type="number" class="form-control form-control-sm text-end oms-input var-cost" value="${finalCost}"></td>
+            <td><input type="text" class="form-control form-control-sm text-end oms-input var-price" value="${finalPriceFmt}" oninput="formatNumberInput(this)"></td>
+            <td><input type="text" class="form-control form-control-sm text-end oms-input var-cost" value="${finalCostFmt}" oninput="formatNumberInput(this)"></td>
             <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock bg-light" value="${finalStock}" ${isManaged ? 'disabled' : ''} title="Sửa bằng tính năng Kiểm kho"></td>
             <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light" value="${finalSku}" readonly></td>
         </tr>`;
                 bodyHtml += rowHtml;
             });
 
-            // 3. Giữ nguyên các dòng cảnh báo rác (Màu vàng) và bỏ nút xóa
+            // 3. Giữ nguyên các dòng cảnh báo rác
             for (const [vName, vData] of Object.entries(existingVariants)) {
+                let vPriceRaw = getRawNumber(vData.price);
+                let vCostRaw = getRawNumber(vData.cost);
+                let vPriceFmt = vPriceRaw > 0 ? new Intl.NumberFormat('en-US').format(vPriceRaw) : '0';
+                let vCostFmt = vCostRaw > 0 ? new Intl.NumberFormat('en-US').format(vCostRaw) : '0';
+
                 let rowHtml = `<tr class="table-warning" title="Dữ liệu cũ chưa khớp với cấu hình phân loại phía trên">`;
                 rowHtml += `<td class="fw-medium text-dark text-start ps-3 align-middle border-end-0 var-name-part" colspan="${validAttributes.length}">${vName}</td>`;
                 rowHtml += `
@@ -599,8 +642,8 @@
                     <input type="hidden" class="var-image" value="${vData.imageUrl}">
                 </div>
             </td>
-            <td><input type="number" class="form-control form-control-sm text-end oms-input var-price" value="${vData.price}"></td>
-            <td><input type="number" class="form-control form-control-sm text-end oms-input var-cost" value="${vData.cost}"></td>
+            <td><input type="text" class="form-control form-control-sm text-end oms-input var-price" value="${vPriceFmt}" oninput="formatNumberInput(this)"></td>
+            <td><input type="text" class="form-control form-control-sm text-end oms-input var-cost" value="${vCostFmt}" oninput="formatNumberInput(this)"></td>
             <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock bg-light" value="${vData.stock}" ${isManaged ? 'disabled' : ''}></td>
             <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light" value="${vData.sku}" readonly></td>
         </tr>`;
@@ -636,7 +679,7 @@
                 categoryId: document.getElementById("category").value,
                 brand: document.getElementById("brand").value,
                 unit: unitVal,
-                price: parseFloat(document.getElementById("price").value) || 0,
+                price: getRawNumber(document.getElementById("price").value),
                 description: document.getElementById("description").value,
 
                 manageStock: isManaged,
@@ -666,8 +709,8 @@
                     variantName: variantName,
                     imageUrl: row.querySelector('.var-image') ? row.querySelector('.var-image').value.trim() : null,
                     sku: row.querySelector('.var-sku').value,
-                    price: parseFloat(row.querySelector('.var-price').value) || 0,
-                    costPrice: parseFloat(row.querySelector('.var-cost').value) || 0,
+                    price: getRawNumber(row.querySelector('.var-price').value),
+                    costPrice: getRawNumber(row.querySelector('.var-cost').value),
                     stockQuantity: parseInt(row.querySelector('.var-stock').value) || 0
                 });
             });
