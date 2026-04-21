@@ -2,63 +2,6 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::content})}">
 <head>
     <title>Bảng Tính Giá Nhập Nháp</title>
-    <style>
-
-        .cursor-pointer {
-            cursor: pointer;
-        }
-
-        .cursor-pointer:hover {
-            background-color: #f8fafc;
-        }
-
-        .prod-search-dropdown {
-            max-height: 250px;
-            overflow-y: auto;
-        }
-
-        .prod-search-dropdown::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .prod-search-dropdown::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 10px;
-        }
-
-
-        /* ========================================================= */
-
-        /* Input lưới trong bảng (Cho cột SL và Giá) */
-        .grid-input {
-            border: 1px solid transparent;
-            background-color: transparent;
-            transition: all 0.2s;
-            border-radius: 6px;
-        }
-
-        .grid-input:hover {
-            border-color: #cbd5e1;
-            background-color: #f8fafc;
-        }
-
-        .grid-input:focus {
-            border-color: #3b82f6 !important;
-            background-color: #fff !important;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
-            outline: none !important;
-        }
-
-        .table-modern th {
-            background-color: #f1f5f9;
-            color: #475569;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-    </style>
 </head>
 <body>
 <div th:fragment="content">
@@ -68,10 +11,9 @@
             border: 1px solid #cbd5e1 !important;
             border-radius: 8px !important;
             background-color: #ffffff !important;
-            overflow: hidden !important; /* Giữ các phần tử con không chọc thủng góc bo tròn */
+            overflow: hidden !important;
         }
 
-        /* Xóa sạch viền và hiệu ứng mặc định của các phần tử con */
         .input-group.calc-input-group > .input-group-text,
         .input-group.calc-input-group > .form-control {
             border: none !important;
@@ -81,18 +23,16 @@
             color: #475569;
         }
 
-        /* Màu nền riêng cho đơn vị đ */
         .input-group.calc-input-group > .end-text {
             background-color: #f8fafc !important;
         }
 
-        /* Phép thuật: Sáng viền CẢ CỤM khi click vào bất kỳ đâu bên trong */
         .input-group.calc-input-group:focus-within {
             border-color: #0d6efd !important;
             box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15) !important;
         }
 
-        /* ===== GIỮ LẠI CÁC CSS KHÁC CỦA BẠN DƯỚI NÀY ===== */
+        /* ===== CSS LƯỚI BẢNG ===== */
         .cursor-pointer {
             cursor: pointer;
         }
@@ -143,7 +83,6 @@
             letter-spacing: 0.5px;
             border-bottom: 2px solid #e2e8f0;
         }
-
     </style>
     <div id="printArea">
 
@@ -156,9 +95,9 @@
             <div>
                 <h4 class="fw-bold text-dark m-0">Phân Bổ Chi Phí & Tính Giá Nhập Hàng Trung Quốc</h4>
                 <div class="d-flex align-items-center mt-1">
-                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill"
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1 rounded-pill"
                           id="saveStatus" style="font-size: 0.75rem;">
-                        <i class="bi bi-cloud-check me-1"></i>Sẵn sàng
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Đang tải dữ liệu...
                     </span>
                 </div>
             </div>
@@ -192,7 +131,7 @@
                         <div class="input-group input-group-lg calc-input-group has-end shadow-sm">
                             <span class="input-group-text start-icon"><i class="bi bi-truck"></i></span>
                             <input type="text" id="paramTongShip" class="form-control fw-bold text-danger fs-5"
-                                   value="644,420" oninput="formatNumberInput(this); calculateAll()">
+                                   value="0" oninput="formatNumberInput(this); calculateAll()">
                             <span class="input-group-text end-text fw-medium">đ</span>
                         </div>
                     </div>
@@ -201,7 +140,7 @@
                         <div class="input-group input-group-lg calc-input-group has-end shadow-sm">
                             <span class="input-group-text start-icon"><i class="bi bi-box-seam"></i></span>
                             <input type="text" id="paramChiPhiKhac" class="form-control fw-bold text-warning fs-5"
-                                   value="430,000" oninput="formatNumberInput(this); calculateAll()">
+                                   value="0" oninput="formatNumberInput(this); calculateAll()">
                             <span class="input-group-text end-text fw-medium">đ</span>
                         </div>
                     </div>
@@ -222,9 +161,8 @@
                 </button>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-modern table-hover align-middle mb-0 text-center" id="calcTable"
-                           style="font-size: 0.85rem;">
+                <div class="table-responsive" style="overflow: visible !important;">
+                    <table class="table table-modern table-hover align-middle mb-0 text-center" id="calcTable" style="font-size: 0.85rem;">
                         <thead>
                         <tr>
                             <th width="4%" class="text-muted">STT</th>
@@ -264,6 +202,7 @@
     <script th:inline="javascript">
         let rowCount = 0;
         let searchTimer;
+        let saveDbTimer; // Timer dùng để Debounce gọi API Lưu DB
 
         window.formatNumberInput = function (input) {
             let value = input.value.replace(/[^0-9.]/g, '');
@@ -297,7 +236,9 @@
             const now = new Date();
             document.getElementById('printTime').innerText = 'Ngày in: ' + now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN');
 
-            loadDraft();
+            // Gọi hàm Tải nháp từ DB
+            loadDraftFromDB();
+
             document.addEventListener('click', function (e) {
                 document.querySelectorAll('.prod-search-dropdown').forEach(dropdown => {
                     if (!dropdown.parentElement.contains(e.target)) {
@@ -307,7 +248,7 @@
             });
         });
 
-        window.addRow = function (initName = "", initQty = 1, initPriceCyn = 0) {
+        window.addRow = function (initName = "", initQty = 1, initPriceCyn = 0, skipCalc = false) {
             rowCount++;
             const tbody = document.getElementById("calcTableBody");
             if (!tbody) return;
@@ -318,14 +259,13 @@
             const tr = document.createElement("tr");
             tr.id = `row_${rowCount}`;
 
-            // ÁP DỤNG CLASS TỪ LOGIN CHO Ô TÌM KIẾM
             tr.innerHTML = `
             <td class="text-muted fw-medium row-index">${rowCount}</td>
             <td class="px-2">
                 <div class="position-relative text-start">
                     <div class="input-group input-group-sm calc-input-group shadow-sm">
                         <span class="input-group-text start-icon no-print"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control input-name" placeholder="Tìm tên hoặc mã SP..." oninput="searchProductInput(this, ${rowCount})" autocomplete="off">
+                        <input type="text" class="form-control input-name" placeholder="Tìm tên hoặc mã SP..." oninput="searchProductInput(this, ${rowCount}); calculateAll()" autocomplete="off">
                     </div>
                     <div id="dropdown_${rowCount}" class="dropdown-menu w-100 shadow-lg p-0 prod-search-dropdown border-0" style="display: none; position: absolute; top: 100%; left: 0; z-index: 1050; border-radius: 8px;"></div>
                 </div>
@@ -347,11 +287,13 @@
             tbody.appendChild(tr);
 
             tr.querySelector(".input-name").value = initName;
-            tr.querySelector(".input-qty").value = strQty || "1";
-            tr.querySelector(".input-price-cyn").value = strPrice || "0";
+            tr.querySelector(".input-qty").value = strQty;
+            tr.querySelector(".input-price-cyn").value = strPrice;
 
             reindexRows();
-            calculateAll();
+            if (!skipCalc) {
+                calculateAll();
+            }
         };
 
         window.removeRow = function (id) {
@@ -427,7 +369,8 @@
             dropdown.appendChild(div);
         }
 
-        window.calculateAll = function () {
+        // TÁCH LOGIC TÍNH TOÁN VÀ LƯU DB
+        window.calculateAll = function (skipSaveDb = false) {
             const tyGia = parseNumber(document.getElementById("paramTyGia")?.value);
             const tongShip = parseNumber(document.getElementById("paramTongShip")?.value);
             const tongKhac = parseNumber(document.getElementById("paramChiPhiKhac")?.value);
@@ -483,39 +426,111 @@
             document.getElementById("sumPhiKhac").innerText = formatVND(sumPhiKhac);
             document.getElementById("sumTongVon").innerText = formatVND(sumTongVon);
 
-            localStorage.setItem("oms_pricing_draft", JSON.stringify({
-                tyGia: tyGia, tongShip: tongShip, tongKhac: tongKhac, items: draftItems
-            }));
+            // LƯU DB NẾU KHÔNG BỊ CHẶN (Debounce 1 giây)
+            if (!skipSaveDb) {
+                const draftData = {
+                    tyGia: tyGia, tongShip: tongShip, tongKhac: tongKhac, items: draftItems
+                };
 
-            const statusEl = document.getElementById("saveStatus");
-            statusEl.innerHTML = `<i class="bi bi-cloud-check me-1"></i>Đã lưu tự động lúc ${new Date().toLocaleTimeString('vi-VN')}`;
-            statusEl.className = "text-success fw-medium";
+                // Lưu tạm Local làm backup
+                localStorage.setItem("oms_pricing_draft", JSON.stringify(draftData));
+
+                const statusEl = document.getElementById("saveStatus");
+                statusEl.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Đang lưu đám mây...`;
+                statusEl.className = "text-warning fw-medium badge bg-warning bg-opacity-10 border border-warning border-opacity-25 px-2 py-1 rounded-pill";
+
+                clearTimeout(saveDbTimer);
+                saveDbTimer = setTimeout(() => {
+                    fetch('/api/v1/inventory/pricing-draft', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(draftData)
+                    }).then(res => {
+                        if (res.ok) {
+                            statusEl.innerHTML = `<i class="bi bi-cloud-check me-1"></i>Đã lưu đồng bộ: ${new Date().toLocaleTimeString('vi-VN')}`;
+                            statusEl.className = "text-success fw-medium badge bg-success bg-opacity-10 border border-success border-opacity-25 px-2 py-1 rounded-pill";
+                        }
+                    }).catch(err => {
+                        statusEl.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>Chỉ lưu trên máy này`;
+                        statusEl.className = "text-danger fw-medium badge bg-danger bg-opacity-10 border border-danger border-opacity-25 px-2 py-1 rounded-pill";
+                    });
+                }, 1000);
+            }
         };
 
-        window.loadDraft = function () {
+        // LẤY DỮ LIỆU TỪ BACKEND
+        window.loadDraftFromDB = function () {
+            fetch('/api/v1/inventory/pricing-draft')
+                .then(res => {
+                    if (res.status === 200) return res.text();
+                    return null; // 204 No Content
+                })
+                .then(text => {
+                    if (text) {
+                        const draft = JSON.parse(text);
+                        renderDraftToUI(draft);
+
+                        const statusEl = document.getElementById("saveStatus");
+                        statusEl.innerHTML = `<i class="bi bi-cloud-check me-1"></i>Đã tải đồng bộ`;
+                        statusEl.className = "text-success fw-medium badge bg-success bg-opacity-10 border border-success border-opacity-25 px-2 py-1 rounded-pill";
+                    } else {
+                        fallbackLocalStore();
+                    }
+                })
+                .catch(err => {
+                    console.error("Không kết nối được Cloud, dùng dữ liệu Local:", err);
+                    fallbackLocalStore();
+                });
+        };
+
+        function fallbackLocalStore() {
             const draftStr = localStorage.getItem("oms_pricing_draft");
             if (draftStr) {
-                try {
-                    const draft = JSON.parse(draftStr);
-                    document.getElementById("paramTyGia").value = draft.tyGia ? draft.tyGia.toLocaleString('en-US') : "3,948";
-                    document.getElementById("paramTongShip").value = draft.tongShip ? draft.tongShip.toLocaleString('en-US') : "0";
-                    document.getElementById("paramChiPhiKhac").value = draft.tongKhac ? draft.tongKhac.toLocaleString('en-US') : "0";
+                renderDraftToUI(JSON.parse(draftStr));
 
-                    if (draft.items && draft.items.length > 0) {
-                        document.getElementById("calcTableBody").innerHTML = "";
-                        rowCount = 0;
-                        draft.items.forEach(item => addRow(item.name, item.qty, item.priceCyn));
-                    } else addRow();
-                } catch (e) {
-                    addRow();
+                calculateAll(false);
+
+                localStorage.removeItem("oms_pricing_draft");
+
+                if (typeof Toast !== 'undefined') {
+                    Toast.fire({
+                        icon: 'info',
+                        title: 'Đã tìm thấy nháp cũ, đang đồng bộ lên máy chủ...'
+                    });
                 }
-            } else addRow();
-        };
+            } else {
+                addRow("", 1, 0, true);
+                calculateAll(true);
+                const statusEl = document.getElementById("saveStatus");
+                statusEl.innerHTML = `<i class="bi bi-check2-circle me-1"></i>Sẵn sàng`;
+                statusEl.className = "text-success fw-medium badge bg-success bg-opacity-10 border border-success border-opacity-25 px-2 py-1 rounded-pill";
+            }
+        }
+
+        function renderDraftToUI(draft) {
+            try {
+                document.getElementById("paramTyGia").value = draft.tyGia ? draft.tyGia.toLocaleString('en-US') : "3,948";
+                document.getElementById("paramTongShip").value = draft.tongShip ? draft.tongShip.toLocaleString('en-US') : "0";
+                document.getElementById("paramChiPhiKhac").value = draft.tongKhac ? draft.tongKhac.toLocaleString('en-US') : "0";
+
+                if (draft.items && draft.items.length > 0) {
+                    document.getElementById("calcTableBody").innerHTML = "";
+                    rowCount = 0;
+                    draft.items.forEach(item => addRow(item.name, item.qty, item.priceCyn, true));
+                } else {
+                    addRow("", 1, 0, true);
+                }
+                calculateAll(true); // Cập nhật lại UI nhưng Không kích hoạt gọi API lưu DB
+            } catch (e) {
+                addRow("", 1, 0, true);
+                calculateAll(true);
+            }
+        }
 
         window.resetCalculator = function () {
             Swal.fire({
                 title: 'Làm mới bảng tính?',
-                text: "Toàn bộ dữ liệu nhập nháp hiện tại sẽ bị xóa sạch!",
+                text: "Toàn bộ dữ liệu nhập nháp hiện tại sẽ bị xóa sạch khỏi cả máy tính và máy chủ Cloud!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
@@ -530,24 +545,31 @@
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
+                    // Xóa Local
                     localStorage.removeItem("oms_pricing_draft");
-                    document.getElementById("calcTableBody").innerHTML = "";
-                    rowCount = 0;
-                    document.getElementById("paramTyGia").value = "3,948";
-                    document.getElementById("paramTongShip").value = "0";
-                    document.getElementById("paramChiPhiKhac").value = "0";
-                    addRow();
 
-                    const statusEl = document.getElementById("saveStatus");
-                    statusEl.innerHTML = "<i class=\"bi bi-stars me-1\"></i>Đã tạo bảng mới";
-                    statusEl.className = "text-secondary fw-medium";
+                    // GỌI API XÓA NHÁP TRÊN BACKEND
+                    fetch('/api/v1/inventory/pricing-draft', {method: 'DELETE'}).then(() => {
+                        document.getElementById("calcTableBody").innerHTML = "";
+                        rowCount = 0;
+                        document.getElementById("paramTyGia").value = "3,948";
+                        document.getElementById("paramTongShip").value = "0";
+                        document.getElementById("paramChiPhiKhac").value = "0";
 
-                    if (typeof Toast !== 'undefined') {
-                        Toast.fire({
-                            icon: 'success',
-                            title: '<span class="fw-medium ms-1" style="font-size:14px;">Đã làm mới bảng tính!</span>'
-                        });
-                    }
+                        addRow("", 1, 0, true);
+                        calculateAll(true);
+
+                        const statusEl = document.getElementById("saveStatus");
+                        statusEl.innerHTML = "<i class=\"bi bi-stars me-1\"></i>Bảng tính trống";
+                        statusEl.className = "text-secondary fw-medium badge bg-secondary bg-opacity-10 border border-secondary border-opacity-25 px-2 py-1 rounded-pill";
+
+                        if (typeof Toast !== 'undefined') {
+                            Toast.fire({
+                                icon: 'success',
+                                title: '<span class="fw-medium ms-1" style="font-size:14px;">Đã làm mới bảng tính Cloud!</span>'
+                            });
+                        }
+                    });
                 }
             });
         };

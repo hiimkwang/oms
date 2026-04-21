@@ -1,4 +1,4 @@
-package com.oms.module.inventory.entity;
+package com.oms.module.tool.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

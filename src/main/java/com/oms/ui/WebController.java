@@ -458,12 +458,13 @@ public class WebController {
     }
 
 
-    @GetMapping("/import-pricing")
+    @GetMapping("/ui/tools/import-pricing")
     public String importPricingCalculator(Model model) {
         return "tools/import-pricing";
     }
 
-    @GetMapping("/selling-pricing")
+    // 2. Màn hình phân tích Giá bán & Lợi nhuận sàn TMĐT (File mới)
+    @GetMapping("/ui/tools/selling-pricing")
     public String sellingPricingCalculator(Model model) {
         return "tools/selling-pricing";
     }
