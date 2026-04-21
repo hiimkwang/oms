@@ -102,7 +102,7 @@
 
         .sticky-col-2 {
             position: sticky;
-            left: 40px;
+            left: 50px;
             z-index: 5;
             background-color: #f8f9fb !important;
             border-right: 1px solid #dee2e6 !important;
@@ -111,6 +111,42 @@
         #inventoryTable tbody td.sticky-col-1, #inventoryTable tbody td.sticky-col-2 {
             background-color: #ffffff !important;
             z-index: 4;
+        }
+
+        /* Grouping Styles - Sạch sẽ và Tinh tế */
+        .parent-row {
+            background-color: #ffffff;
+            transition: background-color 0.2s;
+        }
+
+        .parent-row:hover td.sticky-col-1, .parent-row:hover td.sticky-col-2, .parent-row:hover td {
+            background-color: #f8fafc !important;
+        }
+
+        /* Bỏ viền dưới của dòng cha khi đang mở bung ra */
+        .parent-row.expanded td {
+            border-bottom-color: transparent !important;
+        }
+
+        /* Style cho các dòng con (biến thể) */
+        .child-row td {
+            border-bottom-color: transparent !important; /* Xóa kẻ viền */
+            background-color: #f8fafc !important; /* Đổ nền xám nhạt để tạo thành 1 khối */
+        }
+
+        .child-row td.sticky-col-1, .child-row td.sticky-col-2 {
+            background-color: #f8fafc !important;
+        }
+
+        /* Giữ lại duy nhất 1 viền cho dòng con cuối cùng để chốt khối */
+        .child-row.last-child td {
+            border-bottom-color: #f0f0f0 !important;
+        }
+
+        .toggle-icon {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
         }
 
         .product-img {
@@ -131,6 +167,14 @@
             align-items: center;
             justify-content: center;
             color: #94a3b8;
+        }
+
+        .variant-img {
+            width: 36px;
+            height: 36px;
+            border-radius: 4px;
+            object-fit: cover;
+            border: 1px solid #e2e8f0;
         }
 
         /* Modal Column Settings */
@@ -276,16 +320,33 @@
         </form>
 
         <div class="table-responsive" style="min-height: 400px;">
+            <table id="rawData" class="d-none">
+                <tr th:each="v : ${inventories}"
+                    th:data-product="${v.productName}"
+                    th:data-sku="${v.sku}"
+                    th:data-variant="${v.variantName}"
+                    th:data-stock="${v.stock}"
+                    th:data-available="${(v.stock != null and v.availableStock != null and v.availableStock > v.stock) ? v.stock : v.availableStock}"
+                    th:data-transaction="${(v.stock != null and v.availableStock != null and v.stock >= v.availableStock) ? (v.stock - v.availableStock) : 0}"
+                    th:data-inbound="${v.inboundStock != null ? v.inboundStock : 0}"
+                    th:data-cost="${v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') : '0'}"
+                    th:data-price="${v.price != null ? #numbers.formatDecimal(v.price, 0, 'COMMA', 0, 'POINT') : '0'}"
+                    th:data-unit="${v.unit}"
+                    th:data-image="${v.imageUrl}"
+                    th:data-created="${v.createdAt != null ? #temporals.format(v.createdAt, 'dd/MM/yyyy') : '---'}">
+                </tr>
+            </table>
+
             <table class="table table-custom table-hover align-middle mb-0 text-nowrap" id="inventoryTable">
                 <thead>
                 <tr>
-                    <th class="ps-4 sticky-col-1">
+                    <th class="text-center sticky-col-1" style="width: 50px;">
                         <a href="javascript:void(0)" class="text-primary" data-bs-toggle="modal"
                            data-bs-target="#columnSettingsModal">
                             <i class="bi bi-gear-fill"></i>
                         </a>
                     </th>
-                    <th class="col-product text-start sticky-col-2">Sản phẩm</th>
+                    <th class="col-product text-start sticky-col-2">Sản phẩm / Phân loại</th>
                     <th class="col-sku">SKU</th>
                     <th class="col-barcode">Barcode</th>
                     <th class="col-unit">Đơn vị</th>
@@ -300,49 +361,7 @@
                     <th class="col-created text-end pe-4">Ngày tạo SP</th>
                 </tr>
                 </thead>
-                <tbody>
-                <th:block th:each="v : ${inventories}">
-                    <tr>
-                        <td class="ps-4 sticky-col-1"></td>
-                        <td class="col-product text-start sticky-col-2">
-                            <div class="d-flex align-items-center gap-3 py-1">
-                                <img th:if="${v.imageUrl != null and v.imageUrl != ''}" th:src="${v.imageUrl}"
-                                     class="product-img shadow-sm">
-                                <div th:unless="${v.imageUrl != null and v.imageUrl != ''}"
-                                     class="img-placeholder shadow-sm"><i class="bi bi-image"></i></div>
-                                <div class="lh-sm">
-                                    <a th:href="@{/ui/products/{sku}(sku=${v.sku})}"
-                                       class="fw-bold text-primary text-decoration-none d-block mb-1"
-                                       th:text="${v.productName}"></a>
-                                    <small class="text-muted" th:text="${v.variantName}"></small>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="col-sku" th:text="${v.sku}"></td>
-                        <td class="col-barcode text-muted small">---</td>
-                        <td class="col-unit" th:text="${v.unit}"></td>
-                        <td class="col-lot text-muted small">Không</td>
-
-                        <td class="col-stock fw-bold fs-6" th:text="${v.stock}"></td>
-
-                        <td class="col-available fw-bold text-success fs-6"
-                            th:text="${(v.stock != null and v.availableStock != null and v.availableStock > v.stock) ? v.stock : v.availableStock}"></td>
-
-                        <td class="col-not-available text-muted">0</td>
-
-                        <td class="col-transaction text-muted fw-medium"
-                            th:text="${(v.stock != null and v.availableStock != null and v.stock >= v.availableStock) ? (v.stock - v.availableStock) : 0}"></td>
-
-                        <td class="col-inbound fw-bold text-info" th:text="${v.inboundStock != null ? v.inboundStock : 0}">0</td>
-
-                        <td class="col-price-cost"
-                            th:text="${v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') : '0'}"></td>
-                        <td class="col-price-sell fw-bold text-primary"
-                            th:text="${v.price != null ? #numbers.formatDecimal(v.price, 0, 'COMMA', 0, 'POINT') : '0'}"></td>
-                        <td class="col-created text-end text-muted pe-4"
-                            th:text="${v.createdAt != null ? #temporals.format(v.createdAt, 'dd/MM/yyyy') : '---'}"></td>
-                    </tr>
-                </th:block>
+                <tbody id="inventoryBody">
                 <tr th:if="${#lists.isEmpty(inventories)}">
                     <td colspan="14" class="text-center py-5 text-muted">
                         <i class="bi bi-box-seam fs-2 d-block mb-2"></i>Không có dữ liệu tồn kho tại chi nhánh này.
@@ -356,14 +375,6 @@
             <span th:if="${not #lists.isEmpty(inventories)}"
                   th:text="'Hiển thị 1 - ' + ${#lists.size(inventories)} + ' trên tổng số ' + ${#lists.size(inventories)}"></span>
             <span th:if="${#lists.isEmpty(inventories)}">Hiển thị 0</span>
-            <nav th:if="${not #lists.isEmpty(inventories)}">
-                <ul class="pagination pagination-sm mb-0">
-                    <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>
-                    </li>
-                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
-                </ul>
-            </nav>
         </div>
     </div>
 
@@ -425,7 +436,6 @@
             {id: 'col-created', label: 'Ngày tạo SP', visible: true, canHide: true}
         ];
 
-        // Dùng Key mới để reset lại bộ đệm trình duyệt
         let config = JSON.parse(localStorage.getItem('inventory_column_config_v4')) || [...DEFAULT_COLUMNS];
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -438,7 +448,10 @@
                 });
             });
 
-            // Kéo thả
+            // 1. CHẠY GOM NHÓM DỮ LIỆU
+            groupAndRenderInventory();
+
+            // 2. KÉO THẢ CỘT
             new Sortable(document.getElementById('selectedColumnsSortable'), {
                 animation: 150, handle: '.drag-handle',
                 onEnd: function (evt) {
@@ -455,9 +468,176 @@
                 }
             });
 
+            // 3. APPLY CONFIG CỘT (Ẩn/Hiện)
             renderSettings();
             applyConfig();
         });
+
+        function groupAndRenderInventory() {
+            const rawRows = document.querySelectorAll('#rawData tr');
+            if (rawRows.length === 0) return;
+
+            const groupedData = {};
+
+            rawRows.forEach(row => {
+                const prodName = row.getAttribute('data-product');
+                const isDefault = row.getAttribute('data-variant') === 'Mặc định';
+
+                if (!groupedData[prodName]) {
+                    groupedData[prodName] = {
+                        name: prodName,
+                        imageUrl: row.getAttribute('data-image'),
+                        unit: row.getAttribute('data-unit'),
+                        createdDate: row.getAttribute('data-created'),
+                        totalStock: 0,
+                        totalAvailable: 0,
+                        totalTransaction: 0,
+                        totalInbound: 0,
+                        variants: [],
+                        isSingle: isDefault
+                    };
+                }
+
+                groupedData[prodName].totalStock += parseInt(row.getAttribute('data-stock') || 0);
+                groupedData[prodName].totalAvailable += parseInt(row.getAttribute('data-available') || 0);
+                groupedData[prodName].totalTransaction += parseInt(row.getAttribute('data-transaction') || 0);
+                groupedData[prodName].totalInbound += parseInt(row.getAttribute('data-inbound') || 0);
+
+                groupedData[prodName].variants.push({
+                    variantName: row.getAttribute('data-variant'),
+                    sku: row.getAttribute('data-sku'),
+                    stock: row.getAttribute('data-stock'),
+                    available: row.getAttribute('data-available'),
+                    transaction: row.getAttribute('data-transaction'),
+                    inbound: row.getAttribute('data-inbound'),
+                    cost: row.getAttribute('data-cost'),
+                    price: row.getAttribute('data-price'),
+                    image: row.getAttribute('data-image')
+                });
+            });
+
+            const tbody = document.getElementById('inventoryBody');
+            tbody.innerHTML = '';
+
+            Object.values(groupedData).forEach((prod, index) => {
+                const hasVariants = !prod.isSingle && prod.variants.length > 0;
+                const parentId = `prod-${index}`;
+
+                const trParent = document.createElement('tr');
+                // MẶC ĐỊNH LÀ BUNG RA (expanded)
+                trParent.className = 'parent-row fw-medium';
+
+                const imgHtml = prod.imageUrl
+                    ? `<img src="${prod.imageUrl}" class="product-img shadow-sm">`
+                    : `<div class="img-placeholder shadow-sm"><i class="bi bi-image"></i></div>`;
+
+                // NÚT TOGGLE (Dùng class bi-chevron-down mặc định vì đang expanded)
+                const toggleIconHtml = hasVariants
+                    ? `<i class="bi bi-chevron-right toggle-icon fs-6 text-secondary cursor-pointer" id="icon-${parentId}"></i>`
+                    : `<span style="width: 20px; display: inline-block;"></span>`;
+
+                const clickAttr = hasVariants ? `style="cursor:pointer;" onclick="toggleVariants('${parentId}')"` : ``;
+
+                const displaySku = prod.isSingle ? prod.variants[0].sku : `<span class="badge bg-white text-dark border">${prod.variants.length} phân loại</span>`;
+                const displayCost = prod.isSingle ? prod.variants[0].cost : '---';
+                const displayPrice = prod.isSingle ? prod.variants[0].price : '---';
+
+                trParent.innerHTML = `
+                    <td class="text-center sticky-col-1" ${clickAttr}>
+                        ${toggleIconHtml}
+                    </td>
+                    <td class="col-product text-start sticky-col-2" ${clickAttr}>
+                        <div class="d-flex align-items-center py-1">
+                            ${imgHtml}
+                            <div class="text-primary fw-bold ms-3">${prod.name}</div>
+                        </div>
+                    </td>
+                    <td class="col-sku">${displaySku}</td>
+                    <td class="col-barcode text-muted small">---</td>
+                    <td class="col-unit">${prod.unit}</td>
+                    <td class="col-lot text-muted small">---</td>
+                    <td class="col-stock fw-bold fs-6">${prod.totalStock}</td>
+                    <td class="col-available fw-bold text-success fs-6">${prod.totalAvailable}</td>
+                    <td class="col-not-available text-muted">0</td>
+                    <td class="col-transaction text-muted fw-medium">${prod.totalTransaction}</td>
+                    <td class="col-inbound fw-bold text-info">${prod.totalInbound}</td>
+                    <td class="col-price-cost">${displayCost}</td>
+                    <td class="col-price-sell fw-bold text-primary">${displayPrice}</td>
+                    <td class="col-created text-end text-muted pe-4">${prod.createdDate}</td>
+                `;
+                tbody.appendChild(trParent);
+
+                if (hasVariants) {
+                    prod.variants.forEach((variant, vIndex) => {
+                        const isLast = vIndex === prod.variants.length - 1;
+                        const trChild = document.createElement('tr');
+
+                        trChild.className = `child-row d-none child-of-${parentId} ${isLast ? 'last-child' : ''}`;
+
+                        // HIỂN THỊ ĐẦY ĐỦ ẢNH BIẾN THỂ VÀ BỎ BIỂU TƯỢNG CÂY
+                        const varImgHtml = variant.image
+                            ? `<img src="${variant.image}" class="variant-img me-3 shadow-sm">`
+                            : `<div class="variant-img d-flex align-items-center justify-content-center bg-white border shadow-sm me-3"><i class="bi bi-image text-muted small"></i></div>`;
+
+                        trChild.innerHTML = `
+                            <td class="text-center sticky-col-1"></td>
+                            <td class="col-product text-start sticky-col-2">
+                                <div class="d-flex align-items-center ms-4">
+                                    ${varImgHtml}
+                                    <span class="text-dark">${variant.variantName}</span>
+                                </div>
+                            </td>
+                            <td class="col-sku">${variant.sku}</td>
+                            <td class="col-barcode text-muted small">---</td>
+                            <td class="col-unit text-muted small">---</td>
+                            <td class="col-lot text-muted small">---</td>
+                            <td class="col-stock fw-bold">${variant.stock}</td>
+                            <td class="col-available fw-bold text-success">${variant.available}</td>
+                            <td class="col-not-available text-muted">0</td>
+                            <td class="col-transaction text-muted">${variant.transaction}</td>
+                            <td class="col-inbound text-info">${variant.inbound}</td>
+                            <td class="col-price-cost">${variant.cost}</td>
+                            <td class="col-price-sell fw-bold text-primary">${variant.price}</td>
+                            <td class="col-created text-end text-muted pe-4">---</td>
+                        `;
+                        tbody.appendChild(trChild);
+                    });
+                }
+            });
+        }
+
+        // ĐÃ SỬA: Đổi trực tiếp Class Icon (Không dùng Rotate CSS)
+        function toggleVariants(parentId) {
+            const children = document.querySelectorAll(`.child-of-${parentId}`);
+            const parentRow = document.querySelector(`[onclick="toggleVariants('${parentId}')"]`);
+            const icon = document.getElementById(`icon-${parentId}`);
+
+            let isExpanding = false;
+            children.forEach(child => {
+                if (child.classList.contains('d-none')) {
+                    child.classList.remove('d-none');
+                    isExpanding = true;
+                } else {
+                    child.classList.add('d-none');
+                }
+            });
+
+            if (isExpanding) {
+                parentRow.classList.add('expanded');
+                parentRow.classList.add('bg-light');
+                if (icon) {
+                    icon.classList.remove('bi-chevron-right');
+                    icon.classList.add('bi-chevron-down');
+                }
+            } else {
+                parentRow.classList.remove('expanded');
+                parentRow.classList.remove('bg-light');
+                if (icon) {
+                    icon.classList.remove('bi-chevron-down');
+                    icon.classList.add('bi-chevron-right');
+                }
+            }
+        }
 
         function renderSettings() {
             const availDiv = document.getElementById('availableColumns');

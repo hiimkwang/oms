@@ -71,7 +71,6 @@ public class ProductService {
             for (ProductVariantRequest vReq : request.getVariants()) {
                 String varSku = vReq.getSku();
                 if (varSku == null || varSku.trim().isEmpty() || varSku.startsWith("AUTO")) {
-                    // Đã sửa thành gen theo tên biến thể: SKU_MẸ - TÊN_BIẾN_THỂ
                     varSku = sku + "-" + generateSlugFromName(vReq.getVariantName());
                 }
 
@@ -287,8 +286,8 @@ public class ProductService {
 
     @Transactional
     public void deleteProductsBulk(List<Long> ids) {
-        productVariantRepository.deleteByProductIdIn(ids);
-        productRepository.deleteAllByIdInBatch(ids);
+        List<Product> products = productRepository.findAllById(ids);
+        productRepository.deleteAll(products);
     }
 
     // ================= HÀM TIỆN ÍCH TẠO SKU =================

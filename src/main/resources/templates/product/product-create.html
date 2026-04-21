@@ -331,6 +331,10 @@
             new TomSelect('#tags', {create: true, plugins: ['remove_button']});
 
             initAttributeTags();
+
+            // MỚI THÊM: Trigger gen bảng Biến thể realtime khi gõ Tên / SKU
+            document.getElementById('name').addEventListener('input', generateVariantTable);
+            document.getElementById('sku').addEventListener('input', generateVariantTable);
         });
 
         // Hàm tiện ích: Cập nhật tên kho khi chọn
@@ -400,6 +404,21 @@
             generateVariantTable();
         }
 
+        // MỚI THÊM: Hàm gen chuẩn hóa chuỗi (Giống code Java Backend)
+        function generateSlugFromName(name) {
+            if (!name || name.trim() === '') {
+                return "AUTO";
+            }
+            return name.normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/Đ/g, "D")
+                .replace(/đ/g, "d")
+                .replace(/[^a-zA-Z0-9\s-]/g, "")
+                .trim()
+                .replace(/\s+/g, '-')
+                .toUpperCase();
+        }
+
         function generateVariantTable() {
             const container = document.getElementById('variantTableContainer');
             const thead = document.getElementById('variantTableHead');
@@ -437,7 +456,6 @@
                 singleProductStockArea.classList.add('d-none'); // ẨN NGAY ô nhập tồn kho gốc
             }
 
-            // (Phần dưới này giữ nguyên để sinh bảng HTML...)
             let headerHtml = '<tr>';
             validAttributes.forEach(attr => {
                 headerHtml += `<th class="text-start ps-3">${attr.name}</th>`;
@@ -470,14 +488,19 @@
 
             const combos = cartesian(allValues);
             const basePrice = document.getElementById('price').value || 0;
-            const baseSku = document.getElementById('sku').value.trim() || 'AUTO';
+
+            // MỚI THÊM: Tính toán SKU mẹ linh hoạt
+            let productName = document.getElementById("name").value.trim();
+            let manualSku = document.getElementById('sku').value.trim();
+            let baseSku = manualSku ? manualSku : generateSlugFromName(productName);
 
             let bodyHtml = '';
 
             combos.forEach((combo, index) => {
                 let variantSuffix = Array.isArray(combo) ? combo.join('-') : combo;
-                variantSuffix = variantSuffix.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/\s+/g, '-');
-                const variantSku = baseSku === 'AUTO' ? `${variantSuffix}` : `${baseSku}-${variantSuffix}`;
+
+                // MỚI THÊM: Nối SKU mẹ và SKU con
+                const variantSku = baseSku === "AUTO" ? generateSlugFromName(variantSuffix) : `${baseSku}-${generateSlugFromName(variantSuffix)}`;
 
                 let rowHtml = '<tr>';
                 combo.forEach(val => {
@@ -551,11 +574,11 @@
                 branchId: parseInt(branchIdVal), // Truyền ID Kho xuống Backend
                 minStockLevel: 0,
                 description: document.getElementById("description").value,
-                attributes: [], // Đã thêm để hứng thuộc tính
+                attributes: [], // MỚI THÊM: Hứng dữ liệu thuộc tính
                 variants: []
             };
 
-            // THU THẬP THUỘC TÍNH (MÀU SẮC, KÍCH THƯỚC...)
+            // MỚI THÊM: THU THẬP THUỘC TÍNH (MÀU SẮC, KÍCH THƯỚC...)
             document.querySelectorAll('.attr-row').forEach(row => {
                 const nameInput = row.querySelector('.attr-name-input');
                 const attrName = nameInput ? nameInput.value.trim() : '';

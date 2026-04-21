@@ -101,6 +101,7 @@
             </h4>
         </div>
         <div class="d-flex gap-2">
+            <button class="btn btn-outline-danger fw-medium px-3 shadow-sm" onclick="deleteProduct()"><i class="bi bi-trash me-1"></i> Xóa</button>
             <a href="/ui/products" class="btn btn-light border fw-medium px-4">Hủy</a>
             <button class="btn btn-primary fw-bold px-4 shadow-sm" onclick="saveProduct()">Cập nhật sản phẩm</button>
         </div>
@@ -773,6 +774,45 @@
             } catch (err) {
                 Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ!'});
             }
+        }
+        function deleteProduct() {
+            const skuVal = document.getElementById("sku").value.trim();
+            if (!skuVal) return;
+
+            Swal.fire({
+                title: 'Bạn có chắc chắn?',
+                text: "Toàn bộ dữ liệu sản phẩm, thuộc tính và các biến thể sẽ bị xóa vĩnh viễn!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444', // Màu đỏ danger
+                cancelButtonColor: '#94a3b8',  // Màu xám slate
+                confirmButtonText: 'Đúng, xóa ngay!',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/api/v1/products/' + skuVal, {
+                        method: 'DELETE'
+                    }).then(res => {
+                        if (res.ok) {
+                            Swal.fire(
+                                'Đã xóa!',
+                                'Sản phẩm đã được xóa khỏi hệ thống.',
+                                'success'
+                            ).then(() => {
+                                window.location.href = '/ui/products';
+                            });
+                        } else {
+                            res.json().then(err => Toast.fire({
+                                icon: 'error',
+                                title: 'Lỗi: ' + (err.message || 'Không thể xóa sản phẩm này do đang bị ràng buộc dữ liệu!')
+                            }));
+                        }
+                    }).catch(err => Toast.fire({
+                        icon: 'error',
+                        title: 'Lỗi kết nối máy chủ!'
+                    }));
+                }
+            });
         }
     </script>
 </div>
