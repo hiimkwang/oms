@@ -84,8 +84,8 @@ public class CashbookService {
             String message = String.format("Đã ghi nhận %s với %s. Số tiền: %s",
                     typeName.toLowerCase(), targetName, formattedAmount);
 
-            String link = isReceipt ? "/ui/cashbook/receipts/" + savedTransaction.getId()
-                    : "/ui/cashbook/payments/" + savedTransaction.getId();
+            String link = isReceipt ? "/ui/cashbook/detail/" + savedTransaction.getId()
+                    : "/ui/cashbook/detail/" + savedTransaction.getId();
 
             notificationService.create(
                     title,
