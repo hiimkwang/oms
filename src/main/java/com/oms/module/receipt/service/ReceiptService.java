@@ -384,10 +384,25 @@ public class ReceiptService {
     }
 
     public Receipt getReceiptById(Long id) {
-        return receiptRepository.findById(id).orElseThrow();
+        Receipt receipt = receiptRepository.findById(id).orElseThrow();
+        populateImageUrls(receipt);
+        return receipt;
     }
 
     public Receipt getReceiptByCode(String code) {
-        return receiptRepository.findByCode(code).orElseThrow();
+        Receipt receipt = receiptRepository.findByCode(code).orElseThrow();
+        populateImageUrls(receipt);
+        return receipt;
+    }
+
+    private void populateImageUrls(Receipt receipt) {
+        if (receipt.getDetails() != null) {
+            for (ReceiptDetail detail : receipt.getDetails()) {
+                variantRepository.findBySku(detail.getSku()).ifPresent(variant -> {
+                    String img = variant.getImageUrl() != null ? variant.getImageUrl() : (variant.getProduct() != null ? variant.getProduct().getImageUrl() : null);
+                    detail.setImageUrl(img);
+                });
+            }
+        }
     }
 }

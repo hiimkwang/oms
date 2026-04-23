@@ -251,7 +251,7 @@
             });
         });
 
-        window.addRow = function (initName = "", initQty = 1, initPriceCyn = 0, initSku = "", skipCalc = false) {
+        window.addRow = function (initName = "", initQty = 1, initPriceCyn = 0, initSku = "", skipCalc = false, initImageUrl = "") {
             rowCount++;
             const tbody = document.getElementById("calcTableBody");
             if (!tbody) return;
@@ -292,6 +292,7 @@
             const nameInput = tr.querySelector(".input-name");
             nameInput.value = initName;
             nameInput.dataset.sku = initSku;
+            nameInput.dataset.imageUrl = initImageUrl;
 
             tr.querySelector(".input-qty").value = strQty;
             tr.querySelector(".input-price-cyn").value = strPrice;
@@ -369,6 +370,7 @@
             div.onclick = () => {
                 inputElem.value = displayName;
                 inputElem.dataset.sku = sku;
+                inputElem.dataset.imageUrl = imgSrc;
                 dropdown.style.display = 'none';
                 inputElem.closest('tr').querySelector('.input-qty').focus();
                 calculateAll();
@@ -389,6 +391,7 @@
                 const nameInput = row.querySelector(".input-name");
                 const name = nameInput.value;
                 const sku = nameInput.dataset.sku || "";
+                const imageUrl = nameInput.dataset.imageUrl || "";
                 const qty = parseNumber(row.querySelector(".input-qty").value);
                 const priceCYN = parseNumber(row.querySelector(".input-price-cyn").value);
 
@@ -396,7 +399,7 @@
                 sumTienTe += (qty * priceCYN);
 
                 if (name || qty > 0 || priceCYN > 0) {
-                    draftItems.push({name: name, sku: sku, qty: qty, priceCyn: priceCYN});
+                    draftItems.push({name: name, sku: sku, qty: qty, priceCyn: priceCYN, imageUrl: imageUrl});
                 }
             });
 
@@ -519,7 +522,7 @@
                 if (draft.items && draft.items.length > 0) {
                     document.getElementById("calcTableBody").innerHTML = "";
                     rowCount = 0;
-                    draft.items.forEach(item => addRow(item.name, item.qty, item.priceCyn, item.sku || "", true));
+                    draft.items.forEach(item => addRow(item.name, item.qty, item.priceCyn, item.sku || "", true, item.imageUrl || ""));
                 } else {
                     addRow("", 1, 0, "", true);
                 }
@@ -588,6 +591,7 @@
                 const nameInput = row.querySelector(".input-name");
                 const name = nameInput.value;
                 const sku = nameInput.dataset.sku;
+                const imageUrl = nameInput.dataset.imageUrl || "";
                 const qty = parseNumber(row.querySelector(".input-qty").value);
 
                 const priceCYN = parseNumber(row.querySelector(".input-price-cyn").value);
@@ -607,8 +611,9 @@
                         return;
                     }
                     transferItems.push({
-                        sku: sku, // Đã có SKU chắc chắn ở đây do đã chặn bên trên
+                        sku: sku,
                         name: name,
+                        imageUrl: imageUrl,
                         rawPrice: Math.round(rawPrice),
                         quantity: qty,
                         warrantyMonths: 12

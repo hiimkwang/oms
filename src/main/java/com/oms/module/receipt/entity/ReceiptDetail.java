@@ -25,6 +25,8 @@ public class ReceiptDetail {
     private String productName;
     private Integer quantity;
     private BigDecimal importPrice;
+    @Transient
+    private String imageUrl;
     @Column(name = "warranty_months")
     private Integer warrantyMonths;
 }

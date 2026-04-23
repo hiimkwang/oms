@@ -667,7 +667,7 @@
                         cart = data.items.map(i => ({
                             sku: i.sku || i.productCode || 'TEMP_SKU',
                             name: i.name || i.productName || 'Sản phẩm (Chưa có tên)',
-                            imageUrl: null, // Khi chuyển trang thường không truyền ảnh sang
+                            imageUrl: i.imageUrl || null,
                             rawPrice: parseNumber(i.rawPrice !== undefined ? i.rawPrice : (i.price || i.costPrice || 0)),
                             importPrice: parseNumber(i.importPrice !== undefined ? i.importPrice : (i.rawPrice || i.price || i.costPrice || 0)),
                             quantity: parseNumber(i.quantity !== undefined ? i.quantity : (i.qty || 1)),
