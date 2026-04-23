@@ -206,7 +206,7 @@
     <script th:inline="javascript">
         let rowCount = 0;
         let searchTimer;
-        let saveDbTimer; // Timer dùng để Debounce gọi API Lưu DB
+        let saveDbTimer;
 
         window.formatNumberInput = function (input) {
             let value = input.value.replace(/[^0-9.]/g, '');
@@ -240,7 +240,6 @@
             const now = new Date();
             document.getElementById('printTime').innerText = 'Ngày in: ' + now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN');
 
-            // Gọi hàm Tải nháp từ DB
             loadDraftFromDB();
 
             document.addEventListener('click', function (e) {
@@ -292,7 +291,7 @@
 
             const nameInput = tr.querySelector(".input-name");
             nameInput.value = initName;
-            nameInput.dataset.sku = initSku; // Bổ sung dòng này để giữ mã SKU
+            nameInput.dataset.sku = initSku;
 
             tr.querySelector(".input-qty").value = strQty;
             tr.querySelector(".input-price-cyn").value = strPrice;
@@ -332,16 +331,17 @@
                         dropdown.innerHTML = '';
                         if (data.products && data.products.length > 0) {
                             data.products.forEach(p => {
-                                const imgSrc = p.imageUrl ? p.imageUrl : 'https://placehold.co/40x40?text=SP';
-
+                                // CHỈNH SỬA: Logic ưu tiên lấy ảnh từ biến thể (imageUrl) nếu không có thì lấy ảnh cha (productImageUrl)
                                 if (p.variants && p.variants.length > 0) {
                                     p.variants.forEach(v => {
                                         const variantStr = (v.variantName && v.variantName !== 'Mặc định') ? ` - ${v.variantName}` : '';
                                         const displayName = p.name + variantStr;
                                         const displaySku = v.sku ? v.sku : p.code;
+                                        const imgSrc = v.imageUrl || p.imageUrl || 'https://placehold.co/40x40?text=SP';
                                         createDropdownItem(dropdown, inputElem, displayName, displaySku, imgSrc);
                                     });
                                 } else {
+                                    const imgSrc = p.imageUrl || 'https://placehold.co/40x40?text=SP';
                                     createDropdownItem(dropdown, inputElem, p.name, p.code, imgSrc);
                                 }
                             });
@@ -376,7 +376,6 @@
             dropdown.appendChild(div);
         }
 
-        // TÁCH LOGIC TÍNH TOÁN VÀ LƯU DB
         window.calculateAll = function (skipSaveDb = false) {
             const tyGia = parseNumber(document.getElementById("paramTyGia")?.value);
             const tongShip = parseNumber(document.getElementById("paramTongShip")?.value);
@@ -435,13 +434,11 @@
             document.getElementById("sumPhiKhac").innerText = formatVND(sumPhiKhac);
             document.getElementById("sumTongVon").innerText = formatVND(sumTongVon);
 
-            // LƯU DB NẾU KHÔNG BỊ CHẶN (Debounce 1 giây)
             if (!skipSaveDb) {
                 const draftData = {
                     tyGia: tyGia, tongShip: tongShip, tongKhac: tongKhac, items: draftItems
                 };
 
-                // Lưu tạm Local làm backup
                 localStorage.setItem("oms_pricing_draft", JSON.stringify(draftData));
 
                 const statusEl = document.getElementById("saveStatus");
@@ -467,12 +464,11 @@
             }
         };
 
-        // LẤY DỮ LIỆU TỪ BACKEND
         window.loadDraftFromDB = function () {
             fetch('/api/v1/inventory/pricing-draft')
                 .then(res => {
                     if (res.status === 200) return res.text();
-                    return null; // 204 No Content
+                    return null;
                 })
                 .then(text => {
                     if (text) {
@@ -496,9 +492,7 @@
             const draftStr = localStorage.getItem("oms_pricing_draft");
             if (draftStr) {
                 renderDraftToUI(JSON.parse(draftStr));
-
                 calculateAll(false);
-
                 localStorage.removeItem("oms_pricing_draft");
 
                 if (typeof Toast !== 'undefined') {
@@ -508,7 +502,7 @@
                     });
                 }
             } else {
-                addRow("", 1, 0, true);
+                addRow("", 1, 0, "", true);
                 calculateAll(true);
                 const statusEl = document.getElementById("saveStatus");
                 statusEl.innerHTML = `<i class="bi bi-check2-circle me-1"></i>Sẵn sàng`;
@@ -527,11 +521,11 @@
                     rowCount = 0;
                     draft.items.forEach(item => addRow(item.name, item.qty, item.priceCyn, item.sku || "", true));
                 } else {
-                    addRow("", 1, 0, true);
+                    addRow("", 1, 0, "", true);
                 }
-                calculateAll(true); // Cập nhật lại UI nhưng Không kích hoạt gọi API lưu DB
+                calculateAll(true);
             } catch (e) {
-                addRow("", 1, 0, true);
+                addRow("", 1, 0, "", true);
                 calculateAll(true);
             }
         }
@@ -554,10 +548,7 @@
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Xóa Local
                     localStorage.removeItem("oms_pricing_draft");
-
-                    // GỌI API XÓA NHÁP TRÊN BACKEND
                     fetch('/api/v1/inventory/pricing-draft', {method: 'DELETE'}).then(() => {
                         document.getElementById("calcTableBody").innerHTML = "";
                         rowCount = 0;
@@ -565,7 +556,7 @@
                         document.getElementById("paramTongShip").value = "0";
                         document.getElementById("paramChiPhiKhac").value = "0";
 
-                        addRow("", 1, 0, true);
+                        addRow("", 1, 0, "", true);
                         calculateAll(true);
 
                         const statusEl = document.getElementById("saveStatus");
@@ -582,6 +573,7 @@
                 }
             });
         };
+
         window.transferToImportOrder = function () {
             const rows = document.querySelectorAll("#calcTableBody tr");
             let transferItems = [];
@@ -591,13 +583,13 @@
             const tongKhac = parseNumber(document.getElementById("paramChiPhiKhac").value);
             const tyGia = parseNumber(document.getElementById("paramTyGia").value);
 
-            rows.forEach(row => {
+            // CHỈNH SỬA: Thêm tham số index vào forEach
+            rows.forEach((row, index) => {
                 const nameInput = row.querySelector(".input-name");
                 const name = nameInput.value;
                 const sku = nameInput.dataset.sku;
                 const qty = parseNumber(row.querySelector(".input-qty").value);
 
-                // Lấy giá Tệ x Tỷ giá để ra Đơn giá gốc (VNĐ)
                 const priceCYN = parseNumber(row.querySelector(".input-price-cyn").value);
                 const rawPrice = priceCYN * tyGia;
 
@@ -607,6 +599,7 @@
                         if (typeof Toast !== 'undefined') {
                             Toast.fire({
                                 icon: 'error',
+                                // CHỈNH SỬA: Biến index giờ đã hợp lệ
                                 title: `Dòng ${index + 1}: Vui lòng chọn sản phẩm "${name}" từ danh sách gợi ý để lấy mã SKU!`
                             });
                         }
@@ -614,7 +607,7 @@
                         return;
                     }
                     transferItems.push({
-                        sku: nameInput.dataset.sku || ("TEMP-" + Math.floor(Math.random() * 10000)),
+                        sku: sku, // Đã có SKU chắc chắn ở đây do đã chặn bên trên
                         name: name,
                         rawPrice: Math.round(rawPrice),
                         quantity: qty,
@@ -631,12 +624,11 @@
                 return;
             }
 
-            // Lưu vào LocalStorage và chuyển trang
             localStorage.setItem('oms_transfer_import', JSON.stringify({
                 items: transferItems,
                 shippingFee: tongShip + tongKhac
             }));
-            window.location.href = '/ui/imports/create'; // Đường dẫn đến trang tạo đơn
+            window.location.href = '/ui/imports/create';
         };
     </script>
 </div>

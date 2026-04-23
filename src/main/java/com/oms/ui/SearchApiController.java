@@ -50,6 +50,7 @@ public class SearchApiController {
                     vMap.put("id", v.getId());
                     vMap.put("variantName", v.getVariantName());
                     vMap.put("sku", v.getSku());
+                    vMap.put("imageUrl", v.getImageUrl() != null ? v.getImageUrl() : "");
                     return vMap;
                 }).collect(Collectors.toList());
                 map.put("variants", variants); // Ném mảng variants xuống Frontend
