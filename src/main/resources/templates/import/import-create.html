@@ -203,8 +203,8 @@
                         <div class="payment-summary-row mb-2">
                             <span class="text-muted">Giảm giá đơn</span>
                             <div class="input-group input-group-sm w-auto" style="max-width: 150px;">
-                                <input type="number" step="1" id="discountInput" class="form-control text-end" value="0"
-                                       min="0" onchange="calculateFinalAmount()">
+                                <input type="text" id="discountInput" class="form-control text-end" value="0"
+                                       oninput="formatNumberInput(this); calculateFinalAmount()">
                                 <span class="input-group-text">₫</span>
                             </div>
                         </div>
@@ -212,8 +212,8 @@
                         <div class="payment-summary-row border-bottom pb-3">
                             <span class="text-muted">Chi phí nhập hàng (Vận chuyển, phí khác)</span>
                             <div class="input-group input-group-sm w-auto" style="max-width: 150px;">
-                                <input type="number" step="1" id="shippingFeeInput" class="form-control text-end"
-                                       value="0" min="0" onchange="calculateFinalAmount()">
+                                <input type="text" id="shippingFeeInput" class="form-control text-end"
+                                       value="0" oninput="formatNumberInput(this); calculateFinalAmount()">
                                 <span class="input-group-text">₫</span>
                             </div>
                         </div>
@@ -240,9 +240,9 @@
                                 <div class="col-md-6">
                                     <label class="form-label-custom text-muted small">Số tiền đã trả</label>
                                     <div class="input-group">
-                                        <input type="number" step="1" id="paymentAmountInput"
+                                        <input type="text" id="paymentAmountInput"
                                                class="form-control form-control-custom text-end fw-bold text-success"
-                                               value="0">
+                                               value="0" oninput="formatNumberInput(this)">
                                         <span class="input-group-text bg-white text-muted">₫</span>
                                     </div>
                                 </div>
@@ -329,11 +329,7 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-end mt-4 border-top pt-4">
-        <button type="button" id="btnCreateOrderBottom" onclick="submitImportOrder()"
-                class="btn btn-light text-muted fw-bold shadow-sm px-5 py-2" disabled>Lưu đơn nhập hàng
-        </button>
-    </div>
+    <div class="d-flex justify-content-end mt-4 border-top pt-4"></div>
 
     <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -412,13 +408,15 @@
                     <div class="row g-3 bg-white p-3 rounded border">
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-primary">Giá nhập (Vốn)</label>
-                            <input type="number" step="1" id="qa_costPrice"
-                                   class="form-control shadow-none text-end fw-bold" value="0">
+                            <input type="text" id="qa_costPrice"
+                                   class="form-control shadow-none text-end fw-bold" value="0"
+                                   oninput="formatNumberInput(this)">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold text-success">Số lượng</label>
-                            <input type="number" step="1" id="qa_importQty"
-                                   class="form-control shadow-none text-center fw-bold" value="1">
+                            <input type="text" id="qa_importQty"
+                                   class="form-control shadow-none text-center fw-bold" value="1"
+                                   oninput="formatNumberInput(this)">
                         </div>
                     </div>
                 </div>
@@ -442,6 +440,20 @@
         let cart = [];
         let totalItemsAmount = 0;
         let finalAmountToPay = 0;
+
+        window.formatNumberInput = function (input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (value === '') {
+                input.value = '';
+                return;
+            }
+            input.value = parseInt(value, 10).toLocaleString('en-US');
+        };
+
+        window.parseNumber = function (val) {
+            if (val === undefined || val === null || val === '') return 0;
+            return parseInt(val.toString().replace(/,/g, ''), 10) || 0;
+        };
 
         document.addEventListener('DOMContentLoaded', function () {
             const productInput = document.getElementById('productSearchInput');
@@ -469,6 +481,9 @@
                     document.getElementById('supplierDropdownList').classList.remove('show');
                 }
             });
+
+            // Khởi chạy load dữ liệu chuyển qua
+            checkTransferData();
         });
 
         // ================= NHÀ CUNG CẤP =================
@@ -547,7 +562,6 @@
                     html = `<li class="p-4 text-center small text-muted">Không thấy SP. <button class="btn btn-link btn-sm" onclick="openQuickAdd('${keyword}')">Thêm nhanh?</button></li>`;
                 } else {
                     variants.forEach(v => {
-                        // Bọc Math.round để làm tròn giá hiển thị trên danh sách
                         const roundedPrice = Math.round(v.costPrice || 0);
                         const vStr = encodeURIComponent(JSON.stringify(v));
                         html += `
@@ -556,7 +570,7 @@
                                     <div class="img-product"><i class="bi bi-box-seam text-muted"></i></div>
                                     <div>
                                         <div class="fw-bold text-primary" style="font-size: 14px;">${v.productName} ${v.variantName !== 'Mặc định' ? '- ' + v.variantName : ''}</div>
-                                        <div class="text-muted" style="font-size: 12px;">SKU: ${v.sku} | Vốn: ${roundedPrice.toLocaleString('vi-VN')}₫</div>
+                                        <div class="text-muted" style="font-size: 12px;">SKU: ${v.sku} | Vốn: ${new Intl.NumberFormat('en-US').format(roundedPrice)}₫</div>
                                     </div>
                                 </div>
                             </li>`;
@@ -582,7 +596,8 @@
                 cart.push({
                     sku: v.sku,
                     name: fullName,
-                    importPrice: Math.round(v.costPrice || 0), // Làm tròn khi ném vào mảng
+                    rawPrice: Math.round(v.costPrice || 0),
+                    importPrice: Math.round(v.costPrice || 0),
                     quantity: 1,
                     warrantyMonths: 12
                 });
@@ -606,7 +621,7 @@
                 variants: [{
                     variantName: 'Mặc định',
                     sku: document.getElementById('qa_sku').value,
-                    costPrice: Math.round(parseFloat(document.getElementById('qa_costPrice').value) || 0)
+                    costPrice: parseNumber(document.getElementById('qa_costPrice').value)
                 }]
             };
             const res = await fetch('/api/v1/products', {
@@ -620,17 +635,52 @@
                 cart.push({
                     sku: p.variants[0].sku,
                     name: p.name,
+                    rawPrice: Math.round(p.variants[0].costPrice),
                     importPrice: Math.round(p.variants[0].costPrice),
-                    quantity: parseInt(document.getElementById('qa_importQty').value) || 1,
+                    quantity: parseNumber(document.getElementById('qa_importQty').value) || 1,
                     warrantyMonths: 12
                 });
                 renderCart();
             }
         }
 
+        // ================= KIỂM TRA CHUYỂN TRANG (PHÒNG THỦ DỮ LIỆU) =================
+        function checkTransferData() {
+            const dataStr = localStorage.getItem('oms_transfer_import');
+            if (dataStr) {
+                try {
+                    const data = JSON.parse(dataStr);
+                    if (data.items && data.items.length > 0) {
+                        // ÉP KIỂU MẠNH: Đảm bảo không bị null/NaN do truyền sai tên biến hoặc định dạng có dấu phẩy
+                        cart = data.items.map(i => ({
+                            sku: i.sku || i.productCode || 'TEMP_SKU',
+                            name: i.name || i.productName || 'Sản phẩm (Chưa có tên)',
+                            rawPrice: parseNumber(i.rawPrice !== undefined ? i.rawPrice : (i.price || i.costPrice || 0)),
+                            importPrice: parseNumber(i.importPrice !== undefined ? i.importPrice : (i.rawPrice || i.price || i.costPrice || 0)),
+                            quantity: parseNumber(i.quantity !== undefined ? i.quantity : (i.qty || 1)),
+                            warrantyMonths: parseNumber(i.warrantyMonths !== undefined ? i.warrantyMonths : 12)
+                        }));
+
+                        if (data.shippingFee) {
+                            document.getElementById('shippingFeeInput').value = new Intl.NumberFormat('en-US').format(data.shippingFee);
+                        }
+
+                        renderCart();
+
+                        if (typeof Toast !== 'undefined') {
+                            Toast.fire({icon: 'success', title: 'Đã tải dữ liệu từ Bảng tính nháp!'});
+                        }
+                    }
+                } catch (e) {
+                    console.error("Lỗi parse dữ liệu chuyển qua:", e);
+                }
+                localStorage.removeItem('oms_transfer_import');
+            }
+        }
+
         // ================= TÍNH TOÁN =================
         function formatMoney(amount) {
-            return new Intl.NumberFormat('vi-VN').format(Math.round(amount)) + '₫';
+            return new Intl.NumberFormat('en-US').format(Math.round(amount || 0)) + '₫';
         }
 
         function renderCart() {
@@ -643,41 +693,78 @@
 
             ['btnCreateOrderTop', 'btnCreateOrderBottom'].forEach(id => {
                 const b = document.getElementById(id);
-                b.disabled = isEmpty;
-                b.classList.toggle('btn-primary', !isEmpty);
-                b.classList.toggle('btn-light', isEmpty);
-                b.classList.toggle('text-muted', isEmpty);
+                if (b) {
+                    b.disabled = isEmpty;
+                    b.classList.toggle('btn-primary', !isEmpty);
+                    b.classList.toggle('btn-light', isEmpty);
+                    b.classList.toggle('text-muted', isEmpty);
+                }
             });
 
             let html = '';
-            totalItemsAmount = 0;
             let totalQty = 0;
             cart.forEach((item, index) => {
-                const lineTotal = Math.round(item.quantity * item.importPrice);
-                totalItemsAmount += lineTotal;
-                totalQty += item.quantity;
+                totalQty += (item.quantity || 0);
                 html += `<tr>
-                    <td class="ps-3"><div class="fw-bold">${item.name}</div><div class="small text-muted">${item.sku}</div></td>
-                    <td><input type="number" step="1" class="form-control form-control-sm text-center mx-auto" style="width:70px;" value="${item.quantity}" onchange="updateCart(${index}, 'quantity', this.value)"></td>
-                    <td><input type="number" step="1" class="form-control form-control-sm text-end" value="${item.importPrice}" onchange="updateCart(${index}, 'importPrice', this.value)"></td>
-                    <td><input type="number" step="1" class="form-control form-control-sm text-center mx-auto" style="width:65px;" value="${item.warrantyMonths}" onchange="updateCart(${index}, 'warrantyMonths', this.value)"></td>
-                    <td class="text-end fw-bold">${formatMoney(lineTotal)}</td>
-                    <td class="text-center"><i class="bi bi-trash text-danger cursor-pointer" onclick="removeItem(${index})"></i></td>
-                </tr>`;
+            <td class="ps-3"><div class="fw-bold">${item.name || 'N/A'}</div><div class="small text-muted">${item.sku || 'N/A'}</div></td>
+            <td><input type="text" class="form-control form-control-sm text-center mx-auto" style="width:70px;" value="${new Intl.NumberFormat('en-US').format(item.quantity)}" oninput="formatNumberInput(this)" onchange="updateCart(${index}, 'quantity', this.value)"></td>
+            <td>
+                <input type="text" class="form-control form-control-sm text-end" value="${new Intl.NumberFormat('en-US').format(item.rawPrice)}" oninput="formatNumberInput(this)" onchange="updateCart(${index}, 'rawPrice', this.value)">
+                <div class="von-label text-end small fw-bold text-success mt-1">Vốn: ${formatMoney(item.importPrice || item.rawPrice)}</div>
+            </td>
+            <td><input type="text" class="form-control form-control-sm text-center mx-auto" style="width:65px;" value="${new Intl.NumberFormat('en-US').format(item.warrantyMonths)}" oninput="formatNumberInput(this)" onchange="updateCart(${index}, 'warrantyMonths', this.value)"></td>
+            <td class="text-end fw-bold">${formatMoney((item.quantity || 0) * (item.rawPrice || 0))}</td>
+            <td class="text-center"><i class="bi bi-trash text-danger cursor-pointer" onclick="removeItem(${index})"></i></td>
+        </tr>`;
             });
             tbody.innerHTML = html;
-            document.getElementById('totalQtyLabel').innerText = `(${totalQty})`;
-            document.getElementById('totalAmountLabel').innerText = formatMoney(totalItemsAmount);
+            document.getElementById('totalQtyLabel').innerText = `(${new Intl.NumberFormat('en-US').format(totalQty)})`;
             calculateFinalAmount();
         }
 
         function updateCart(idx, field, val) {
-            if (field === 'importPrice') {
-                cart[idx][field] = Math.round(parseFloat(val) || 0);
-            } else {
-                cart[idx][field] = parseFloat(val) || 0;
-            }
+            cart[idx][field] = parseNumber(val);
             renderCart();
+        }
+
+        function calculateFinalAmount() {
+            const disc = parseNumber(document.getElementById('discountInput').value);
+            const ship = parseNumber(document.getElementById('shippingFeeInput').value);
+
+            let sumBaseTotal = 0;
+            cart.forEach(item => {
+                sumBaseTotal += ((item.quantity || 0) * (item.rawPrice || 0));
+            });
+
+            totalItemsAmount = sumBaseTotal;
+            finalAmountToPay = Math.round(totalItemsAmount - disc + ship);
+
+            cart.forEach(item => {
+                if (sumBaseTotal > 0) {
+                    const ratio = (item.quantity * item.rawPrice) / sumBaseTotal;
+                    const itemDisc = disc * ratio;
+                    const itemShip = ship * ratio;
+                    const lineFinalTotal = (item.quantity * item.rawPrice) - itemDisc + itemShip;
+                    item.importPrice = item.quantity > 0 ? Math.round(lineFinalTotal / item.quantity) : 0;
+                } else {
+                    item.importPrice = item.rawPrice;
+                }
+            });
+
+            document.getElementById('totalAmountLabel').innerText = formatMoney(totalItemsAmount);
+            document.getElementById('finalAmountLabel').innerText = formatMoney(finalAmountToPay);
+            if (document.getElementById('paid').checked) {
+                document.getElementById('paymentAmountInput').value = new Intl.NumberFormat('en-US').format(finalAmountToPay);
+            }
+
+            const tbody = document.querySelector('#filledProductState tbody');
+            const rows = tbody.querySelectorAll('tr');
+            cart.forEach((item, index) => {
+                if (rows[index]) {
+                    const vonDiv = rows[index].querySelector('.von-label');
+                    if (vonDiv) vonDiv.innerText = 'Vốn: ' + formatMoney(item.importPrice);
+                }
+            });
         }
 
         function removeItem(idx) {
@@ -685,21 +772,11 @@
             renderCart();
         }
 
-        function calculateFinalAmount() {
-            const disc = Math.round(parseFloat(document.getElementById('discountInput').value) || 0);
-            const ship = Math.round(parseFloat(document.getElementById('shippingFeeInput').value) || 0);
-            finalAmountToPay = Math.round(totalItemsAmount - disc + ship);
-            document.getElementById('finalAmountLabel').innerText = formatMoney(finalAmountToPay);
-            if (document.getElementById('paid').checked) {
-                document.getElementById('paymentAmountInput').value = finalAmountToPay;
-            }
-        }
-
         function togglePaymentInput() {
             const isLater = document.getElementById('payLater').checked;
             document.getElementById('paymentDetailsDiv').classList.toggle('opacity-50', isLater);
             document.getElementById('paymentAmountInput').disabled = isLater;
-            document.getElementById('paymentAmountInput').value = isLater ? 0 : finalAmountToPay;
+            document.getElementById('paymentAmountInput').value = isLater ? '0' : new Intl.NumberFormat('en-US').format(finalAmountToPay);
         }
 
         // ================= SUBMIT ĐƠN =================
@@ -718,9 +795,7 @@
                 return;
             }
 
-            // Gửi chính xác giá trị datetime-local
             let rawDate = document.getElementById('expectedDate').value;
-
             const rawAssigneeId = document.getElementById('assigneeId').value;
             const isPayLater = document.getElementById('payLater').checked;
 
@@ -730,23 +805,22 @@
                 branchName: branchName,
                 assigneeId: rawAssigneeId ? parseInt(rawAssigneeId) : null,
                 referenceCode: document.getElementById('referenceCode').value,
-                createdAt: rawDate, // Spring Boot sẽ tự phân tích chuỗi kiểu "yyyy-MM-dd'T'HH:mm"
+                createdAt: rawDate,
                 note: document.getElementById('orderNote').value,
 
-                // Tiền nong (Đảm bảo số nguyên)
                 itemsAmount: Math.round(totalItemsAmount),
-                discount: Math.round(parseFloat(document.getElementById('discountInput').value) || 0),
-                shippingFee: Math.round(parseFloat(document.getElementById('shippingFeeInput').value) || 0),
+                discount: parseNumber(document.getElementById('discountInput').value),
+                shippingFee: parseNumber(document.getElementById('shippingFeeInput').value),
                 totalAmount: Math.round(finalAmountToPay),
 
-                // Trạng thái nhập & thanh toán
                 isImportStock: document.getElementById('importStock').checked,
                 paymentStatus: isPayLater ? 'UNPAID' : 'PAID',
                 paymentMethod: document.getElementById('paymentMethod').value,
-                amountPaid: isPayLater ? 0 : Math.round(parseFloat(document.getElementById('paymentAmountInput').value) || 0),
+                amountPaid: isPayLater ? 0 : parseNumber(document.getElementById('paymentAmountInput').value),
 
                 items: cart.map(i => ({
                     sku: i.sku,
+                    productName: i.name, // <--- BỔ SUNG TRƯỜNG NÀY ĐỂ API KHÔNG BỊ NULL TÊN
                     quantity: parseInt(i.quantity) || 1,
                     importPrice: Math.round(parseFloat(i.importPrice) || 0),
                     warrantyMonths: parseInt(i.warrantyMonths) || 0
@@ -777,7 +851,7 @@
                     console.error("Lỗi 400 Bad Request chi tiết:", errText);
                     Toast.fire({
                         icon: 'error',
-                        title: 'Lỗi lưu đơn: Kiểm tra lại các trường bắt buộc!'
+                        title: 'Lỗi lưu đơn: Vui lòng kiểm tra lại dữ liệu!'
                     });
                 }
             } catch (err) {

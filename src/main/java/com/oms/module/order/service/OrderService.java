@@ -187,6 +187,7 @@ public class OrderService {
         for (OrderDetailRequest detailReq : detailRequests) {
             Product product = null;
             String productName = detailReq.getName();
+            BigDecimal costPrice = BigDecimal.ZERO; // Khởi tạo biến Giá vốn
 
             if (detailReq.getIsCustom() == null || !detailReq.getIsCustom()) {
                 try {
@@ -195,19 +196,38 @@ public class OrderService {
                         product = variant.getProduct();
                         String varName = variant.getVariantName();
                         productName = product.getName() + (varName != null && !varName.trim().isEmpty() ? " - " + varName : "");
+
+                        // Lấy giá vốn chuẩn từ Database tại thời điểm tạo đơn
+                        costPrice = variant.getCostPrice() != null ? variant.getCostPrice() : BigDecimal.ZERO;
                     } else {
-                        productName = detailReq.getName(); // Fallback an toàn
+                        productName = detailReq.getName();
                     }
                 } catch (Exception e) {
                     log.error("Cảnh báo: Lỗi khi lấy thông tin biến thể SKU {}: {}", detailReq.getSku(), e);
                 }
+            } else {
+                // Nếu là sản phẩm tùy chỉnh, lấy giá vốn gửi từ Request (thường là 0)
+                costPrice = detailReq.getCostPrice() != null ? detailReq.getCostPrice() : BigDecimal.ZERO;
             }
 
             BigDecimal unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : BigDecimal.ZERO;
             BigDecimal quantity = BigDecimal.valueOf(detailReq.getQuantity());
             BigDecimal lineTotal = unitPrice.multiply(quantity);
 
-            OrderDetail orderDetail = OrderDetail.builder().order(order).product(product).sku(detailReq.getSku()).productName(productName).quantity(detailReq.getQuantity()).unitPrice(unitPrice).totalPrice(lineTotal).note(detailReq.getNote()).isCustom(detailReq.getIsCustom() != null ? detailReq.getIsCustom() : false).serialNumber(detailReq.getSerialNumber()).warrantyMonths(detailReq.getWarrantyMonths()).build();
+            OrderDetail orderDetail = OrderDetail.builder()
+                    .order(order)
+                    .product(product)
+                    .sku(detailReq.getSku())
+                    .productName(productName)
+                    .quantity(detailReq.getQuantity())
+                    .unitPrice(unitPrice)
+                    .costPrice(costPrice)
+                    .totalPrice(lineTotal)
+                    .note(detailReq.getNote())
+                    .isCustom(detailReq.getIsCustom() != null ? detailReq.getIsCustom() : false)
+                    .serialNumber(detailReq.getSerialNumber())
+                    .warrantyMonths(detailReq.getWarrantyMonths())
+                    .build();
 
             order.getDetails().add(orderDetail);
             totalItemsAmount = totalItemsAmount.add(lineTotal);

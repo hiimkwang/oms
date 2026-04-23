@@ -208,15 +208,15 @@ public class ReceiptService {
         }
 
         String currentWorker = getCurrentUserName();
-        BigDecimal ratio = calculateExtraCostRatio(receipt);
+        //BigDecimal ratio = calculateExtraCostRatio(receipt);
 
         for (ReceiptDetail detail : receipt.getDetails()) {
             ProductVariant variant = variantRepository.findBySku(detail.getSku()).orElseThrow(() -> new RuntimeException("Không thấy SP mã: " + detail.getSku()));
 
-            BigDecimal extraCostPerItem = detail.getImportPrice().multiply(ratio);
-            BigDecimal actualImportPrice = detail.getImportPrice().add(extraCostPerItem);
+            //BigDecimal extraCostPerItem = detail.getImportPrice().multiply(ratio);
+            //BigDecimal actualImportPrice = detail.getImportPrice().add(extraCostPerItem);
 
-            updateMAC(variant, detail.getQuantity(), actualImportPrice);
+            updateMAC(variant, detail.getQuantity(), detail.getImportPrice());
             updateBranchInventoryForImport(receipt.getBranchId(), variant.getId(), detail.getQuantity());
 
             int currentVariantStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;

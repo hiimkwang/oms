@@ -102,6 +102,9 @@
                 </div>
             </div>
             <div class="d-flex gap-2">
+                <button class="btn btn-primary shadow-sm fw-medium" onclick="transferToImportOrder()">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Tạo đơn nhập hàng
+                </button>
                 <button class="btn btn-light border shadow-sm fw-medium" onclick="resetCalculator()">
                     <i class="bi bi-arrow-counterclockwise text-secondary me-1"></i> Làm mới
                 </button>
@@ -162,7 +165,8 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive" style="overflow: visible !important;">
-                    <table class="table table-modern table-hover align-middle mb-0 text-center" id="calcTable" style="font-size: 0.85rem;">
+                    <table class="table table-modern table-hover align-middle mb-0 text-center" id="calcTable"
+                           style="font-size: 0.85rem;">
                         <thead>
                         <tr>
                             <th width="4%" class="text-muted">STT</th>
@@ -248,7 +252,7 @@
             });
         });
 
-        window.addRow = function (initName = "", initQty = 1, initPriceCyn = 0, skipCalc = false) {
+        window.addRow = function (initName = "", initQty = 1, initPriceCyn = 0, initSku = "", skipCalc = false) {
             rowCount++;
             const tbody = document.getElementById("calcTableBody");
             if (!tbody) return;
@@ -286,10 +290,12 @@
         `;
             tbody.appendChild(tr);
 
-            tr.querySelector(".input-name").value = initName;
+            const nameInput = tr.querySelector(".input-name");
+            nameInput.value = initName;
+            nameInput.dataset.sku = initSku; // Bổ sung dòng này để giữ mã SKU
+
             tr.querySelector(".input-qty").value = strQty;
             tr.querySelector(".input-price-cyn").value = strPrice;
-
             reindexRows();
             if (!skipCalc) {
                 calculateAll();
@@ -362,6 +368,7 @@
         `;
             div.onclick = () => {
                 inputElem.value = displayName;
+                inputElem.dataset.sku = sku;
                 dropdown.style.display = 'none';
                 inputElem.closest('tr').querySelector('.input-qty').focus();
                 calculateAll();
@@ -380,7 +387,9 @@
             let draftItems = [];
 
             rows.forEach(row => {
-                const name = row.querySelector(".input-name").value;
+                const nameInput = row.querySelector(".input-name");
+                const name = nameInput.value;
+                const sku = nameInput.dataset.sku || "";
                 const qty = parseNumber(row.querySelector(".input-qty").value);
                 const priceCYN = parseNumber(row.querySelector(".input-price-cyn").value);
 
@@ -388,7 +397,7 @@
                 sumTienTe += (qty * priceCYN);
 
                 if (name || qty > 0 || priceCYN > 0) {
-                    draftItems.push({name: name, qty: qty, priceCyn: priceCYN});
+                    draftItems.push({name: name, sku: sku, qty: qty, priceCyn: priceCYN});
                 }
             });
 
@@ -516,7 +525,7 @@
                 if (draft.items && draft.items.length > 0) {
                     document.getElementById("calcTableBody").innerHTML = "";
                     rowCount = 0;
-                    draft.items.forEach(item => addRow(item.name, item.qty, item.priceCyn, true));
+                    draft.items.forEach(item => addRow(item.name, item.qty, item.priceCyn, item.sku || "", true));
                 } else {
                     addRow("", 1, 0, true);
                 }
@@ -572,6 +581,62 @@
                     });
                 }
             });
+        };
+        window.transferToImportOrder = function () {
+            const rows = document.querySelectorAll("#calcTableBody tr");
+            let transferItems = [];
+            let hasError = false;
+
+            const tongShip = parseNumber(document.getElementById("paramTongShip").value);
+            const tongKhac = parseNumber(document.getElementById("paramChiPhiKhac").value);
+            const tyGia = parseNumber(document.getElementById("paramTyGia").value);
+
+            rows.forEach(row => {
+                const nameInput = row.querySelector(".input-name");
+                const name = nameInput.value;
+                const sku = nameInput.dataset.sku;
+                const qty = parseNumber(row.querySelector(".input-qty").value);
+
+                // Lấy giá Tệ x Tỷ giá để ra Đơn giá gốc (VNĐ)
+                const priceCYN = parseNumber(row.querySelector(".input-price-cyn").value);
+                const rawPrice = priceCYN * tyGia;
+
+                if (name && qty > 0) {
+                    if (!sku) {
+                        hasError = true;
+                        if (typeof Toast !== 'undefined') {
+                            Toast.fire({
+                                icon: 'error',
+                                title: `Dòng ${index + 1}: Vui lòng chọn sản phẩm "${name}" từ danh sách gợi ý để lấy mã SKU!`
+                            });
+                        }
+                        row.querySelector(".input-name").focus();
+                        return;
+                    }
+                    transferItems.push({
+                        sku: nameInput.dataset.sku || ("TEMP-" + Math.floor(Math.random() * 10000)),
+                        name: name,
+                        rawPrice: Math.round(rawPrice),
+                        quantity: qty,
+                        warrantyMonths: 12
+                    });
+                }
+            });
+            if (hasError) return;
+            if (transferItems.length === 0) {
+                if (typeof Toast !== 'undefined') Toast.fire({
+                    icon: 'error',
+                    title: 'Không có sản phẩm hợp lệ để tạo đơn!'
+                });
+                return;
+            }
+
+            // Lưu vào LocalStorage và chuyển trang
+            localStorage.setItem('oms_transfer_import', JSON.stringify({
+                items: transferItems,
+                shippingFee: tongShip + tongKhac
+            }));
+            window.location.href = '/ui/imports/create'; // Đường dẫn đến trang tạo đơn
         };
     </script>
 </div>

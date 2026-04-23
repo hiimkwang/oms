@@ -42,6 +42,9 @@ public class OrderDetail {
     @Column(name = "unit_price", nullable = false)
     private BigDecimal unitPrice;
 
+    @Column(name = "cost_price")
+    private BigDecimal costPrice;
+
     @Column(name = "discount")
     private BigDecimal discount;
 

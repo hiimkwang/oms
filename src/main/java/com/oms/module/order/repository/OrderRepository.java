@@ -22,6 +22,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
         return result != null ? result.doubleValue() : 0D;
     }
 
+    // Bổ sung hàm tính COGS theo tháng/năm cho ReportService
+    @Query("SELECT COALESCE(SUM(d.costPrice * d.quantity), 0) FROM OrderDetail d " + "WHERE MONTH(d.order.createdAt) = :month " + "AND YEAR(d.order.createdAt) = :year " + "AND d.order.status NOT IN ('CANCELLED', 'CREATED')")
+    Double sumCostOfGoodsSoldByMonthAndYear(@Param("month") int month, @Param("year") int year);
+
     Optional<Order> findByOrderCode(String orderCode);
 
     boolean existsByOrderCode(String orderCode);
@@ -49,8 +53,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COUNT(o) FROM Order o WHERE (o.paymentStatus = 'UNPAID' OR o.paymentStatus IS NULL) AND o.status <> 'CANCELLED' AND o.createdAt BETWEEN :start AND :end")
     Long countUnpaidOrders(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    // Tính TỔNG GIÁ VỐN HÀNG BÁN (Chỉ tính các đơn đã chốt, không tính đơn Hủy/Khởi tạo)
-    @Query("SELECT COALESCE(SUM(d.quantity * v.costPrice), 0) FROM OrderDetail d JOIN ProductVariant v ON d.sku = v.sku WHERE d.order.status NOT IN ('CANCELLED', 'CREATED') AND d.order.createdAt BETWEEN :start AND :end")
+    // Tính TỔNG GIÁ VỐN HÀNG BÁN (Lấy trực tiếp d.costPrice)
+    @Query("SELECT COALESCE(SUM(d.quantity * d.costPrice), 0) FROM OrderDetail d WHERE d.order.status NOT IN ('CANCELLED', 'CREATED') AND d.order.createdAt BETWEEN :start AND :end")
     BigDecimal sumTotalCOGS(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     List<Order> findByCustomer_CodeOrderByCreatedAtDesc(String customerCode);
@@ -71,8 +75,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Object[]> findOrderCountByDate(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     // 3. Top sản phẩm bán chạy nhất
-//    @Query("SELECT d.productName, SUM(d.quantity) FROM OrderDetail d WHERE d.order.status NOT IN ('CANCELLED', 'CREATED') AND d.order.createdAt BETWEEN :start AND :end GROUP BY d.productName ORDER BY SUM(d.quantity) DESC")
-//    List<Object[]> findTopSellingProducts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
     @Query("SELECT d.productName, SUM(d.quantity) " + "FROM OrderDetail d JOIN d.order o " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY d.productName " + "ORDER BY SUM(d.quantity) DESC")
     List<Object[]> findTopSellingProducts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
 
@@ -80,16 +82,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COALESCE(b.name, 'Chưa gán'), SUM(o.totalAmount) FROM Order o LEFT JOIN Branch b ON o.branchId = b.id WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end GROUP BY b.name")
     List<Object[]> findRevenueByBranch(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    // 1. Tính Lợi nhuận gộp theo Từng Ngày
-    @Query("SELECT FUNCTION('DATE', o.createdAt), SUM(d.totalPrice - (d.quantity * v.costPrice)) " + "FROM OrderDetail d JOIN d.order o JOIN ProductVariant v ON d.sku = v.sku " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY FUNCTION('DATE', o.createdAt) ORDER BY FUNCTION('DATE', o.createdAt) ASC")
+    // 1. Tính Lợi nhuận gộp theo Từng Ngày (Lấy d.costPrice)
+    @Query("SELECT FUNCTION('DATE', o.createdAt), SUM(d.totalPrice - (d.quantity * d.costPrice)) " + "FROM OrderDetail d JOIN d.order o " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY FUNCTION('DATE', o.createdAt) ORDER BY FUNCTION('DATE', o.createdAt) ASC")
     List<Object[]> findProfitByDate(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    // 2. Tính Lợi nhuận gộp theo Kênh bán
-    @Query("SELECT COALESCE(o.salesChannelCode, 'Tại quầy'), SUM(d.totalPrice - (d.quantity * v.costPrice)) " + "FROM OrderDetail d JOIN d.order o JOIN ProductVariant v ON d.sku = v.sku " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY o.salesChannelCode")
+    // 2. Tính Lợi nhuận gộp theo Kênh bán (Lấy d.costPrice)
+    @Query("SELECT COALESCE(o.salesChannelCode, 'Tại quầy'), SUM(d.totalPrice - (d.quantity * d.costPrice)) " + "FROM OrderDetail d JOIN d.order o " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY o.salesChannelCode")
     List<Object[]> findProfitByChannel(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    // 3. Tính Lợi nhuận gộp theo Chi nhánh
-    @Query("SELECT COALESCE(b.name, 'Hệ thống'), SUM(d.totalPrice - (d.quantity * v.costPrice)) " + "FROM OrderDetail d JOIN d.order o LEFT JOIN Branch b ON o.branchId = b.id JOIN ProductVariant v ON d.sku = v.sku " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY b.name")
+    // 3. Tính Lợi nhuận gộp theo Chi nhánh (Lấy d.costPrice)
+    @Query("SELECT COALESCE(b.name, 'Hệ thống'), SUM(d.totalPrice - (d.quantity * d.costPrice)) " + "FROM OrderDetail d JOIN d.order o LEFT JOIN Branch b ON o.branchId = b.id " + "WHERE o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY b.name")
     List<Object[]> findProfitByBranch(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     // =====================================
@@ -108,7 +110,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.salesChannelCode IN :channels AND o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end")
     BigDecimal sumChannelTabNetRevenue(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    @Query("SELECT COALESCE(SUM(d.quantity * v.costPrice), 0) FROM OrderDetail d JOIN d.order o JOIN ProductVariant v ON d.sku = v.sku WHERE o.salesChannelCode IN :channels AND o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end")
+    // Tính COGS theo Kênh bán (Lấy d.costPrice)
+    @Query("SELECT COALESCE(SUM(d.quantity * d.costPrice), 0) FROM OrderDetail d JOIN d.order o WHERE o.salesChannelCode IN :channels AND o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end")
     BigDecimal sumChannelTabCOGS(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.salesChannelCode IN :channels AND o.status = :status AND o.createdAt BETWEEN :start AND :end")
@@ -123,13 +126,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COALESCE(b.name, 'Chưa gán'), SUM(o.totalAmount) FROM Order o LEFT JOIN Branch b ON o.branchId = b.id WHERE o.salesChannelCode IN :channels AND o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end GROUP BY b.name")
     List<Object[]> findChannelTabRevenueByBranch(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    //    @Query("SELECT d.productName, SUM(d.quantity) FROM OrderDetail d JOIN d.order o WHERE o.salesChannelCode IN :channels AND o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end GROUP BY d.productName ORDER BY SUM(d.quantity) DESC")
-//    List<Object[]> findChannelTabTopProducts(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
     @Query("SELECT d.productName, SUM(d.quantity) " + "FROM OrderDetail d JOIN d.order o " + "WHERE o.salesChannelCode IN :channels AND o.status NOT IN ('CANCELLED', 'CREATED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY d.productName " + "ORDER BY SUM(d.quantity) DESC")
     List<Object[]> findChannelTabTopProducts(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
 
-    //    @Query("SELECT d.productName, SUM(d.quantity) FROM OrderDetail d JOIN d.order o WHERE o.salesChannelCode IN :channels AND o.status IN ('CANCELLED', 'RETURNED') AND o.createdAt BETWEEN :start AND :end GROUP BY d.productName ORDER BY SUM(d.quantity) DESC")
-//    List<Object[]> findChannelTabTopReturnedProducts(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
     @Query("SELECT d.productName, SUM(d.quantity) " + "FROM OrderDetail d JOIN d.order o " + "WHERE o.salesChannelCode IN :channels AND o.status IN ('CANCELLED', 'RETURNED') AND o.createdAt BETWEEN :start AND :end " + "GROUP BY d.productName " + "ORDER BY SUM(d.quantity) DESC")
     List<Object[]> findChannelTabTopReturnedProducts(@Param("channels") List<String> channels, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, Pageable pageable);
 

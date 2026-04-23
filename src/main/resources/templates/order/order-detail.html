@@ -381,10 +381,11 @@
                         <table class="table table-product mb-0 border-start border-end">
                             <thead>
                             <tr>
-                                <th style="width: 45%;">Sản phẩm</th>
+                                <th style="width: 35%;">Sản phẩm</th>
                                 <th style="width: 15%; text-align: center;">Số lượng</th>
                                 <th style="width: 20%; text-align: right;">Đơn giá</th>
-                                <th style="width: 20%; text-align: right;">Thành tiền</th>
+                                <th style="width: 15%; text-align: right;">Thành tiền</th>
+                                <th style="width: 10%; text-align: right;">Lãi/Lỗ</th>
                                 <th style="width: 5%;" class="edit-element"></th>
                             </tr>
                             </thead>
@@ -448,19 +449,26 @@
                                 <div class="d-flex justify-content-between align-items-center mb-2 small">
                                     <span class="text-muted fw-medium">Giảm giá đơn</span>
                                     <div class="input-group input-group-sm w-50">
-                                        <input type="number" id="editDiscountInput"
-                                               class="form-control text-end fw-medium" onchange="calcEditTotals()">
+                                        <input type="text" id="editDiscountInput"
+                                               class="form-control text-end fw-medium"
+                                               oninput="formatNumberInput(this); calcEditTotals()">
                                         <span class="input-group-text bg-light text-muted">₫</span>
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mb-3 small pb-3 border-bottom">
                                     <span class="text-muted fw-medium">Phí giao hàng</span>
                                     <div class="input-group input-group-sm w-50">
-                                        <input type="number" id="editShippingFeeInput"
-                                               class="form-control text-end fw-medium" onchange="calcEditTotals()">
+                                        <input type="text" id="editShippingFeeInput"
+                                               class="form-control text-end fw-medium"
+                                               oninput="formatNumberInput(this); calcEditTotals()">
                                         <span class="input-group-text bg-light text-muted">₫</span>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-3 small text-muted pb-3 border-bottom">
+                                <span>Tổng Lãi / Lỗ dự kiến</span>
+                                <span class="fw-bold fs-6" id="viewTotalProfit">0₫</span>
                             </div>
 
                             <div class="d-flex justify-content-between fs-6 fw-bold text-dark pt-1">
@@ -576,8 +584,9 @@
                     <div class="mb-3">
                         <label class="form-label-custom">Số tiền nhận</label>
                         <div class="input-group">
-                            <input type="number" id="modalPaymentAmount"
-                                   class="form-control form-control-custom fw-bold text-end text-success">
+                            <input type="text" id="modalPaymentAmount"
+                                   class="form-control form-control-custom fw-bold text-end text-success"
+                                   oninput="formatNumberInput(this)">
                             <span class="input-group-text bg-white">₫</span>
                         </div>
                     </div>
@@ -666,8 +675,9 @@
                                         class="bi bi-info-circle ms-1"
                                         title="Sẽ trừ vào tiền hoàn lại cho khách"></i></label>
                                 <div class="input-group input-group-sm">
-                                    <input type="number" id="returnFee"
-                                           class="form-control text-end text-danger fw-bold" value="0">
+                                    <input type="text" id="returnFee"
+                                           class="form-control text-end text-danger fw-bold" value="0"
+                                           oninput="formatNumberInput(this)">
                                     <span class="input-group-text bg-white text-muted">₫</span>
                                 </div>
                                 <small class="text-muted d-block mt-2" style="font-size:11px;">*Khoản phí do khách hàng
@@ -681,8 +691,9 @@
                                         class="bi bi-info-circle ms-1"
                                         title="Chi phí phát sinh shop phải trả (VD: Phí ship hoàn)"></i></label>
                                 <div class="input-group input-group-sm">
-                                    <input type="number" id="returnShopFee"
-                                           class="form-control text-end text-warning-emphasis fw-bold" value="0">
+                                    <input type="text" id="returnShopFee"
+                                           class="form-control text-end text-warning-emphasis fw-bold" value="0"
+                                           oninput="formatNumberInput(this)">
                                     <span class="input-group-text bg-white text-muted">₫</span>
                                 </div>
                                 <small class="text-muted d-block mt-2" style="font-size:11px;">*Khoản phí do Shop chịu
@@ -712,6 +723,27 @@
     </script>
 
     <script th:inline="none">
+        // --- HÀM FORMAT SỐ ---
+        window.formatNumberInput = function (input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (value === '') {
+                input.value = '';
+                return;
+            }
+            input.value = parseInt(value, 10).toLocaleString('en-US');
+        };
+
+        window.parseNumber = function (val) {
+            if (val === undefined || val === null || val === '') return 0;
+            return parseInt(val.toString().replace(/,/g, ''), 10) || 0;
+        };
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('en-US').format(Math.round(amount || 0)) + '₫';
+        }
+
+        // ----------------------
+
         const orderCode = document.getElementById('hiddenOrderCode').value.trim();
         let currentOrder = null;
         let editCart = [];
@@ -728,10 +760,6 @@
             const isSuccess = await loadOrder();
             if (isSuccess) setupSearchProduct();
         });
-
-        function formatMoney(amount) {
-            return new Intl.NumberFormat('vi-VN').format(amount || 0) + '₫';
-        }
 
         function formatDateTime(isoString) {
             if (!isoString) return '--/--/---- --:--';
@@ -863,7 +891,13 @@
             }
 
             const totalItemAmount = (currentOrder.details || []).reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
+            const totalCostAmount = (currentOrder.details || []).reduce((sum, i) => sum + ((i.costPrice || 0) * i.quantity), 0);
             const totalQty = (currentOrder.details || []).reduce((sum, i) => sum + i.quantity, 0);
+
+            const totalProfit = (totalItemAmount - (currentOrder.discountAmount || 0)) - totalCostAmount;
+            const profitEl = document.getElementById('viewTotalProfit');
+            profitEl.innerText = (totalProfit > 0 ? '+' : '') + formatMoney(totalProfit);
+            profitEl.className = totalProfit >= 0 ? 'fw-bold fs-6 text-success' : 'fw-bold fs-6 text-danger';
 
             document.getElementById('viewTotalQty').innerText = `(${totalQty} sản phẩm)`;
             document.getElementById('viewSubTotal').innerText = formatMoney(totalItemAmount);
@@ -983,8 +1017,8 @@
                     showWarranty: !!(item.serialNumber || item.warrantyMonths)
                 }));
 
-                document.getElementById('editDiscountInput').value = currentOrder.discountAmount || 0;
-                document.getElementById('editShippingFeeInput').value = currentOrder.shippingFee || 0;
+                document.getElementById('editDiscountInput').value = new Intl.NumberFormat('en-US').format(currentOrder.discountAmount || 0);
+                document.getElementById('editShippingFeeInput').value = new Intl.NumberFormat('en-US').format(currentOrder.shippingFee || 0);
                 document.getElementById('editShippingAddress').value = currentOrder.shippingAddress || '';
                 document.getElementById('editNote').value = currentOrder.note || '';
                 document.getElementById('editSource').value = currentOrder.salesChannelCode || '';
@@ -1006,12 +1040,18 @@
             let html = '';
 
             (details || []).forEach((item, index) => {
-                const price = isEdit ? `<input type="number" class="form-control text-end form-control-sm" value="${item.unitPrice}" onchange="updateCartItem(${index}, 'unitPrice', this.value)">` : formatMoney(item.unitPrice);
-                const qty = isEdit ? `<input type="number" class="form-control text-center form-control-sm mx-auto" style="width: 70px;" value="${item.quantity}" onchange="updateCartItem(${index}, 'quantity', this.value)">` : item.quantity;
+                const price = isEdit ? `<input type="text" class="form-control text-end form-control-sm" value="${new Intl.NumberFormat('en-US').format(item.unitPrice)}" oninput="formatNumberInput(this)" onchange="updateCartItem(${index}, 'unitPrice', this.value)">` : formatMoney(item.unitPrice);
+                const qty = isEdit ? `<input type="text" class="form-control text-center form-control-sm mx-auto" style="width: 70px;" value="${new Intl.NumberFormat('en-US').format(item.quantity)}" oninput="formatNumberInput(this)" onchange="updateCartItem(${index}, 'quantity', this.value)">` : new Intl.NumberFormat('en-US').format(item.quantity);
                 const total = formatMoney(item.unitPrice * item.quantity);
                 const btnDel = isEdit ? `<i class="bi bi-trash text-danger cursor-pointer" onclick="removeCartItem(${index})"></i>` : '';
                 const name = item.productName || item.name || item.sku || 'Sản phẩm';
                 const customBadge = item.isCustom ? `<span class="badge bg-secondary ms-1" style="font-size:10px;">Tùy chỉnh</span>` : '';
+
+                const cost = item.costPrice || 0;
+                const lineProfit = (item.unitPrice - cost) * item.quantity;
+                const profitColor = lineProfit >= 0 ? 'text-success' : 'text-danger';
+                const profitSign = lineProfit > 0 ? '+' : '';
+                const profitHtml = `<span class="${profitColor}">${profitSign}${formatMoney(lineProfit)}</span>`;
 
                 let viewExtraHtml = '';
                 if (!isEdit) {
@@ -1026,7 +1066,7 @@
                             <span class="input-group-text bg-light text-muted" style="font-size: 11px;">S/N</span>
                             <input type="text" class="form-control" placeholder="Số Serial..." value="${item.serialNumber || ''}" onchange="editCart[${index}].serialNumber=this.value">
                             <span class="input-group-text bg-light text-muted border-start-0" style="font-size: 11px;">Bảo hành</span>
-                            <input type="number" class="form-control text-center px-1" placeholder="0" value="${item.warrantyMonths || ''}" onchange="editCart[${index}].warrantyMonths=this.value" style="max-width: 50px;">
+                            <input type="text" class="form-control text-center px-1" placeholder="0" value="${new Intl.NumberFormat('en-US').format(item.warrantyMonths || 0)}" oninput="formatNumberInput(this)" onchange="editCart[${index}].warrantyMonths=parseNumber(this.value)" style="max-width: 50px;">
                             <span class="input-group-text bg-light text-muted" style="font-size: 11px;">tháng</span>
                         </div>` : '';
 
@@ -1049,10 +1089,10 @@
                         <td class="text-center align-middle">${qty}</td>
                         <td class="text-end align-middle">${price}</td>
                         <td class="text-end align-middle fw-bold text-dark">${total}</td>
-                        <td class="text-center align-middle edit-element">${btnDel}</td>
+                        <td class="text-end align-middle fw-bold" style="font-size: 12px;">${profitHtml}</td> <td class="text-center align-middle edit-element">${btnDel}</td>
                     </tr>`;
             });
-            tbody.innerHTML = html || '<tr><td colspan="5" class="text-center text-muted py-4">Chưa có sản phẩm</td></tr>';
+            tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted py-4">Chưa có sản phẩm</td></tr>';
         }
 
         function toggleWarrantyInput(index) {
@@ -1095,7 +1135,7 @@
                         searchResult.forEach((v) => {
                             const fullName = v.productName + (v.variantName ? ' - ' + v.variantName : '');
 
-                            html += `<li class="p-2 border-bottom dropdown-item-hover d-flex justify-content-between align-items-center" onclick="addEditCart('${v.sku}', \`${fullName}\`, ${v.price})">
+                            html += `<li class="p-2 border-bottom dropdown-item-hover d-flex justify-content-between align-items-center" onclick="addEditCart('${v.sku}', \`${fullName}\`, ${v.price}, ${v.costPrice || 0})">
                                     <div>
                                         <div class="fw-bold text-primary" style="font-size: 13px;">${fullName}</div>
                                         <div class="text-muted" style="font-size: 11px;">SKU: ${v.sku}</div>
@@ -1114,13 +1154,14 @@
             });
         }
 
-        function addEditCart(sku, name, price) {
+        function addEditCart(sku, name, price, costPrice) {
             document.getElementById('productDropdownList').classList.remove('show');
             document.getElementById('productSearchInput').value = '';
             const exist = editCart.findIndex(i => i.sku === sku);
             if (exist > -1) editCart[exist].quantity++;
             else editCart.push({
                 sku: sku, name: name, productName: name, unitPrice: price || 0,
+                costPrice: costPrice || 0,
                 quantity: 1, showWarranty: false
             });
             renderProductTable(editCart, true);
@@ -1128,7 +1169,7 @@
         }
 
         function updateCartItem(idx, field, val) {
-            editCart[idx][field] = parseFloat(val) || 0;
+            editCart[idx][field] = parseNumber(val);
             renderProductTable(editCart, true);
             calcEditTotals();
         }
@@ -1141,8 +1182,8 @@
 
         function calcEditTotals() {
             const sub = editCart.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
-            const dis = parseFloat(document.getElementById('editDiscountInput').value) || 0;
-            const fee = parseFloat(document.getElementById('editShippingFeeInput').value) || 0;
+            const dis = parseNumber(document.getElementById('editDiscountInput').value);
+            const fee = parseNumber(document.getElementById('editShippingFeeInput').value);
             let final = sub - dis + fee;
             final = final > 0 ? final : 0;
 
@@ -1162,8 +1203,8 @@
             const subTotal = cartToSave.reduce((sum, i) => sum + (i.unitPrice * i.quantity), 0);
             const isEditing = document.getElementById('orderContainer').classList.contains('is-editing');
 
-            const discount = isEditing ? (parseFloat(document.getElementById('editDiscountInput').value) || 0) : currentOrder.discountAmount;
-            const shippingFee = isEditing ? (parseFloat(document.getElementById('editShippingFeeInput').value) || 0) : currentOrder.shippingFee;
+            const discount = isEditing ? parseNumber(document.getElementById('editDiscountInput').value) : currentOrder.discountAmount;
+            const shippingFee = isEditing ? parseNumber(document.getElementById('editShippingFeeInput').value) : currentOrder.shippingFee;
             const shippingAddress = isEditing ? document.getElementById('editShippingAddress').value : currentOrder.shippingAddress;
             const note = isEditing ? document.getElementById('editNote').value : currentOrder.note;
             const sourceCode = isEditing ? document.getElementById('editSource').value : currentOrder.salesChannelCode;
@@ -1200,7 +1241,6 @@
                 expectedDeliveryDate: exDate || null,
                 shippingFee: shippingFee,
 
-                // ĐÂY LÀ DÒNG ĐÃ ĐƯỢC FIX: Lấy số COD mới tính nếu đang ở chế độ sửa
                 codAmount: isEditing ? (currentOrder.calculatedCodAmount || 0) : currentOrder.codAmount,
 
                 shipWeight: currentOrder.shipWeight,
@@ -1214,7 +1254,7 @@
                 totalAmount: finalTotalAmount,
                 details: cartToSave.map(i => ({
                     sku: i.sku, name: i.productName || i.name, quantity: parseInt(i.quantity),
-                    unitPrice: parseFloat(i.unitPrice), isCustom: i.isCustom || false,
+                    unitPrice: parseFloat(i.unitPrice), costPrice: parseFloat(i.costPrice) || 0, isCustom: i.isCustom || false,
                     note: i.note, serialNumber: i.serialNumber || null, warrantyMonths: parseInt(i.warrantyMonths) || 0
                 }))
             };
@@ -1296,14 +1336,14 @@
         }
 
         function openPaymentModal() {
-            document.getElementById('modalPaymentAmount').value = currentOrder.totalAmount;
+            document.getElementById('modalPaymentAmount').value = new Intl.NumberFormat('en-US').format(currentOrder.totalAmount);
             new bootstrap.Modal(document.getElementById('paymentModal')).show();
         }
 
         async function confirmPayment() {
             currentOrder.paymentStatus = 'PAID';
             currentOrder.paymentMethod = document.getElementById('modalPaymentMethod').value;
-            currentOrder.amountPaid = parseFloat(document.getElementById('modalPaymentAmount').value) || currentOrder.totalAmount;
+            currentOrder.amountPaid = parseNumber(document.getElementById('modalPaymentAmount').value) || currentOrder.totalAmount;
             hideModalSafe('paymentModal');
             await submitFullOrderUpdate();
         }
@@ -1351,9 +1391,9 @@
                         <td class="text-center py-2">${item.quantity}</td>
                         <td class="text-end py-2">${formatMoney(item.unitPrice)}</td>
                         <td class="text-center py-2 pe-3">
-                            <input type="number" class="form-control form-control-sm text-center fw-bold return-qty-input"
+                            <input type="text" class="form-control form-control-sm text-center fw-bold return-qty-input"
                                    data-sku="${item.sku}" data-name="${item.productName || item.name}"
-                                   data-price="${item.unitPrice}" max="${item.quantity}" min="0" value="0">
+                                   data-price="${item.unitPrice}" max="${item.quantity}" min="0" value="0" oninput="formatNumberInput(this)">
                         </td>
                     </tr>
                 `;
@@ -1367,7 +1407,7 @@
             let isOverQty = false;
 
             document.querySelectorAll('.return-qty-input').forEach(input => {
-                const qty = parseInt(input.value) || 0;
+                const qty = parseNumber(input.value);
                 const maxQty = parseInt(input.getAttribute('max'));
 
                 if (qty > maxQty) isOverQty = true;
@@ -1390,15 +1430,15 @@
                 title: 'Vui lòng điền số lượng trả cho ít nhất 1 sản phẩm!'
             });
 
-            const customerFee = parseFloat(document.getElementById('returnFee').value) || 0;
-            const shopFee = parseFloat(document.getElementById('returnShopFee').value) || 0;
+            const customerFee = parseNumber(document.getElementById('returnFee').value);
+            const shopFee = parseNumber(document.getElementById('returnShopFee').value);
 
             const payload = {
                 originalOrderCode: currentOrder.orderCode,
                 reason: document.getElementById('returnReason').value,
                 note: document.getElementById('returnNote').value,
-                returnFee: customerFee, // Gửi phí khách chịu
-                shopReturnFee: shopFee, // MỚI: Gửi phí shop chịu lên Backend
+                returnFee: customerFee,
+                shopReturnFee: shopFee,
                 details: items
             };
 

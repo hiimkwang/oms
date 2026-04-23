@@ -189,11 +189,11 @@
                             <table class="table table-product mb-0 border-start border-end">
                                 <thead>
                                 <tr>
-                                    <th style="width: 40%;">Sản phẩm</th>
-                                    <th style="width: 15%; text-align: center;">Số lượng</th>
-                                    <th style="width: 25%; text-align: right;">Đơn giá</th>
+                                    <th style="width: 35%;">Sản phẩm</th>
+                                    <th style="width: 12%; text-align: center;">Số lượng</th>
+                                    <th style="width: 20%; text-align: right;">Đơn giá</th>
                                     <th style="width: 15%; text-align: right;">Thành tiền</th>
-                                    <th style="width: 5%;"></th>
+                                    <th style="width: 13%; text-align: right;">Lãi/Lỗ</th> <th style="width: 5%;"></th>
                                 </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -220,15 +220,15 @@
                             </div>
                             <div class="d-flex justify-content-between mb-2 small align-items-center">
                                 <span class="text-link">Chiết khấu/Giảm giá</span>
-                                <input type="number" id="discountInput"
+                                <input type="text" id="discountInput"
                                        class="form-control form-control-sm text-end w-25" value="0"
-                                       onchange="calculateFinalTotal()">
+                                       oninput="formatNumberInput(this); calculateFinalTotal()">
                             </div>
                             <div class="d-flex justify-content-between mb-3 pb-3 border-bottom small align-items-center">
                                 <span class="text-link">Phí giao hàng</span>
-                                <input type="number" id="shippingFeeInput"
+                                <input type="text" id="shippingFeeInput"
                                        class="form-control form-control-sm text-end w-25" value="0"
-                                       onchange="calculateFinalTotal()">
+                                       oninput="formatNumberInput(this); calculateFinalTotal()">
                             </div>
                             <div class="d-flex justify-content-between mb-4">
                                 <span class="fw-bold text-dark fs-6">Khách phải trả</span>
@@ -256,8 +256,8 @@
                             <div class="col-md-6">
                                 <label class="form-label-custom text-muted small">Số tiền khách đưa</label>
                                 <div class="input-group input-group-sm">
-                                    <input type="number" id="amountPaidInput" class="form-control text-end fw-bold"
-                                           value="0">
+                                    <input type="text" id="amountPaidInput" class="form-control text-end fw-bold"
+                                           value="0" oninput="formatNumberInput(this)">
                                     <span class="input-group-text bg-white">₫</span>
                                 </div>
                             </div>
@@ -326,15 +326,16 @@
                                     <div class="col-md-4">
                                         <label class="form-label-custom text-muted small">Tiền thu hộ (COD)</label>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" id="codAmount" class="form-control text-end">
+                                            <input type="text" id="codAmount" class="form-control text-end"
+                                                   oninput="formatNumberInput(this)">
                                             <span class="input-group-text bg-white">₫</span>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label-custom text-muted small">Khối lượng gói</label>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" id="shipWeight" class="form-control text-end"
-                                                   placeholder="0">
+                                            <input type="text" id="shipWeight" class="form-control text-end"
+                                                   placeholder="0" oninput="formatNumberInput(this)">
                                             <span class="input-group-text bg-white">gram</span>
                                         </div>
                                     </div>
@@ -457,11 +458,13 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label-custom text-muted small fw-normal">Thời gian tạo</label>
-                        <input type="datetime-local" id="orderDate" class="form-control form-control-custom text-muted" lang="vi-VN">
+                        <input type="datetime-local" id="orderDate" class="form-control form-control-custom text-muted"
+                               lang="vi-VN">
                     </div>
                     <div class="mb-3">
                         <label class="form-label-custom text-muted small fw-normal">Ngày hẹn giao cho khách</label>
-                        <input type="date" id="expectedDeliveryDate" class="form-control form-control-custom text-muted" lang="vi-VN">
+                        <input type="date" id="expectedDeliveryDate" class="form-control form-control-custom text-muted"
+                               lang="vi-VN">
                     </div>
                 </div>
             </div>
@@ -505,15 +508,17 @@
                         <div class="col-md-6">
                             <label class="form-label-custom text-danger small">Giá bán *</label>
                             <div class="input-group">
-                                <input type="number" id="customProductPrice" class="form-control form-control-custom"
-                                       placeholder="0">
+                                <input type="text" id="customProductPrice"
+                                       class="form-control form-control-custom text-end"
+                                       placeholder="0" oninput="formatNumberInput(this)">
                                 <span class="input-group-text bg-white">₫</span>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label-custom small">Số lượng</label>
-                            <input type="number" id="customProductQty" class="form-control form-control-custom"
-                                   value="1" min="1">
+                            <input type="text" id="customProductQty"
+                                   class="form-control form-control-custom text-center"
+                                   value="1" oninput="formatNumberInput(this)">
                         </div>
                     </div>
                 </div>
@@ -657,6 +662,20 @@
         let shippingType = 'MANUAL';
         let currentSearchedCustomers = [];
 
+        window.formatNumberInput = function (input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            if (value === '') {
+                input.value = '';
+                return;
+            }
+            input.value = parseInt(value, 10).toLocaleString('en-US');
+        };
+
+        window.parseNumber = function (val) {
+            if (!val) return 0;
+            return parseInt(val.toString().replace(/,/g, ''), 10) || 0;
+        };
+
         function hideModalSafe(modalId) {
             const modalEl = document.getElementById(modalId);
             if (modalEl) {
@@ -685,7 +704,7 @@
             const methodBox = document.getElementById('paymentMethodBox');
             if (isPaid) {
                 methodBox.classList.remove('d-none');
-                document.getElementById('amountPaidInput').value = finalAmountToPay;
+                document.getElementById('amountPaidInput').value = new Intl.NumberFormat('en-US').format(finalAmountToPay);
             } else {
                 methodBox.classList.add('d-none');
             }
@@ -759,7 +778,7 @@
             } else {
                 cart.push({
                     sku: v.sku, name: v.productName + (v.variantName ? ' - ' + v.variantName : ''),
-                    price: v.price || 0, quantity: 1, stock: v.stockQuantity || v.stock || 0,
+                    price: v.price || 0, costPrice: v.costPrice || 0, quantity: 1, stock: v.stockQuantity || v.stock || 0,
                     imageUrl: v.imageUrl || null, note: "", isCustom: false, showWarranty: false
                 });
             }
@@ -768,20 +787,24 @@
 
         function addCustomProduct() {
             const name = document.getElementById('customProductName').value;
-            const price = document.getElementById('customProductPrice').value;
-            const qty = document.getElementById('customProductQty').value;
+            const price = parseNumber(document.getElementById('customProductPrice').value);
+            const qty = parseNumber(document.getElementById('customProductQty').value);
 
-            if (!name || !price) return Toast.fire({icon: 'error', title: 'Vui lòng nhập Tên và Giá bán!'});
+            if (!name || isNaN(price)) return Toast.fire({
+                icon: 'error',
+                title: 'Vui lòng nhập Tên và Giá bán hợp lệ!'
+            });
 
             cart.push({
                 sku: 'CUSTOM_' + Date.now(),
-                name: name, price: parseFloat(price) || 0, quantity: parseInt(qty) || 1,
+                name: name, price: price, costPrice: 0, quantity: qty || 1,
                 imageUrl: null, note: "", isCustom: true, showWarranty: false
             });
 
             hideModalSafe('customProductModal');
             document.getElementById('customProductName').value = '';
             document.getElementById('customProductPrice').value = '';
+            document.getElementById('customProductQty').value = '1';
             renderCart();
         }
 
@@ -840,7 +863,8 @@
                         if (typeof totalData === 'number') totalStock = totalData;
                         else if (totalData) totalStock = totalData.stock || totalData.quantity || totalData.stockQuantity || totalData.available || 0;
                     }
-                } catch (e) {}
+                } catch (e) {
+                }
                 const isEnough = branchStock >= item.quantity;
                 const reqColor = isEnough ? 'text-dark' : 'text-danger fw-bold';
                 const branchColor = isEnough ? 'text-success' : 'text-danger fw-bold';
@@ -856,9 +880,9 @@
                             </div>
                         </div>
                     </td>
-                    <td class="text-center ${reqColor} fs-6">${item.quantity}</td>
-                    <td class="text-center ${branchId ? branchColor : 'text-muted'} fs-6">${branchId ? branchStock : '---'}</td>
-                    <td class="text-center text-muted fw-bold">${totalStock}</td>
+                    <td class="text-center ${reqColor} fs-6">${new Intl.NumberFormat('en-US').format(item.quantity)}</td>
+                    <td class="text-center ${branchId ? branchColor : 'text-muted'} fs-6">${branchId ? new Intl.NumberFormat('en-US').format(branchStock) : '---'}</td>
+                    <td class="text-center text-muted fw-bold">${new Intl.NumberFormat('en-US').format(totalStock)}</td>
                 </tr>`;
             }
             tbody.innerHTML = html;
@@ -870,7 +894,7 @@
         }
 
         function formatMoney(amount) {
-            return new Intl.NumberFormat('vi-VN').format(amount) + '₫';
+            return new Intl.NumberFormat('en-US').format(Math.round(amount)) + '₫';
         }
 
         function renderCart() {
@@ -891,6 +915,13 @@
                 const lineTotal = item.quantity * item.price;
                 subTotalAmount += lineTotal;
                 totalQty += parseInt(item.quantity);
+
+                // TÍNH LÃI LỖ DỰ KIẾN (MỚI THÊM)
+                const lineCost = (item.costPrice || 0) * item.quantity;
+                const lineProfit = lineTotal - lineCost;
+                const profitColor = lineProfit >= 0 ? 'text-success' : 'text-danger';
+                const profitSign = lineProfit > 0 ? '+' : '';
+
                 const noteHtml = item.note ? `<div class="text-warning small mt-1"><i class="bi bi-journal-text me-1"></i>${item.note}</div>` : '';
                 const customBadge = item.isCustom ? `<span class="badge bg-secondary ms-1" style="font-size:10px;">Tùy chỉnh</span>` : '';
 
@@ -901,7 +932,7 @@
                             <span class="input-group-text bg-light text-muted" style="font-size: 11px;">S/N</span>
                             <input type="text" class="form-control" placeholder="Số Serial..." value="${item.serialNumber || ''}" onchange="cart[${index}].serialNumber=this.value">
                             <span class="input-group-text bg-light text-muted border-start-0" style="font-size: 11px;">Bảo hành</span>
-                            <input type="number" class="form-control text-center px-1" placeholder="0" value="${item.warrantyMonths || ''}" onchange="cart[${index}].warrantyMonths=this.value" style="max-width: 50px;">
+                            <input type="text" class="form-control text-center px-1" placeholder="0" value="${new Intl.NumberFormat('en-US').format(item.warrantyMonths || 0)}" oninput="formatNumberInput(this)" onchange="cart[${index}].warrantyMonths=parseNumber(this.value)" style="max-width: 50px;">
                             <span class="input-group-text bg-light text-muted" style="font-size: 11px;">tháng</span>
                         </div>
                     `;
@@ -918,25 +949,25 @@
                             <a href="javascript:void(0)" onclick="openLineNoteModal(${index})" class="text-link" style="font-size:11px;"><i class="bi bi-pencil-square me-1"></i>Ghi chú</a>
                         </div>
                     </td>
-                    <td><input type="number" min="1" class="form-control form-control-custom text-center mx-auto" style="width: 70px;" value="${item.quantity}" onchange="cart[${index}].quantity=this.value;renderCart()"></td>
-                    <td><div class="input-group input-group-sm"><input type="number" class="form-control text-end" value="${item.price}" onchange="cart[${index}].price=this.value;renderCart()"><span class="input-group-text bg-white">₫</span></div></td>
+                    <td><input type="text" class="form-control form-control-custom text-center mx-auto" style="width: 70px;" value="${new Intl.NumberFormat('en-US').format(item.quantity)}" oninput="formatNumberInput(this)" onchange="cart[${index}].quantity=parseNumber(this.value) || 1; renderCart()"></td>
+                    <td><div class="input-group input-group-sm"><input type="text" class="form-control text-end" value="${new Intl.NumberFormat('en-US').format(item.price)}" oninput="formatNumberInput(this)" onchange="cart[${index}].price=parseNumber(this.value); renderCart()"><span class="input-group-text bg-white">₫</span></div></td>
                     <td class="text-end fw-bold text-dark">${formatMoney(lineTotal)}</td>
-                    <td class="text-center align-middle"><i class="bi bi-trash text-danger cursor-pointer" onclick="removeCartItem(${index})"></i></td>
+                    <td class="text-end fw-bold ${profitColor}" style="font-size: 13px;">${profitSign}${formatMoney(lineProfit)}</td> <td class="text-center align-middle"><i class="bi bi-trash text-danger cursor-pointer" onclick="removeCartItem(${index})"></i></td>
                 </tr>`;
             });
             tbody.innerHTML = html;
-            document.getElementById('totalItemsText').innerText = `(${totalQty})`;
+            document.getElementById('totalItemsText').innerText = `(${new Intl.NumberFormat('en-US').format(totalQty)})`;
             document.getElementById('subTotalLabel').innerText = formatMoney(subTotalAmount);
             calculateFinalTotal();
         }
 
         function calculateFinalTotal() {
-            const discount = parseFloat(document.getElementById('discountInput').value) || 0;
-            const fee = parseFloat(document.getElementById('shippingFeeInput').value) || 0;
+            const discount = parseNumber(document.getElementById('discountInput').value);
+            const fee = parseNumber(document.getElementById('shippingFeeInput').value);
             finalAmountToPay = subTotalAmount - discount + fee;
             document.getElementById('finalTotalLabel').innerText = formatMoney(finalAmountToPay);
-            document.getElementById('codAmount').value = finalAmountToPay;
-            if (document.getElementById('paid').checked) document.getElementById('amountPaidInput').value = finalAmountToPay;
+            document.getElementById('codAmount').value = new Intl.NumberFormat('en-US').format(finalAmountToPay);
+            if (document.getElementById('paid').checked) document.getElementById('amountPaidInput').value = new Intl.NumberFormat('en-US').format(finalAmountToPay);
         }
 
         function saveInvoiceData() {
@@ -1094,19 +1125,21 @@
                 shippingAddress: document.getElementById('displayShippingAddress').value,
                 createdAt: document.getElementById('orderDate').value || null,
                 expectedDeliveryDate: document.getElementById('expectedDeliveryDate').value || null,
-                shippingFee: parseFloat(document.getElementById('shippingFeeInput').value) || 0,
-                codAmount: parseFloat(document.getElementById('codAmount').value) || 0,
-                shipWeight: parseFloat(document.getElementById('shipWeight').value) || 0,
+
+                // Đã chuyển đổi thông qua parseNumber
+                shippingFee: parseNumber(document.getElementById('shippingFeeInput').value),
+                codAmount: parseNumber(document.getElementById('codAmount').value),
+                shipWeight: parseNumber(document.getElementById('shipWeight').value),
 
                 paymentStatus: document.querySelector('input[name="paymentStatus"]:checked').value,
                 paymentMethod: isPaid ? document.getElementById('paymentMethod').value : null,
-                amountPaid: isPaid ? parseFloat(document.getElementById('amountPaidInput').value) : 0,
+                amountPaid: isPaid ? parseNumber(document.getElementById('amountPaidInput').value) : 0,
 
                 invoiceTaxCode: invoiceData ? invoiceData.taxCode : null,
                 invoiceCompanyName: invoiceData ? invoiceData.companyName : null,
                 invoiceCompanyAddress: invoiceData ? invoiceData.companyAddress : null,
 
-                discountAmount: parseFloat(document.getElementById('discountInput').value) || 0,
+                discountAmount: parseNumber(document.getElementById('discountInput').value),
                 totalAmount: finalAmountToPay,
 
                 details: cart.map(i => ({
@@ -1114,6 +1147,7 @@
                     name: i.productName || i.name,
                     quantity: parseInt(i.quantity),
                     unitPrice: parseFloat(i.price),
+                    costPrice: parseFloat(i.costPrice) || 0,
                     isCustom: i.isCustom || false,
                     note: i.note,
                     serialNumber: i.serialNumber || null,

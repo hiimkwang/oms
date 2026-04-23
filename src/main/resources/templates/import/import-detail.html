@@ -595,18 +595,33 @@
     </div>
 
     <script th:inline="javascript">
+        let orderItemsAmt = /*[[${order.itemsAmount != null ? order.itemsAmount : 0}]]*/ 0;
+        let orderDisc = /*[[${order.discount != null ? order.discount : 0}]]*/ 0;
+        let orderShip = /*[[${order.shippingFee != null ? order.shippingFee : 0}]]*/ 0;
+        let orderTotalCalc = orderItemsAmt - orderDisc + orderShip;
+        // Tính hệ số dịch ngược để tìm lại Đơn giá gốc chưa phí
+        let factor = orderTotalCalc > 0 ? orderItemsAmt / orderTotalCalc : 1;
+
         let editCart = [
             /*[# th:each="item : ${order.details}"]*/
-            {
-                sku: /*[[${item.sku}]]*/ '',
-                name: /*[[${item.productName != null ? item.productName : item.sku}]]*/ '',
-                quantity: /*[[${item.quantity != null ? item.quantity : 0}]]*/ 0,
-                importPrice: Math.round(/*[[${item.importPrice != null ? item.importPrice : 0}]]*/ 0),
-                warrantyMonths: /*[[${item.warrantyMonths != null ? item.warrantyMonths : 0}]]*/ 0
-            },
+            (function() {
+                let qty = /*[[${item.quantity != null ? item.quantity : 0}]]*/ 0;
+                let impPrice = /*[[${item.importPrice != null ? item.importPrice : 0}]]*/ 0; // Đây là Giá Vốn lưu trong DB
+                let finalTotal = qty * impPrice;
+                let rawTotal = finalTotal * factor;
+                let rawPrice = qty > 0 ? Math.round(rawTotal / qty) : 0;
+
+                return {
+                    sku: /*[[${item.sku}]]*/ '',
+                    name: /*[[${item.productName != null ? item.productName : item.sku}]]*/ '',
+                    quantity: qty,
+                    rawPrice: rawPrice,
+                    importPrice: impPrice,
+                    warrantyMonths: /*[[${item.warrantyMonths != null ? item.warrantyMonths : 0}]]*/ 0
+                };
+            })(),
             /*[/]*/
         ];
-
         document.addEventListener("DOMContentLoaded", () => {
             renderEditCart();
             if (document.getElementById('editSupplierCode').value) {
@@ -675,29 +690,68 @@
 
             editCart.forEach((item, idx) => {
                 html += `
-                <tr>
-                    <td class="small">
-                        <div class="fw-bold text-primary">${item.name}</div>
-                        <div class="text-muted" style="font-size: 11px;">Mã: ${item.sku}</div>
-                    </td>
-                    <td><input type="number" step="1" class="form-control form-control-sm text-center" value="${item.quantity}" onchange="updateEditCart(${idx}, 'quantity', this.value)"></td>
-                    <td><input type="number" step="1" class="form-control form-control-sm text-end" value="${item.importPrice}" onchange="updateEditCart(${idx}, 'importPrice', this.value)"></td>
-                    <td><input type="number" step="1" class="form-control form-control-sm text-center" value="${item.warrantyMonths}" onchange="updateEditCart(${idx}, 'warrantyMonths', this.value)"></td>
-                    <td class="text-center"><i class="bi bi-trash text-danger cursor-pointer" onclick="removeEditCart(${idx})"></i></td>
-                </tr>
-                `;
+        <tr>
+            <td class="small">
+                <div class="fw-bold text-primary">${item.name}</div>
+                <div class="text-muted" style="font-size: 11px;">Mã: ${item.sku}</div>
+            </td>
+            <td><input type="number" step="1" class="form-control form-control-sm text-center" value="${item.quantity}" onchange="updateEditCart(${idx}, 'quantity', this.value)"></td>
+            <td>
+                <input type="number" step="1" class="form-control form-control-sm text-end" value="${item.rawPrice}" onchange="updateEditCart(${idx}, 'rawPrice', this.value)">
+                <div class="edit-von-label text-end small fw-bold text-success mt-1">Vốn: ${new Intl.NumberFormat('vi-VN').format(item.importPrice || item.rawPrice)}₫</div>
+            </td>
+            <td><input type="number" step="1" class="form-control form-control-sm text-center" value="${item.warrantyMonths}" onchange="updateEditCart(${idx}, 'warrantyMonths', this.value)"></td>
+            <td class="text-center"><i class="bi bi-trash text-danger cursor-pointer" onclick="removeEditCart(${idx})"></i></td>
+        </tr>
+        `;
             });
             tbody.innerHTML = html;
             calculateEditTotal();
         }
 
         function updateEditCart(idx, field, val) {
-            if (field === 'importPrice') {
-                editCart[idx][field] = Math.round(parseFloat(val) || 0);
+            if (field === 'rawPrice') {
+                editCart[idx].rawPrice = Math.round(parseFloat(val) || 0);
             } else {
                 editCart[idx][field] = parseFloat(val) || 0;
             }
             calculateEditTotal();
+        }
+
+        function calculateEditTotal() {
+            const disc = Math.round(parseFloat(document.getElementById('editDiscount').value) || 0);
+            const ship = Math.round(parseFloat(document.getElementById('editShippingFee').value) || 0);
+
+            let sumBaseTotal = 0;
+            editCart.forEach(item => {
+                sumBaseTotal += (item.quantity * item.rawPrice);
+            });
+
+            // Phân bổ
+            editCart.forEach(item => {
+                if (sumBaseTotal > 0) {
+                    const ratio = (item.quantity * item.rawPrice) / sumBaseTotal;
+                    const itemDisc = disc * ratio;
+                    const itemShip = ship * ratio;
+                    const lineFinalTotal = (item.quantity * item.rawPrice) - itemDisc + itemShip;
+                    item.importPrice = item.quantity > 0 ? Math.round(lineFinalTotal / item.quantity) : 0;
+                } else {
+                    item.importPrice = item.rawPrice;
+                }
+            });
+
+            const total = Math.round(sumBaseTotal - disc + ship);
+            document.getElementById('editTotalAmountLabel').innerText = new Intl.NumberFormat('vi-VN').format(total) + '₫';
+
+            // Cập nhật text Vốn
+            const tbody = document.getElementById('editCartBody');
+            const rows = tbody.querySelectorAll('tr');
+            editCart.forEach((item, index) => {
+                if(rows[index]) {
+                    const vonDiv = rows[index].querySelector('.edit-von-label');
+                    if(vonDiv) vonDiv.innerText = 'Vốn: ' + new Intl.NumberFormat('vi-VN').format(item.importPrice) + '₫';
+                }
+            });
         }
 
         function removeEditCart(idx) {
@@ -705,14 +759,14 @@
             renderEditCart();
         }
 
-        function calculateEditTotal() {
-            const itemsAmt = editCart.reduce((sum, i) => sum + (i.quantity * i.importPrice), 0);
-            const disc = Math.round(parseFloat(document.getElementById('editDiscount').value) || 0);
-            const ship = Math.round(parseFloat(document.getElementById('editShippingFee').value) || 0);
-
-            const total = Math.round(itemsAmt - disc + ship);
-            document.getElementById('editTotalAmountLabel').innerText = new Intl.NumberFormat('vi-VN').format(total) + '₫';
-        }
+        // function calculateEditTotal() {
+        //     const itemsAmt = editCart.reduce((sum, i) => sum + (i.quantity * i.importPrice), 0);
+        //     const disc = Math.round(parseFloat(document.getElementById('editDiscount').value) || 0);
+        //     const ship = Math.round(parseFloat(document.getElementById('editShippingFee').value) || 0);
+        //
+        //     const total = Math.round(itemsAmt - disc + ship);
+        //     document.getElementById('editTotalAmountLabel').innerText = new Intl.NumberFormat('vi-VN').format(total) + '₫';
+        // }
 
         const editProdInput = document.getElementById('editProductSearchInput');
         let editProdTimeout;
@@ -768,6 +822,7 @@
                     sku: v.sku,
                     name: fullName,
                     quantity: 1,
+                    rawPrice: Math.round(v.costPrice || 0),
                     importPrice: Math.round(v.costPrice || 0),
                     warrantyMonths: 12
                 });
@@ -793,7 +848,7 @@
                 return Toast.fire({icon: 'error', title: 'Giỏ hàng không được để trống!'});
             }
 
-            const itemsAmt = Math.round(editCart.reduce((sum, i) => sum + (i.quantity * i.importPrice), 0));
+            const itemsAmt = Math.round(editCart.reduce((sum, i) => sum + (i.quantity * i.rawPrice), 0));
             const disc = Math.round(parseFloat(document.getElementById('editDiscount').value) || 0);
             const ship = Math.round(parseFloat(document.getElementById('editShippingFee').value) || 0);
 
@@ -803,13 +858,13 @@
                 shippingFee: ship,
                 discount: disc,
                 note: document.getElementById('editNote').value.trim(),
-                itemsAmount: itemsAmt,
+                itemsAmount: itemsAmt, // Gửi tiền hàng gốc
                 totalAmount: Math.round(itemsAmt - disc + ship),
                 items: editCart.map(i => ({
                     sku: i.sku,
                     productName: i.name,
                     quantity: parseInt(i.quantity) || 1,
-                    importPrice: Math.round(parseFloat(i.importPrice) || 0),
+                    importPrice: Math.round(parseFloat(i.importPrice) || 0), // LƯU VÀO DB LÀ GIÁ VỐN
                     warrantyMonths: parseInt(i.warrantyMonths) || 0
                 }))
             };

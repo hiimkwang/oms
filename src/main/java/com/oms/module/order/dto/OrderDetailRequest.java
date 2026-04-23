@@ -21,7 +21,7 @@ public class OrderDetailRequest {
 
     @NotNull(message = "Thiếu đơn giá")
     private BigDecimal unitPrice;
-
+    private BigDecimal costPrice;
     private String note;
     private Boolean isCustom;
     private String serialNumber;

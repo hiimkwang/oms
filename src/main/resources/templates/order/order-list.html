@@ -236,13 +236,14 @@
                         <th>Khách hàng</th>
                         <th>Kênh bán</th>
                         <th class="text-end">Khách phải trả</th>
+                        <th class="text-end">Lãi/Lỗ</th>
                         <th class="text-center">Thanh toán</th>
                         <th class="text-center">Trạng thái</th>
                     </tr>
                     </thead>
                     <tbody id="orderTableBody">
                     <tr>
-                        <td colspan="8" class="text-center py-5">
+                        <td colspan="9" class="text-center py-5">
                             <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
                             Đang tải dữ liệu...
                         </td>
@@ -286,6 +287,11 @@
             'REFUNDED': 'Đã hoàn tiền'
         };
 
+        // Hàm format tiền thống nhất theo chuẩn có dấu phẩy en-US
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('en-US').format(Math.round(amount || 0)) + '₫';
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             await loadOrders();
 
@@ -320,7 +326,7 @@
                 applyFilters();
             } catch (e) {
                 console.error(e);
-                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
+                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="9" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
             }
         }
 
@@ -428,7 +434,7 @@
             const info = document.getElementById('recordInfo');
 
             if (dataList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy đơn hàng nào phù hợp.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy đơn hàng nào phù hợp.</td></tr>';
                 info.innerText = 'Hiển thị 0 kết quả';
                 clearSelection();
                 return;
@@ -445,7 +451,18 @@
                     });
                 }
 
-                const totalAmount = new Intl.NumberFormat('vi-VN').format(o.totalAmount || 0) + '₫';
+                const totalAmount = formatMoney(o.totalAmount);
+
+                // --- TÍNH TOÁN LÃI LỖ ---
+                const details = o.details || [];
+                const totalItemAmount = details.reduce((sum, i) => sum + ((i.unitPrice || 0) * (i.quantity || 0)), 0);
+                const totalCostAmount = details.reduce((sum, i) => sum + ((i.costPrice || 0) * (i.quantity || 0)), 0);
+                const totalProfit = (totalItemAmount - (o.discountAmount || 0)) - totalCostAmount;
+
+                const profitColor = totalProfit >= 0 ? 'text-success' : 'text-danger';
+                const profitSign = totalProfit > 0 ? '+' : '';
+                const profitHtml = `<span class="fw-bold ${profitColor}">${profitSign}${formatMoney(totalProfit)}</span>`;
+                // ------------------------
 
                 const cusName = o.customer ? (o.customer.fullName || o.customer.lastName + ' ' + o.customer.firstName || 'Khách lẻ') : 'Khách lẻ';
                 const cusCode = o.customer ? (o.customer.code || o.customer.id || '') : '';
@@ -490,6 +507,7 @@
                         </td>
                         <td class="text-muted fw-medium">${channelText}</td>
                         <td class="text-end fw-bold text-dark">${totalAmount}</td>
+                        <td class="text-end">${profitHtml}</td>
                         <td class="text-center">${paymentBadge}</td>
                         <td class="text-center">${statusBadge}</td>
                     </tr>
