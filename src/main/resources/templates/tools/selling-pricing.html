@@ -712,7 +712,7 @@
                                 const imgSrc = p.imageUrl || 'https://placehold.co/40x40?text=SP';
                                 if (p.variants && p.variants.length > 0) {
                                     p.variants.forEach(v => {
-                                        createSearchItem(dropdown, inputElem, p.name + (v.variantName !== 'Mặc định' ? ` - ${v.variantName}` : ''), v.sku || p.code, imgSrc, p.costPrice);
+                                        createSearchItem(dropdown, inputElem, p.name + (v.variantName !== 'Mặc định' ? ` - ${v.variantName}` : ''), v.sku || p.code, imgSrc, v.costPrice !== undefined ? v.costPrice : p.costPrice);
                                     });
                                 } else {
                                     createSearchItem(dropdown, inputElem, p.name, p.code, imgSrc, p.costPrice);
@@ -741,8 +741,8 @@
                 inputElem.value = name;
                 dropdown.style.display = 'none';
                 // Tự động điền giá vốn (ưu tiên p.costPrice từ API, nếu không random để demo)
-                const mockCost = costPrice ? costPrice : Math.floor(Math.random() * 500000) + 100000;
-                document.getElementById(currentTargetCostInput).value = mockCost.toLocaleString('en-US');
+                const finalCost = (costPrice !== undefined && costPrice !== null) ? costPrice : 0;
+                document.getElementById(currentTargetCostInput).value = finalCost.toLocaleString('en-US');
 
                 if (currentTargetCostInput === 'pricingCost') formatAndCalcPricing();
                 else formatAndCalcProfit();

@@ -42,7 +42,7 @@ public class SearchApiController {
             map.put("name", p.getName());
             map.put("code", p.getSku() != null ? p.getSku() : "");
             map.put("imageUrl", p.getImageUrl() != null ? p.getImageUrl() : "");
-
+            map.put("costPrice", p.getPrice());
             // BỔ SUNG ĐOẠN NÀY: Lấy thêm danh sách biến thể nhét vào JSON
             if (p.getVariants() != null && !p.getVariants().isEmpty()) {
                 List<Map<String, Object>> variants = p.getVariants().stream().map(v -> {
@@ -51,10 +51,12 @@ public class SearchApiController {
                     vMap.put("variantName", v.getVariantName());
                     vMap.put("sku", v.getSku());
                     vMap.put("imageUrl", v.getImageUrl() != null ? v.getImageUrl() : "");
+                    vMap.put("costPrice", v.getCostPrice());
                     return vMap;
                 }).collect(Collectors.toList());
                 map.put("variants", variants); // Ném mảng variants xuống Frontend
             }
+
 
             return map;
         }).collect(Collectors.toList());
