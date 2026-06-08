@@ -20,6 +20,12 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/vendors/**").permitAll()
+                        // Trang quản lý calo & gym: truy cập tự do qua URL riêng (không cần đăng nhập OMS)
+                        .requestMatchers("/gym", "/api/gym/**").permitAll()
+                        // Ảnh upload (ảnh bài tập gym...) cho phép xem không cần đăng nhập
+                        .requestMatchers("/media/**").permitAll()
+                        // Trang lỗi mặc định: cho phép để các trang công khai (gym) báo lỗi gọn gàng
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/ui/settings/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/settings/**").hasRole("ADMIN")
 
@@ -42,7 +48,10 @@ public class SecurityConfig {
                 )
                 // Bật lại CSRF: token được lưu vào cookie (đọc được bởi JS qua meta tag/cookie)
                 // để các lời gọi fetch và form POST kèm theo X-XSRF-TOKEN / _csrf.
-                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
+                // Riêng API gym (không đăng nhập, không dùng session) thì bỏ qua CSRF.
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/gym/**")
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
         return http.build();
     }
 

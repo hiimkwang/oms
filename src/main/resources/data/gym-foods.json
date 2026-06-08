@@ -1,0 +1,1353 @@
+[
+  {
+    "name": "Americano",
+    "carb": 0,
+    "fat": 0,
+    "protein": 0.3,
+    "calo": 3,
+    "portions": [
+      {
+        "label": "1 ly",
+        "grams": 250
+      }
+    ]
+  },
+  {
+    "name": "Bánh bao nhân thịt",
+    "carb": 35,
+    "fat": 8,
+    "protein": 9,
+    "calo": 251,
+    "portions": [
+      {
+        "label": "1 cái",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Bánh Chưng",
+    "carb": 30,
+    "fat": 4,
+    "protein": 4.5,
+    "calo": 180,
+    "portions": [
+      {
+        "label": "1 góc",
+        "grams": 150
+      },
+      {
+        "label": "1 cái",
+        "grams": 800
+      }
+    ]
+  },
+  {
+    "name": "Bánh cuốn (không)",
+    "carb": 16,
+    "fat": 3,
+    "protein": 3,
+    "calo": 110
+  },
+  {
+    "name": "Bánh mì gối đen",
+    "carb": 43,
+    "fat": 3.5,
+    "protein": 9,
+    "calo": 245,
+    "portions": [
+      {
+        "label": "1 lát",
+        "grams": 30
+      }
+    ]
+  },
+  {
+    "name": "Bánh mì gối trắng",
+    "carb": 49,
+    "fat": 3.2,
+    "protein": 9,
+    "calo": 265,
+    "portions": [
+      {
+        "label": "1 lát",
+        "grams": 30
+      }
+    ]
+  },
+  {
+    "name": "Bánh Phở Tươi",
+    "carb": 32,
+    "fat": 0.4,
+    "protein": 3,
+    "calo": 143,
+    "portions": [
+      {
+        "label": "1 bát",
+        "grams": 200
+      }
+    ]
+  },
+  {
+    "name": "Bò (Loin Strip)",
+    "carb": 0,
+    "fat": 8,
+    "protein": 27,
+    "calo": 185
+  },
+  {
+    "name": "Bò (Thịt Tái)",
+    "carb": 0,
+    "fat": 6,
+    "protein": 26,
+    "calo": 158
+  },
+  {
+    "name": "Bò (Ức)",
+    "carb": 0,
+    "fat": 12,
+    "protein": 24,
+    "calo": 204
+  },
+  {
+    "name": "Bò Băm (80:20)",
+    "carb": 0,
+    "fat": 20,
+    "protein": 17,
+    "calo": 254
+  },
+  {
+    "name": "Bò Băm (85:15)",
+    "carb": 0,
+    "fat": 15,
+    "protein": 19,
+    "calo": 215
+  },
+  {
+    "name": "Bò Băm (90:10)",
+    "carb": 0,
+    "fat": 10,
+    "protein": 20,
+    "calo": 176
+  },
+  {
+    "name": "Bò Băm (93:07)",
+    "carb": 0,
+    "fat": 7,
+    "protein": 21,
+    "calo": 164
+  },
+  {
+    "name": "Bò Băm (95:05)",
+    "carb": 0,
+    "fat": 5,
+    "protein": 21,
+    "calo": 137
+  },
+  {
+    "name": "Bò Bít Tết (NY Strip)",
+    "carb": 0,
+    "fat": 9,
+    "protein": 22,
+    "calo": 195
+  },
+  {
+    "name": "Bò Bít Tết (Rib Eye)",
+    "carb": 0,
+    "fat": 22,
+    "protein": 24,
+    "calo": 291
+  },
+  {
+    "name": "Bò Bít Tết (T-Bone)",
+    "carb": 0,
+    "fat": 15,
+    "protein": 20,
+    "calo": 220
+  },
+  {
+    "name": "Bò Sống (Nạc)",
+    "carb": 0,
+    "fat": 6,
+    "protein": 21,
+    "calo": 142
+  },
+  {
+    "name": "Bò Viên",
+    "carb": 7,
+    "fat": 7,
+    "protein": 15,
+    "calo": 151
+  },
+  {
+    "name": "Bông Cải Xanh",
+    "carb": 7,
+    "fat": 0.4,
+    "protein": 2.8,
+    "calo": 34,
+    "portions": [
+      {
+        "label": "1 nắm",
+        "grams": 80
+      }
+    ]
+  },
+  {
+    "name": "Bột Cacao",
+    "carb": 58,
+    "fat": 14,
+    "protein": 20,
+    "calo": 228,
+    "portions": [
+      {
+        "label": "1 thìa",
+        "grams": 6
+      }
+    ]
+  },
+  {
+    "name": "Bột Hạnh Nhân",
+    "carb": 20,
+    "fat": 53,
+    "protein": 21,
+    "calo": 600,
+    "portions": [
+      {
+        "label": "1 thìa",
+        "grams": 12
+      }
+    ]
+  },
+  {
+    "name": "Bột Mì",
+    "carb": 76,
+    "fat": 1,
+    "protein": 10,
+    "calo": 364
+  },
+  {
+    "name": "Bún",
+    "carb": 25,
+    "fat": 0.2,
+    "protein": 1.7,
+    "calo": 110,
+    "portions": [
+      {
+        "label": "1 bát",
+        "grams": 200
+      },
+      {
+        "label": "1 vắt",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Bún chả",
+    "carb": 18,
+    "fat": 6,
+    "protein": 9,
+    "calo": 158,
+    "portions": [
+      {
+        "label": "1 suất",
+        "grams": 300
+      }
+    ]
+  },
+  {
+    "name": "Cà Chua",
+    "carb": 3.9,
+    "fat": 0.2,
+    "protein": 0.9,
+    "calo": 18,
+    "portions": [
+      {
+        "label": "1 quả",
+        "grams": 100
+      },
+      {
+        "label": "1 quả nhỏ",
+        "grams": 60
+      }
+    ]
+  },
+  {
+    "name": "Cá Hồi",
+    "carb": 0,
+    "fat": 13,
+    "protein": 20,
+    "calo": 208,
+    "portions": [
+      {
+        "label": "1 phi lê",
+        "grams": 150
+      },
+      {
+        "label": "1 lạng",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Cà rốt",
+    "carb": 10,
+    "fat": 0.2,
+    "protein": 0.9,
+    "calo": 41
+  },
+  {
+    "name": "Cá Viên",
+    "carb": 9,
+    "fat": 5,
+    "protein": 11,
+    "calo": 125
+  },
+  {
+    "name": "Cafe Sữa Đá",
+    "carb": 9,
+    "fat": 1.5,
+    "protein": 1.5,
+    "calo": 60,
+    "portions": [
+      {
+        "label": "1 ly",
+        "grams": 240
+      }
+    ]
+  },
+  {
+    "name": "Cải Bắp",
+    "carb": 6,
+    "fat": 0.1,
+    "protein": 1.3,
+    "calo": 25
+  },
+  {
+    "name": "Cải Chíp",
+    "carb": 2.2,
+    "fat": 0.2,
+    "protein": 1.5,
+    "calo": 13
+  },
+  {
+    "name": "Cải Xoăn",
+    "carb": 9,
+    "fat": 0.9,
+    "protein": 4.3,
+    "calo": 49
+  },
+  {
+    "name": "Cánh Gà Có Da",
+    "carb": 0,
+    "fat": 15,
+    "protein": 18,
+    "calo": 211
+  },
+  {
+    "name": "Chả quế lợn",
+    "carb": 4,
+    "fat": 18,
+    "protein": 15,
+    "calo": 238,
+    "portions": [
+      {
+        "label": "1 lát",
+        "grams": 30
+      }
+    ]
+  },
+  {
+    "name": "Cơm gạo lứt",
+    "carb": 23,
+    "fat": 0.9,
+    "protein": 2.6,
+    "calo": 111,
+    "portions": [
+      {
+        "label": "1 bát",
+        "grams": 200
+      },
+      {
+        "label": "1 chén nhỏ",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Cơm trắng",
+    "carb": 28,
+    "fat": 0.3,
+    "protein": 2.7,
+    "calo": 130,
+    "portions": [
+      {
+        "label": "1 bát đầy",
+        "grams": 200
+      },
+      {
+        "label": "1 chén nhỏ",
+        "grams": 100
+      },
+      {
+        "label": "1 thìa",
+        "grams": 15
+      }
+    ]
+  },
+  {
+    "name": "Củ Cải",
+    "carb": 4,
+    "fat": 0.1,
+    "protein": 0.6,
+    "calo": 18
+  },
+  {
+    "name": "Dấm",
+    "carb": 0.9,
+    "fat": 0,
+    "protein": 0,
+    "calo": 18
+  },
+  {
+    "name": "Dầu Hào",
+    "carb": 11,
+    "fat": 0.3,
+    "protein": 2,
+    "calo": 51
+  },
+  {
+    "name": "Dầu Ô-Liu",
+    "carb": 0,
+    "fat": 100,
+    "protein": 0,
+    "calo": 884,
+    "portions": [
+      {
+        "label": "1 thìa",
+        "grams": 10
+      },
+      {
+        "label": "1 thìa cà phê",
+        "grams": 5
+      }
+    ]
+  },
+  {
+    "name": "Dâu tây",
+    "carb": 7.7,
+    "fat": 0.3,
+    "protein": 0.7,
+    "calo": 33,
+    "portions": [
+      {
+        "label": "1 quả",
+        "grams": 15
+      },
+      {
+        "label": "1 nắm",
+        "grams": 80
+      }
+    ]
+  },
+  {
+    "name": "Dưa Chuột",
+    "carb": 3.6,
+    "fat": 0.1,
+    "protein": 0.7,
+    "calo": 15,
+    "portions": [
+      {
+        "label": "1 quả",
+        "grams": 150
+      }
+    ]
+  },
+  {
+    "name": "Dưa Lưới",
+    "carb": 8,
+    "fat": 0.2,
+    "protein": 0.8,
+    "calo": 34
+  },
+  {
+    "name": "Đùi Gà Có Da",
+    "carb": 0,
+    "fat": 14,
+    "protein": 17,
+    "calo": 196
+  },
+  {
+    "name": "Đùi Gà Không Da",
+    "carb": 0,
+    "fat": 4,
+    "protein": 20,
+    "calo": 119
+  },
+  {
+    "name": "Đường",
+    "carb": 100,
+    "fat": 0,
+    "protein": 0,
+    "calo": 400,
+    "portions": [
+      {
+        "label": "1 thìa",
+        "grams": 8
+      },
+      {
+        "label": "1 thìa cà phê",
+        "grams": 4
+      }
+    ]
+  },
+  {
+    "name": "Gạo nếp",
+    "carb": 80,
+    "fat": 0.6,
+    "protein": 7,
+    "calo": 355
+  },
+  {
+    "name": "Gạo tẻ",
+    "carb": 79,
+    "fat": 0.7,
+    "protein": 7,
+    "calo": 358
+  },
+  {
+    "name": "Gíá đỗ",
+    "carb": 6,
+    "fat": 0.2,
+    "protein": 3,
+    "calo": 30
+  },
+  {
+    "name": "Giò lụa",
+    "carb": 2,
+    "fat": 10,
+    "protein": 20,
+    "calo": 178,
+    "portions": [
+      {
+        "label": "1 lát",
+        "grams": 30
+      }
+    ]
+  },
+  {
+    "name": "Gừng Băm",
+    "carb": 18,
+    "fat": 0.8,
+    "protein": 1.8,
+    "calo": 80
+  },
+  {
+    "name": "Hạnh nhân",
+    "carb": 22,
+    "fat": 50,
+    "protein": 21,
+    "calo": 579,
+    "portions": [
+      {
+        "label": "1 nắm",
+        "grams": 30
+      },
+      {
+        "label": "10 hạt",
+        "grams": 12
+      }
+    ]
+  },
+  {
+    "name": "Hành phi",
+    "carb": 40,
+    "fat": 35,
+    "protein": 4,
+    "calo": 491
+  },
+  {
+    "name": "Hạt Điều",
+    "carb": 30,
+    "fat": 44,
+    "protein": 18,
+    "calo": 553,
+    "portions": [
+      {
+        "label": "1 nắm",
+        "grams": 30
+      },
+      {
+        "label": "10 hạt",
+        "grams": 15
+      }
+    ]
+  },
+  {
+    "name": "Khoai lang (chín)",
+    "carb": 20,
+    "fat": 0.1,
+    "protein": 1.6,
+    "calo": 90,
+    "portions": [
+      {
+        "label": "1 củ vừa",
+        "grams": 150
+      },
+      {
+        "label": "1 củ nhỏ",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Khoai lang (sống)",
+    "carb": 20,
+    "fat": 0.1,
+    "protein": 1.6,
+    "calo": 86,
+    "portions": [
+      {
+        "label": "1 củ vừa",
+        "grams": 150
+      }
+    ]
+  },
+  {
+    "name": "Khoai tây (chín)",
+    "carb": 20,
+    "fat": 0.1,
+    "protein": 2,
+    "calo": 87,
+    "portions": [
+      {
+        "label": "1 củ vừa",
+        "grams": 150
+      }
+    ]
+  },
+  {
+    "name": "Khoai tây (sống)",
+    "carb": 17,
+    "fat": 0.1,
+    "protein": 2,
+    "calo": 77
+  },
+  {
+    "name": "Măng tây",
+    "carb": 3.9,
+    "fat": 0.1,
+    "protein": 2.2,
+    "calo": 20
+  },
+  {
+    "name": "Nấm Trắng",
+    "carb": 3.3,
+    "fat": 0.3,
+    "protein": 3.1,
+    "calo": 22
+  },
+  {
+    "name": "Nem chua rán",
+    "carb": 12,
+    "fat": 14,
+    "protein": 12,
+    "calo": 222,
+    "portions": [
+      {
+        "label": "1 cái",
+        "grams": 20
+      }
+    ]
+  },
+  {
+    "name": "Nước Hầm Xương",
+    "carb": 0,
+    "fat": 1,
+    "protein": 3,
+    "calo": 25
+  },
+  {
+    "name": "Nước Xương",
+    "carb": 0,
+    "fat": 0.5,
+    "protein": 2,
+    "calo": 12
+  },
+  {
+    "name": "omega 3",
+    "carb": 0,
+    "fat": 100,
+    "protein": 0,
+    "calo": 900
+  },
+  {
+    "name": "Ớt chuông",
+    "carb": 6,
+    "fat": 0.3,
+    "protein": 1,
+    "calo": 31
+  },
+  {
+    "name": "Parmesan Cheese",
+    "carb": 4,
+    "fat": 29,
+    "protein": 38,
+    "calo": 431
+  },
+  {
+    "name": "Phở bò",
+    "carb": 13,
+    "fat": 2.5,
+    "protein": 6,
+    "calo": 96,
+    "portions": [
+      {
+        "label": "1 bát",
+        "grams": 400
+      },
+      {
+        "label": "1 bát nhỏ",
+        "grams": 300
+      }
+    ]
+  },
+  {
+    "name": "Phở gà",
+    "carb": 13,
+    "fat": 2.5,
+    "protein": 6.5,
+    "calo": 100,
+    "portions": [
+      {
+        "label": "1 bát",
+        "grams": 400
+      }
+    ]
+  },
+  {
+    "name": "Phô Mai Gouda",
+    "carb": 2,
+    "fat": 27,
+    "protein": 25,
+    "calo": 356
+  },
+  {
+    "name": "Phô Mai Manchego",
+    "carb": 1,
+    "fat": 36,
+    "protein": 25,
+    "calo": 430
+  },
+  {
+    "name": "Pork Loin Chops (Pork Loin Chops)",
+    "carb": 0,
+    "fat": 7,
+    "protein": 21,
+    "calo": 152
+  },
+  {
+    "name": "Quả bí",
+    "carb": 3.4,
+    "fat": 0.1,
+    "protein": 0.6,
+    "calo": 16
+  },
+  {
+    "name": "Quả bơ",
+    "carb": 9,
+    "fat": 15,
+    "protein": 2,
+    "calo": 160,
+    "portions": [
+      {
+        "label": "1 quả",
+        "grams": 200
+      },
+      {
+        "label": "1/2 quả",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Rau Muống",
+    "carb": 3.1,
+    "fat": 0.2,
+    "protein": 2.6,
+    "calo": 19,
+    "portions": [
+      {
+        "label": "1 mớ",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Rau Dền",
+    "carb": 4,
+    "fat": 0.3,
+    "protein": 2.5,
+    "calo": 23
+  },
+  {
+    "name": "Sách",
+    "carb": 0,
+    "fat": 4,
+    "protein": 12,
+    "calo": 85
+  },
+  {
+    "name": "Sữa chua Vinamilk có đường",
+    "carb": 16,
+    "fat": 3,
+    "protein": 3.1,
+    "calo": 100,
+    "portions": [
+      {
+        "label": "1 hộp",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Sữa chua Vinamilk không đường",
+    "carb": 7,
+    "fat": 3.3,
+    "protein": 3.7,
+    "calo": 70,
+    "portions": [
+      {
+        "label": "1 hộp",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Sữa gầy (skim milk) tách béo",
+    "carb": 5,
+    "fat": 0.1,
+    "protein": 3.4,
+    "calo": 34
+  },
+  {
+    "name": "Sữa nguyên kem (full fat / whole fat)",
+    "carb": 4.8,
+    "fat": 3.6,
+    "protein": 3.2,
+    "calo": 64
+  },
+  {
+    "name": "Sữa tươi (Dalat Milk) không đường",
+    "carb": 4.7,
+    "fat": 3.7,
+    "protein": 3.2,
+    "calo": 64,
+    "portions": [
+      {
+        "label": "1 hộp",
+        "grams": 180
+      },
+      {
+        "label": "1 ly",
+        "grams": 200
+      }
+    ]
+  },
+  {
+    "name": "Sữa tươi có đường",
+    "carb": 8,
+    "fat": 3.2,
+    "protein": 2.9,
+    "calo": 72,
+    "portions": [
+      {
+        "label": "1 ly",
+        "grams": 200
+      },
+      {
+        "label": "1 hộp",
+        "grams": 180
+      }
+    ]
+  },
+  {
+    "name": "Sườn Bò Non",
+    "carb": 0,
+    "fat": 30,
+    "protein": 17,
+    "calo": 338
+  },
+  {
+    "name": "Thăn Bò",
+    "carb": 0,
+    "fat": 8,
+    "protein": 22,
+    "calo": 160,
+    "portions": [
+      {
+        "label": "1 lạng",
+        "grams": 100
+      },
+      {
+        "label": "1 miếng",
+        "grams": 150
+      }
+    ]
+  },
+  {
+    "name": "Thăn Heo",
+    "carb": 0,
+    "fat": 7,
+    "protein": 21,
+    "calo": 152
+  },
+  {
+    "name": "Thịt Cua",
+    "carb": 0,
+    "fat": 1,
+    "protein": 18,
+    "calo": 83
+  },
+  {
+    "name": "Thịt Heo (Mông)",
+    "carb": 0,
+    "fat": 13,
+    "protein": 18,
+    "calo": 188
+  },
+  {
+    "name": "Thịt lợn nướng",
+    "carb": 2,
+    "fat": 12,
+    "protein": 22,
+    "calo": 204
+  },
+  {
+    "name": "Tỏi",
+    "carb": 33,
+    "fat": 0.5,
+    "protein": 6.4,
+    "calo": 149
+  },
+  {
+    "name": "Tôm",
+    "carb": 0.2,
+    "fat": 1,
+    "protein": 20,
+    "calo": 90,
+    "portions": [
+      {
+        "label": "1 con vừa",
+        "grams": 15
+      },
+      {
+        "label": "1 lạng",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Tôm Viên",
+    "carb": 12,
+    "fat": 8,
+    "protein": 12,
+    "calo": 168
+  },
+  {
+    "name": "Trứng",
+    "carb": 1.1,
+    "fat": 9.5,
+    "protein": 13,
+    "calo": 143,
+    "portions": [
+      {
+        "label": "1 quả",
+        "grams": 50
+      },
+      {
+        "label": "1 quả to",
+        "grams": 60
+      }
+    ]
+  },
+  {
+    "name": "Trứng Lòng Trắng",
+    "carb": 0.7,
+    "fat": 0.2,
+    "protein": 11,
+    "calo": 52,
+    "portions": [
+      {
+        "label": "1 lòng trắng",
+        "grams": 33
+      }
+    ]
+  },
+  {
+    "name": "Ức Gà",
+    "carb": 0,
+    "fat": 2.6,
+    "protein": 23,
+    "calo": 120,
+    "portions": [
+      {
+        "label": "1 miếng",
+        "grams": 150
+      },
+      {
+        "label": "1 lạng",
+        "grams": 100
+      }
+    ]
+  },
+  {
+    "name": "Việt Quất",
+    "carb": 14,
+    "fat": 0.3,
+    "protein": 0.7,
+    "calo": 57,
+    "portions": [
+      {
+        "label": "1 nắm",
+        "grams": 50
+      },
+      {
+        "label": "1 hộp",
+        "grams": 125
+      }
+    ]
+  },
+  {
+    "name": "whey",
+    "carb": 8,
+    "fat": 4,
+    "protein": 80,
+    "calo": 380,
+    "portions": [
+      {
+        "label": "1 scoop",
+        "grams": 30
+      },
+      {
+        "label": "2 scoop",
+        "grams": 60
+      }
+    ]
+  },
+  {
+    "name": "Xôi trắng",
+    "carb": 24,
+    "fat": 0.3,
+    "protein": 2.5,
+    "calo": 110,
+    "portions": [
+      {
+        "label": "1 nắm",
+        "grams": 150
+      },
+      {
+        "label": "1 gói",
+        "grams": 250
+      }
+    ]
+  },
+  {
+    "name": "Mayonnaise (Kewpie)",
+    "carb": 1,
+    "fat": 75,
+    "protein": 1.4,
+    "calo": 680,
+    "portions": [
+      {
+        "label": "1 thìa",
+        "grams": 15
+      }
+    ]
+  },
+  {
+    "name": "Yến mạch",
+    "carb": 66,
+    "fat": 7,
+    "protein": 13,
+    "calo": 379,
+    "portions": [
+      {
+        "label": "1 chén (khô)",
+        "grams": 40
+      },
+      {
+        "label": "1 nắm tay",
+        "grams": 30
+      },
+      {
+        "label": "1 thìa",
+        "grams": 10
+      }
+    ]
+  },
+  {
+    "name": "Sữa tươi (TH True Milk) ít đường",
+    "carb": 7.4,
+    "fat": 3.2,
+    "protein": 2.9,
+    "calo": 70,
+    "portions": [
+      {
+        "label": "1 hộp",
+        "grams": 180
+      },
+      {
+        "label": "1 ly",
+        "grams": 200
+      }
+    ]
+  },
+  {
+    "name": "Sữa tươi (TH True Milk) không đường",
+    "carb": 4.6,
+    "fat": 3.3,
+    "protein": 3,
+    "calo": 60,
+    "portions": [
+      {
+        "label": "1 hộp",
+        "grams": 180
+      },
+      {
+        "label": "1 ly",
+        "grams": 200
+      }
+    ]
+  },
+  {
+    "name": "Bánh mì trứng xúc xích",
+    "carb": 28,
+    "fat": 16,
+    "protein": 12,
+    "calo": 300,
+    "portions": [
+      {
+        "label": "1 ổ",
+        "grams": 150
+      }
+    ]
+  },
+  {
+    "name": "Chuối",
+    "carb": 23,
+    "fat": 0.3,
+    "protein": 1.1,
+    "calo": 89,
+    "portions": [
+      {
+        "label": "1 quả vừa",
+        "grams": 120
+      },
+      {
+        "label": "1 quả nhỏ",
+        "grams": 90
+      }
+    ]
+  },
+  {
+    "name": "Bánh mì không",
+    "carb": 49,
+    "fat": 3.2,
+    "protein": 9,
+    "calo": 265,
+    "portions": [
+      {
+        "label": "1 ổ",
+        "grams": 90
+      },
+      {
+        "label": "1 lát",
+        "grams": 30
+      }
+    ]
+  },
+  {
+    "name": "Bò kho sốt vang",
+    "carb": 5,
+    "fat": 8,
+    "protein": 14,
+    "calo": 148
+  },
+  {
+    "name": "Cơm rang trứng",
+    "carb": 25,
+    "fat": 6,
+    "protein": 5,
+    "calo": 174,
+    "portions": [
+      {
+        "label": "1 đĩa",
+        "grams": 300
+      },
+      {
+        "label": "1 bát",
+        "grams": 200
+      }
+    ]
+  },
+  {
+    "name": "Bánh mochi",
+    "carb": 50,
+    "fat": 4,
+    "protein": 3,
+    "calo": 248,
+    "portions": [
+      {
+        "label": "1 cái",
+        "grams": 40
+      }
+    ]
+  },
+  {
+    "name": "Đùi gà",
+    "carb": 0,
+    "fat": 10,
+    "protein": 26,
+    "calo": 194,
+    "portions": [
+      {
+        "label": "1 cái",
+        "grams": 120
+      }
+    ]
+  },
+  {
+    "name": "Rau chân vịt",
+    "carb": 3.6,
+    "fat": 0.4,
+    "protein": 2.9,
+    "calo": 23
+  },
+  {
+    "name": "Đậu cô ve",
+    "carb": 7,
+    "fat": 0.2,
+    "protein": 1.8,
+    "calo": 31
+  },
+  {
+    "name": "Dầu ăn",
+    "carb": 0,
+    "fat": 100,
+    "protein": 0,
+    "calo": 900,
+    "portions": [
+      {
+        "label": "1 thìa",
+        "grams": 10
+      },
+      {
+        "label": "1 thìa cà phê",
+        "grams": 5
+      }
+    ]
+  },
+  {
+    "name": "Bánh Sandwich khoai tây gạo lứt",
+    "carb": 52,
+    "fat": 4,
+    "protein": 8,
+    "calo": 270
+  },
+  {
+    "name": "Xúc xích",
+    "carb": 3,
+    "fat": 25,
+    "protein": 12,
+    "calo": 285,
+    "portions": [
+      {
+        "label": "1 cây",
+        "grams": 40
+      }
+    ]
+  },
+  {
+    "name": "Nem rán",
+    "carb": 22,
+    "fat": 13,
+    "protein": 9,
+    "calo": 241,
+    "portions": [
+      {
+        "label": "1 cái",
+        "grams": 30
+      }
+    ]
+  },
+  {
+    "name": "Súp Lơ",
+    "carb": 5,
+    "fat": 0.3,
+    "protein": 1.9,
+    "calo": 25,
+    "portions": [
+      {
+        "label": "1 cây nhỏ",
+        "grams": 100
+      },
+      {
+        "label": "1 nắm",
+        "grams": 80
+      }
+    ]
+  },
+  {
+    "name": "Trứng vịt lộn",
+    "carb": 1,
+    "fat": 12,
+    "protein": 14,
+    "calo": 180,
+    "portions": [
+      {
+        "label": "1 quả",
+        "grams": 70
+      }
+    ]
+  },
+  {
+    "name": "Hàu",
+    "carb": 4,
+    "fat": 2,
+    "protein": 9,
+    "calo": 73,
+    "portions": [
+      {
+        "label": "1 con",
+        "grams": 20
+      }
+    ]
+  },
+  {
+    "name": "Lương khô 22",
+    "carb": 65,
+    "fat": 15,
+    "protein": 10,
+    "calo": 435,
+    "portions": [
+      {
+        "label": "1 thanh",
+        "grams": 25
+      }
+    ]
+  },
+  {
+    "name": "Bia 333",
+    "carb": 3.5,
+    "fat": 0,
+    "protein": 0.4,
+    "calo": 43,
+    "portions": [
+      {
+        "label": "1 lon",
+        "grams": 330
+      }
+    ]
+  }
+]

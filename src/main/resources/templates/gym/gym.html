@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calo & Gym Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        :root {
+            --brand: #16a34a;
+            --brand-dark: #15803d;
+            --bg: #0f172a;
+        }
+        body { background: #f1f5f9; font-family: 'Inter','Segoe UI',Roboto,sans-serif; }
+        .app-header {
+            background: linear-gradient(120deg, #16a34a, #0d9488);
+            color: #fff;
+        }
+        .nav-pills .nav-link.active { background: var(--brand); }
+        .nav-pills .nav-link { color: #334155; font-weight: 600; }
+        .card { border: 1px solid #e2e8f0; border-radius: 14px; }
+        .stat-box { border-radius: 12px; padding: 14px 16px; color: #fff; }
+        .macro-carb { background: #f59e0b; }
+        .macro-fat { background: #ef4444; }
+        .macro-protein { background: #3b82f6; }
+        .macro-cal { background: #16a34a; }
+        .table thead th { font-size: .8rem; text-transform: uppercase; color: #64748b; }
+        .progress { height: 8px; border-radius: 6px; }
+        .day-card { background: #fff; }
+        .day-card.rest { background: #f8fafc; }
+        .pill-day { font-size:.7rem; padding:2px 8px; border-radius:20px; background:#dcfce7; color:#15803d; font-weight:700; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .clickable { cursor: pointer; }
+        footer { color:#94a3b8; font-size:.8rem; }
+    </style>
+</head>
+<body>
+
+<div class="app-header py-3 shadow-sm mb-4">
+    <div class="container d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-activity fs-3"></i>
+            <div>
+                <h5 class="mb-0 fw-bold">Calo & Gym Tracker</h5>
+                <small class="opacity-75">Quản lý dinh dưỡng & kế hoạch tập luyện</small>
+            </div>
+        </div>
+        <button class="btn btn-light btn-sm fw-semibold" onclick="openSettings()">
+            <i class="bi bi-gear"></i> Cấu hình
+        </button>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <ul class="nav nav-pills gap-2 mb-4 flex-wrap" id="mainTab" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-today"><i class="bi bi-calendar-check me-1"></i>Hôm nay</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-foods"><i class="bi bi-egg-fried me-1"></i>Món ăn</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-workout"><i class="bi bi-bicycle me-1"></i>Lịch tập</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-library"><i class="bi bi-collection-play me-1"></i>Thư viện bài tập</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-stats" onclick="loadStats()"><i class="bi bi-graph-up me-1"></i>Thống kê</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- ============ TAB: HÔM NAY ============ -->
+        <div class="tab-pane fade show active" id="tab-today">
+            <div class="row g-3">
+                <div class="col-lg-5">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="fw-semibold mb-0">Ngày</label>
+                                <input type="date" id="diaryDate" class="form-control form-control-sm w-auto" onchange="loadDiary()">
+                            </div>
+                            <div id="dayContext" class="alert alert-light border py-2 px-3 mb-3 small d-none"></div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label small text-muted mb-1">Cân nặng (kg)</label>
+                                    <input type="number" step="0.1" id="dayWeight" class="form-control form-control-sm" placeholder="--" onchange="saveDaily()">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small text-muted mb-1">Buổi tập</label>
+                                    <input list="dayTypeList" id="dayType" class="form-control form-control-sm" placeholder="Push / Pull..." onchange="saveDaily()">
+                                    <datalist id="dayTypeList">
+                                        <option value="Push"><option value="Pull"><option value="Leg">
+                                        <option value="Rest"><option value="Free day"><option value="Cardio">
+                                    </datalist>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small text-muted mb-1">Ghi chú</label>
+                                    <input type="text" id="dayNote" class="form-control form-control-sm" placeholder="Ghi chú trong ngày..." onchange="saveDaily()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-plus-circle text-success me-1"></i>Thêm món đã ăn</h6>
+                            <div class="mb-2">
+                                <input list="foodNameList" id="entryFood" class="form-control form-control-sm" placeholder="Chọn / gõ tên món..." oninput="onFoodPicked()">
+                                <datalist id="foodNameList"></datalist>
+                            </div>
+                            <div class="row g-2 align-items-end">
+                                <div class="col-5">
+                                    <label class="form-label small text-muted mb-1">Số gram</label>
+                                    <input type="number" step="1" id="entryGrams" value="100" class="form-control form-control-sm" oninput="updatePreview()">
+                                </div>
+                                <div class="col-7">
+                                    <div class="small text-muted" id="entryPreview">Calo: 0 · C0 F0 P0</div>
+                                </div>
+                            </div>
+                            <div id="portionChips" class="d-flex flex-wrap gap-1 mt-2"></div>
+                            <div class="row g-2 mt-1" id="per100Row">
+                                <div class="col-3"><input type="number" step="0.1" id="p100carb" class="form-control form-control-sm" placeholder="Carb/100g" oninput="updatePreview()"></div>
+                                <div class="col-3"><input type="number" step="0.1" id="p100fat" class="form-control form-control-sm" placeholder="Fat/100g" oninput="updatePreview()"></div>
+                                <div class="col-3"><input type="number" step="0.1" id="p100protein" class="form-control form-control-sm" placeholder="Pro/100g" oninput="updatePreview()"></div>
+                                <div class="col-3"><input type="number" step="0.1" id="p100calo" class="form-control form-control-sm" placeholder="Calo/100g" oninput="updatePreview()"></div>
+                            </div>
+                            <button class="btn btn-success btn-sm w-100 mt-3" onclick="addEntry()"><i class="bi bi-check-lg"></i> Thêm vào nhật ký</button>
+                            <div class="form-text">Chọn món có sẵn để tự điền chỉ số/100g, hoặc gõ tên mới và nhập tay.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="row g-2 mb-3" id="totalsCards"></div>
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-5 col-md-4">
+                                    <canvas id="macroDonut" height="150"></canvas>
+                                </div>
+                                <div class="col-7 col-md-8">
+                                    <h6 class="fw-bold mb-2">Tỉ lệ macro (theo calo)</h6>
+                                    <div id="macroPctLegend" class="small"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0"><i class="bi bi-list-ul me-1"></i>Nhật ký ăn uống</h6>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="openCopyDay()" title="Sao chép món ăn từ một ngày khác sang ngày này">
+                                        <i class="bi bi-files"></i> Nhân bản ngày
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="clearDay()" title="Xóa hết món của ngày đang chọn">
+                                        <i class="bi bi-trash"></i> Xóa hết hôm nay
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle">
+                                    <thead><tr>
+                                        <th>Món</th><th class="num">Gram</th><th class="num">Carb</th>
+                                        <th class="num">Fat</th><th class="num">Pro</th><th class="num">Calo</th><th></th>
+                                    </tr></thead>
+                                    <tbody id="entriesBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: MÓN ĂN ============ -->
+        <div class="tab-pane fade" id="tab-foods">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-database me-1"></i>Database món ăn (chỉ số / 100g)</h6>
+                        <div class="d-flex gap-2">
+                            <input type="text" id="foodSearch" class="form-control form-control-sm" placeholder="Tìm món..." oninput="renderFoods()" style="width:200px">
+                            <button class="btn btn-success btn-sm" onclick="openFoodModal()"><i class="bi bi-plus-lg"></i> Thêm món</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead><tr>
+                                <th>Tên món</th><th class="num">Carb</th><th class="num">Fat</th>
+                                <th class="num">Protein</th><th class="num">Calo</th><th></th>
+                            </tr></thead>
+                            <tbody id="foodsBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="small text-muted" id="foodCount"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TAB: LỊCH TẬP ============ -->
+        <div class="tab-pane fade" id="tab-workout">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-calendar-week me-1"></i>Lịch tập theo tuần</h6>
+                <button class="btn btn-success btn-sm" onclick="saveWorkout()"><i class="bi bi-save"></i> Lưu lịch tập</button>
+            </div>
+            <div class="row g-3" id="workoutGrid"></div>
+        </div>
+
+        <!-- ============ TAB: THƯ VIỆN BÀI TẬP ============ -->
+        <div class="tab-pane fade" id="tab-library">
+            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-collection-play me-1"></i>Thư viện bài tập (kèm ảnh minh họa)</h6>
+                <div class="d-flex gap-2">
+                    <input type="text" id="exSearch" class="form-control form-control-sm" placeholder="Tìm bài tập..." oninput="renderExercises()" style="width:200px">
+                    <button class="btn btn-success btn-sm" onclick="openExerciseModal()"><i class="bi bi-plus-lg"></i> Thêm bài tập</button>
+                </div>
+            </div>
+            <p class="text-muted small">Định nghĩa mỗi bài 1 lần kèm ảnh/GIF. Lịch tập sẽ tự hiển thị ảnh theo tên bài — không phải đi tìm lại mỗi lần.</p>
+            <div class="row g-3" id="libraryGrid"></div>
+        </div>
+
+        <!-- ============ TAB: THỐNG KÊ ============ -->
+        <div class="tab-pane fade" id="tab-stats">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-3 align-items-end mb-3">
+                        <div>
+                            <label class="form-label small text-muted mb-1">Từ ngày</label>
+                            <input type="date" id="statFrom" class="form-control form-control-sm">
+                        </div>
+                        <div>
+                            <label class="form-label small text-muted mb-1">Đến ngày</label>
+                            <input type="date" id="statTo" class="form-control form-control-sm">
+                        </div>
+                        <button class="btn btn-outline-success btn-sm" onclick="loadStats()"><i class="bi bi-arrow-repeat"></i> Cập nhật</button>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><canvas id="weightChart" height="160"></canvas></div>
+                        <div class="col-md-6"><canvas id="calorieChart" height="160"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-stopwatch me-1"></i>Máy tính thời gian giảm cân</h6>
+                    <div id="lossCalc" class="row g-3"></div>
+                    <div class="form-text mt-2">Các chỉ số lấy từ phần "Cấu hình". Bấm <b>Cấu hình</b> ở góc trên để chỉnh.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center mt-5">Calo & Gym Tracker · tích hợp trên hệ thống OMS</footer>
+</div>
+
+<!-- MODAL: Cấu hình -->
+<div class="modal fade" id="settingsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title"><i class="bi bi-gear me-1"></i>Cấu hình</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <h6 class="fw-bold text-success">Mục tiêu dinh dưỡng hằng ngày</h6>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3"><label class="form-label small">Calo mục tiêu</label><input type="number" id="sGoalCalories" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><label class="form-label small">Carb (g)</label><input type="number" id="sGoalCarb" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><label class="form-label small">Fat (g)</label><input type="number" id="sGoalFat" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><label class="form-label small">Protein (g)</label><input type="number" id="sGoalProtein" class="form-control form-control-sm"></div>
+                </div>
+                <hr>
+                <h6 class="fw-bold text-success">Chỉ số cơ thể (cho máy tính giảm cân & gợi ý macro)</h6>
+                <div class="row g-2">
+                    <div class="col-md-3"><label class="form-label small">Cân nặng (kg)</label><input type="number" step="0.1" id="sCurrentWeight" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><label class="form-label small">% mỡ hiện tại</label><input type="number" step="0.01" id="sBodyFat" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><label class="form-label small">% mỡ mục tiêu</label><input type="number" step="0.01" id="sTargetFat" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><label class="form-label small">% giảm/tuần</label><input type="number" step="0.001" id="sWeeklyLoss" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><label class="form-label small">Chiều cao (cm)</label><input type="number" id="sHeight" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><label class="form-label small">Tuổi</label><input type="number" id="sAge" class="form-control form-control-sm"></div>
+                    <div class="col-md-3"><label class="form-label small">Giới tính</label>
+                        <select id="sGender" class="form-select form-select-sm"><option value="MALE">Nam</option><option value="FEMALE">Nữ</option></select></div>
+                    <div class="col-md-3"><label class="form-label small">Hệ số vận động</label>
+                        <select id="sActivity" class="form-select form-select-sm">
+                            <option value="1.2">1.2 - Ít vận động</option>
+                            <option value="1.375">1.375 - Nhẹ</option>
+                            <option value="1.55">1.55 - Vừa</option>
+                            <option value="1.725">1.725 - Nhiều</option>
+                            <option value="1.9">1.9 - Rất nhiều</option>
+                        </select></div>
+                </div>
+                <button class="btn btn-outline-success btn-sm mt-3" onclick="suggestMacros()"><i class="bi bi-magic"></i> Gợi ý macro từ TDEE</button>
+
+                <hr class="mt-4">
+                <h6 class="fw-bold text-danger"><i class="bi bi-exclamation-octagon me-1"></i>Vùng nguy hiểm</h6>
+                <p class="small text-muted mb-2">Các thao tác xóa dữ liệu không thể hoàn tác. Hãy cân nhắc kỹ.</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-outline-warning btn-sm" onclick="resetSettings()">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset cấu hình mặc định
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="clearHistory()">
+                        <i class="bi bi-eraser"></i> Xóa lịch sử cân nặng/calo
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="resetAll()">
+                        <i class="bi bi-trash3"></i> Xóa sạch toàn bộ & nạp lại mặc định
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+                <button class="btn btn-success btn-sm" onclick="saveSettings()">Lưu cấu hình</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Thêm/sửa món -->
+<div class="modal fade" id="foodModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="foodModalTitle">Thêm món</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="fId">
+                <div class="mb-2"><label class="form-label small">Tên món</label><input type="text" id="fName" class="form-control form-control-sm"></div>
+                <div class="row g-2">
+                    <div class="col-3"><label class="form-label small">Carb/100g</label><input type="number" step="0.1" id="fCarb" class="form-control form-control-sm"></div>
+                    <div class="col-3"><label class="form-label small">Fat/100g</label><input type="number" step="0.1" id="fFat" class="form-control form-control-sm"></div>
+                    <div class="col-3"><label class="form-label small">Pro/100g</label><input type="number" step="0.1" id="fProtein" class="form-control form-control-sm"></div>
+                    <div class="col-3"><label class="form-label small">Calo/100g</label><input type="number" step="0.1" id="fCalo" class="form-control form-control-sm"></div>
+                </div>
+                <div class="mt-2">
+                    <label class="form-label small">Gợi ý khẩu phần</label>
+                    <input type="text" id="fPortions" class="form-control form-control-sm" placeholder="VD: 1 bát=200, 1 chén=100, 1 thìa=15">
+                    <div class="form-text">Mỗi khẩu phần dạng <code>tên=gram</code>, cách nhau bởi dấu phẩy. Sẽ hiện nút bấm nhanh khi chọn món.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                <button class="btn btn-success btn-sm" onclick="saveFood()">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Thêm/sửa bài tập -->
+<div class="modal fade" id="exerciseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="exerciseModalTitle">Thêm bài tập</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="exId">
+                <div class="mb-2"><label class="form-label small">Tên bài tập</label>
+                    <input type="text" id="exName" class="form-control form-control-sm" placeholder="VD: Lat Pulldown"></div>
+                <div class="mb-2"><label class="form-label small">Nhóm cơ</label>
+                    <input list="muscleList" id="exMuscle" class="form-control form-control-sm" placeholder="Ngực / Lưng / Chân...">
+                    <datalist id="muscleList">
+                        <option value="Ngực"><option value="Lưng"><option value="Chân"><option value="Vai">
+                        <option value="Tay trước"><option value="Tay sau"><option value="Bụng"><option value="Cardio">
+                    </datalist>
+                </div>
+                <div class="mb-2"><label class="form-label small">Ảnh / GIF minh họa</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="exImage" class="form-control form-control-sm" placeholder="Dán URL ảnh hoặc bấm Tải ảnh →">
+                        <input type="file" id="exImageFile" accept="image/*" class="d-none" onchange="uploadExerciseImage(this)">
+                        <button class="btn btn-outline-secondary btn-sm text-nowrap" onclick="document.getElementById('exImageFile').click()"><i class="bi bi-upload"></i> Tải ảnh</button>
+                    </div>
+                    <div class="mt-2 text-center"><img id="exImagePreview" src="" alt="" class="rounded border d-none" style="max-height:160px; max-width:100%"></div>
+                </div>
+                <div class="mb-2"><label class="form-label small">Ghi chú (cách tập, số set/rep...)</label>
+                    <textarea id="exNote" rows="2" class="form-control form-control-sm"></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                <button class="btn btn-success btn-sm" onclick="saveExercise()">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Xem chi tiết bài tập (từ lịch tập) -->
+<div class="modal fade" id="exerciseViewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="exViewTitle">Bài tập</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body text-center" id="exViewBody"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="none">
+const API = '/api/gym';
+let FOODS = [];
+let EXERCISES = [];
+let EXMAP = {};
+let WORKOUT = [];
+let SETTINGS = {};
+let weightChartObj = null, calorieChartObj = null, macroDonutObj = null;
+
+const Toast = Swal.mixin({ toast:true, position:'bottom-end', showConfirmButton:false, timer:2200, timerProgressBar:true });
+const r1 = n => Math.round((Number(n)||0)*10)/10;
+const fmt = n => (Number(n)||0).toLocaleString('vi-VN');
+function todayStr(){ const d=new Date(); const off=d.getTimezoneOffset(); return new Date(d.getTime()-off*60000).toISOString().slice(0,10); }
+
+async function api(path, opts){
+    const res = await fetch(API+path, Object.assign({headers:{'Content-Type':'application/json'}}, opts||{}));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const txt = await res.text();
+    return txt ? JSON.parse(txt) : null;
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', async () => {
+    document.getElementById('diaryDate').value = todayStr();
+    const to = todayStr();
+    const fromD = new Date(); fromD.setDate(fromD.getDate()-56);
+    document.getElementById('statFrom').value = new Date(fromD.getTime()-fromD.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    document.getElementById('statTo').value = to;
+    document.getElementById('workoutGrid').addEventListener('click', ev => {
+        const el = ev.target.closest('[data-ex-name]');
+        if(el) viewExercise(el.getAttribute('data-ex-name'));
+    });
+    await loadSettings();
+    await loadFoods();
+    await loadExercises();
+    await loadWorkout();
+    await loadDiary();
+});
+
+// ==================== SETTINGS ====================
+async function loadSettings(){ SETTINGS = await api('/settings'); fillSettingsForm(); renderLossCalc(); }
+function fillSettingsForm(){
+    const s = SETTINGS;
+    set('sGoalCalories',s.goalCalories); set('sGoalCarb',s.goalCarb); set('sGoalFat',s.goalFat); set('sGoalProtein',s.goalProtein);
+    set('sCurrentWeight',s.currentWeight); set('sBodyFat',s.bodyFatPct); set('sTargetFat',s.targetBodyFatPct);
+    set('sWeeklyLoss',s.weeklyLossPct); set('sHeight',s.height); set('sAge',s.age);
+    document.getElementById('sGender').value = s.gender||'MALE';
+    document.getElementById('sActivity').value = s.activityFactor||1.55;
+}
+function set(id,v){ document.getElementById(id).value = (v??''); }
+function openSettings(){ fillSettingsForm(); new bootstrap.Modal('#settingsModal').show(); }
+async function saveSettings(){
+    const body = {
+        goalCalories:+val('sGoalCalories'), goalCarb:+val('sGoalCarb'), goalFat:+val('sGoalFat'), goalProtein:+val('sGoalProtein'),
+        currentWeight:+val('sCurrentWeight'), bodyFatPct:+val('sBodyFat'), targetBodyFatPct:+val('sTargetFat'),
+        weeklyLossPct:+val('sWeeklyLoss'), height:+val('sHeight'), age:+val('sAge'),
+        gender:document.getElementById('sGender').value, activityFactor:+document.getElementById('sActivity').value
+    };
+    SETTINGS = await api('/settings',{method:'PUT', body:JSON.stringify(body)});
+    bootstrap.Modal.getInstance('#settingsModal').hide();
+    Toast.fire({icon:'success', title:'Đã lưu cấu hình'});
+    renderTotals(LAST_TOTALS); renderLossCalc();
+}
+function val(id){ return document.getElementById(id).value; }
+
+function tdee(){
+    const s = SETTINGS;
+    const bmr = 10*(+val('sCurrentWeight')||s.currentWeight) + 6.25*(+val('sHeight')||s.height)
+        - 5*(+val('sAge')||s.age) + (document.getElementById('sGender').value==='FEMALE' ? -161 : 5);
+    return bmr * (+document.getElementById('sActivity').value || s.activityFactor);
+}
+function suggestMacros(){
+    const t = tdee();
+    const weeklyLossKg = (+val('sCurrentWeight')) * (+val('sWeeklyLoss'));
+    const dailyDeficit = weeklyLossKg*7700/7;
+    const target = Math.max(1200, t - dailyDeficit);
+    const protein = Math.round((+val('sCurrentWeight'))*2);      // 2g/kg
+    const fat = Math.round((+val('sCurrentWeight'))*0.8);        // 0.8g/kg
+    const carbCal = target - protein*4 - fat*9;
+    const carb = Math.max(0, Math.round(carbCal/4));
+    set('sGoalCalories', Math.round(target)); set('sGoalProtein',protein); set('sGoalFat',fat); set('sGoalCarb',carb);
+    Toast.fire({icon:'info', title:'TDEE ≈ '+Math.round(t)+' kcal · mục tiêu '+Math.round(target)+' kcal'});
+}
+
+// ==================== FOODS ====================
+async function loadFoods(){ FOODS = await api('/foods'); fillFoodDatalist(); renderFoods(); }
+function fillFoodDatalist(){
+    document.getElementById('foodNameList').innerHTML = FOODS.map(f=>`<option value="${esc(f.name)}">`).join('');
+}
+function renderFoods(){
+    const kw = (document.getElementById('foodSearch').value||'').toLowerCase();
+    const list = FOODS.filter(f=>f.name.toLowerCase().includes(kw));
+    document.getElementById('foodsBody').innerHTML = list.map(f=>{
+        const ps = parsePortions(f);
+        const hint = ps.length ? `<div class="small text-muted"><i class="bi bi-pie-chart me-1"></i>${ps.map(p=>esc(p.label)+' ≈ '+p.grams+'g').join(' · ')}</div>` : '';
+        return `
+        <tr>
+            <td class="fw-medium">${esc(f.name)}${hint}</td>
+            <td class="num">${r1(f.carb)}</td><td class="num">${r1(f.fat)}</td>
+            <td class="num">${r1(f.protein)}</td><td class="num fw-semibold">${r1(f.calo)}</td>
+            <td class="text-end text-nowrap">
+                <button class="btn btn-sm btn-link text-success p-0 me-2" title="Thêm nhanh vào hôm nay" onclick='quickAddToday(${JSON.stringify(f)})'><i class="bi bi-plus-circle"></i></button>
+                <button class="btn btn-sm btn-link text-primary p-0 me-2" onclick='openFoodModal(${JSON.stringify(f)})'><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-link text-danger p-0" onclick="deleteFood(${f.id})"><i class="bi bi-trash"></i></button>
+            </td>
+        </tr>`;}).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">Không có món nào</td></tr>';
+    document.getElementById('foodCount').textContent = list.length + ' / ' + FOODS.length + ' món';
+}
+function portionsToText(food){
+    return parsePortions(food).map(p=>p.label+'='+p.grams).join(', ');
+}
+function textToPortions(txt){
+    if(!txt || !txt.trim()) return null;
+    const arr = txt.split(',').map(s=>s.trim()).filter(Boolean).map(s=>{
+        const i = s.lastIndexOf('=');
+        if(i<0) return null;
+        const label = s.slice(0,i).trim();
+        const grams = parseFloat(s.slice(i+1));
+        return (label && !isNaN(grams)) ? {label, grams} : null;
+    }).filter(Boolean);
+    return arr.length ? JSON.stringify(arr) : null;
+}
+function openFoodModal(f){
+    f = f || {};
+    set('fId',f.id||''); set('fName',f.name||''); set('fCarb',f.carb??''); set('fFat',f.fat??'');
+    set('fProtein',f.protein??''); set('fCalo',f.calo??''); set('fPortions', f.id ? portionsToText(f) : '');
+    document.getElementById('foodModalTitle').textContent = f.id ? 'Sửa món' : 'Thêm món';
+    new bootstrap.Modal('#foodModal').show();
+}
+async function saveFood(){
+    const name = val('fName').trim();
+    if(!name){ Toast.fire({icon:'error',title:'Nhập tên món'}); return; }
+    const body = { name, carb:+val('fCarb')||0, fat:+val('fFat')||0, protein:+val('fProtein')||0, calo:+val('fCalo')||0,
+        portions: textToPortions(val('fPortions')) };
+    const id = val('fId'); if(id) body.id = +id;
+    await api('/foods',{method:'POST', body:JSON.stringify(body)});
+    bootstrap.Modal.getInstance('#foodModal').hide();
+    await loadFoods();
+    Toast.fire({icon:'success',title:'Đã lưu món'});
+}
+async function deleteFood(id){
+    const c = await Swal.fire({title:'Xóa món này?', icon:'warning', showCancelButton:true, confirmButtonText:'Xóa', cancelButtonText:'Hủy', confirmButtonColor:'#ef4444'});
+    if(!c.isConfirmed) return;
+    await api('/foods/'+id,{method:'DELETE'});
+    await loadFoods();
+    Toast.fire({icon:'success',title:'Đã xóa'});
+}
+
+// ==================== DIARY (TODAY) ====================
+let LAST_TOTALS = {totalCarb:0,totalFat:0,totalProtein:0,totalCalo:0};
+function parsePortions(food){
+    if(!food || !food.portions) return [];
+    try { const a = JSON.parse(food.portions); return Array.isArray(a) ? a : []; } catch(e){ return []; }
+}
+function renderPortionChips(food){
+    const box = document.getElementById('portionChips');
+    const ps = parsePortions(food);
+    if(!ps.length){ box.innerHTML=''; return; }
+    box.innerHTML = '<span class="small text-muted me-1 align-self-center">Khẩu phần:</span>' + ps.map(p=>
+        `<button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="setGrams(${p.grams})">${esc(p.label)} · ${p.grams}g</button>`).join('');
+}
+function setGrams(g){ set('entryGrams', g); updatePreview(); }
+function onFoodPicked(){
+    const name = val('entryFood').trim().toLowerCase();
+    const f = FOODS.find(x=>x.name.toLowerCase()===name);
+    if(f){ set('p100carb',f.carb); set('p100fat',f.fat); set('p100protein',f.protein); set('p100calo',f.calo); }
+    renderPortionChips(f);
+    updatePreview();
+}
+function updatePreview(){
+    const g = (+val('entryGrams'))/100;
+    const c=r1((+val('p100carb'))*g), f=r1((+val('p100fat'))*g), p=r1((+val('p100protein'))*g), cal=r1((+val('p100calo'))*g);
+    document.getElementById('entryPreview').textContent = `Calo: ${cal} · C${c} F${f} P${p}`;
+}
+async function addEntry(){
+    const name = val('entryFood').trim();
+    if(!name){ Toast.fire({icon:'error',title:'Chọn/nhập tên món'}); return; }
+    const g = (+val('entryGrams'))/100;
+    const body = { foodName:name, grams:+val('entryGrams')||0,
+        carb:r1((+val('p100carb'))*g), fat:r1((+val('p100fat'))*g),
+        protein:r1((+val('p100protein'))*g), calo:r1((+val('p100calo'))*g) };
+    const date = val('diaryDate');
+    await api('/diary?date='+date,{method:'POST', body:JSON.stringify(body)});
+    set('entryFood',''); set('entryGrams',100); set('p100carb',''); set('p100fat',''); set('p100protein',''); set('p100calo','');
+    document.getElementById('portionChips').innerHTML = '';
+    updatePreview();
+    await loadDiary();
+    Toast.fire({icon:'success',title:'Đã thêm món'});
+}
+async function deleteEntry(id){
+    await api('/diary/entry/'+id,{method:'DELETE'});
+    await loadDiary();
+}
+async function loadDiary(){
+    const date = val('diaryDate');
+    const data = await api('/diary?date='+date);
+    // daily meta
+    const d = data.daily || {};
+    set('dayWeight', d.weight ?? ''); set('dayType', d.dayType ?? ''); set('dayNote', d.note ?? '');
+    // entries
+    document.getElementById('entriesBody').innerHTML = (data.entries||[]).map(e=>`
+        <tr>
+            <td>${esc(e.foodName)}</td>
+            <td class="num clickable text-decoration-underline" title="Bấm để sửa số gram" onclick="editEntryGrams(${e.id}, ${e.grams})">${r1(e.grams)}</td>
+            <td class="num">${r1(e.carb)}</td>
+            <td class="num">${r1(e.fat)}</td><td class="num">${r1(e.protein)}</td>
+            <td class="num fw-semibold">${r1(e.calo)}</td>
+            <td class="text-end"><button class="btn btn-sm btn-link text-danger p-0" onclick="deleteEntry(${e.id})"><i class="bi bi-x-lg"></i></button></td>
+        </tr>`).join('') || '<tr><td colspan="7" class="text-center text-muted py-3">Chưa có món nào hôm nay</td></tr>';
+    LAST_TOTALS = data;
+    renderTotals(data);
+    renderDayContext();
+}
+async function saveDaily(){
+    const date = val('diaryDate');
+    const body = { weight: val('dayWeight')!=='' ? +val('dayWeight') : null, dayType: val('dayType')||null, note: val('dayNote')||null };
+    await api('/diary/daily?date='+date,{method:'PUT', body:JSON.stringify(body)});
+    renderLossCalc();
+}
+function renderTotals(t){
+    const s = SETTINGS;
+    const items = [
+        {cls:'macro-cal', label:'Calo', val:t.totalCalo, goal:s.goalCalories, unit:'kcal'},
+        {cls:'macro-carb', label:'Carb', val:t.totalCarb, goal:s.goalCarb, unit:'g'},
+        {cls:'macro-fat', label:'Fat', val:t.totalFat, goal:s.goalFat, unit:'g'},
+        {cls:'macro-protein', label:'Protein', val:t.totalProtein, goal:s.goalProtein, unit:'g'},
+    ];
+    document.getElementById('totalsCards').innerHTML = items.map(it=>{
+        const pct = it.goal>0 ? Math.min(100, Math.round(it.val/it.goal*100)) : 0;
+        const remain = r1(it.goal - it.val);
+        return `<div class="col-6 col-xl-3">
+            <div class="stat-box ${it.cls}">
+                <div class="small opacity-75">${it.label}</div>
+                <div class="fs-5 fw-bold">${fmt(r1(it.val))}<span class="small fw-normal opacity-75"> /${fmt(it.goal)} ${it.unit}</span></div>
+                <div class="progress mt-1 bg-white bg-opacity-25"><div class="progress-bar bg-white" style="width:${pct}%"></div></div>
+                <div class="small mt-1 opacity-75">${remain>=0?'Còn lại':'Vượt'}: ${fmt(Math.abs(remain))} ${it.unit}</div>
+            </div></div>`;
+    }).join('');
+    renderMacroDonut(t);
+}
+function renderMacroDonut(t){
+    const carbCal = (t.totalCarb||0)*4, fatCal = (t.totalFat||0)*9, proCal = (t.totalProtein||0)*4;
+    const sum = carbCal+fatCal+proCal;
+    const pct = v => sum>0 ? Math.round(v/sum*100) : 0;
+    document.getElementById('macroPctLegend').innerHTML = `
+        <div class="d-flex align-items-center mb-1"><span class="d-inline-block rounded me-2" style="width:12px;height:12px;background:#f59e0b"></span>Carb: <b class="ms-1">${pct(carbCal)}%</b><span class="text-muted ms-2">(${r1(t.totalCarb)}g)</span></div>
+        <div class="d-flex align-items-center mb-1"><span class="d-inline-block rounded me-2" style="width:12px;height:12px;background:#ef4444"></span>Fat: <b class="ms-1">${pct(fatCal)}%</b><span class="text-muted ms-2">(${r1(t.totalFat)}g)</span></div>
+        <div class="d-flex align-items-center"><span class="d-inline-block rounded me-2" style="width:12px;height:12px;background:#3b82f6"></span>Protein: <b class="ms-1">${pct(proCal)}%</b><span class="text-muted ms-2">(${r1(t.totalProtein)}g)</span></div>`;
+    const ctx = document.getElementById('macroDonut');
+    if(macroDonutObj) macroDonutObj.destroy();
+    macroDonutObj = new Chart(ctx,{ type:'doughnut',
+        data:{ labels:['Carb','Fat','Protein'], datasets:[{ data:[carbCal,fatCal,proCal],
+            backgroundColor:['#f59e0b','#ef4444','#3b82f6'], borderWidth:0 }] },
+        options:{ cutout:'62%', plugins:{ legend:{display:false} } } });
+}
+
+async function editEntryGrams(id, current){
+    const {value} = await Swal.fire({ title:'Sửa số gram', input:'number', inputValue:current,
+        inputAttributes:{min:0, step:1}, showCancelButton:true, confirmButtonText:'Lưu', cancelButtonText:'Hủy', confirmButtonColor:'#16a34a' });
+    if(value===undefined || value===null || value==='') return;
+    await api('/diary/entry/'+id,{method:'PUT', body:JSON.stringify({grams:+value})});
+    await loadDiary();
+}
+async function clearDay(){
+    const date = val('diaryDate');
+    const c = await Swal.fire({title:'Xóa hết món ngày '+date+'?', text:'Toàn bộ món đã ăn của ngày này sẽ bị xóa.', icon:'warning',
+        showCancelButton:true, confirmButtonText:'Xóa hết', cancelButtonText:'Hủy', confirmButtonColor:'#ef4444'});
+    if(!c.isConfirmed) return;
+    await api('/diary/day?date='+date,{method:'DELETE'});
+    await loadDiary();
+    Toast.fire({icon:'success',title:'Đã xóa hết món trong ngày'});
+}
+async function openCopyDay(){
+    const d = new Date(val('diaryDate')); d.setDate(d.getDate()-1);
+    const def = new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    const {value} = await Swal.fire({ title:'Nhân bản món ăn từ ngày', html:'Chọn ngày nguồn để sao chép sang <b>'+val('diaryDate')+'</b>',
+        input:'date', inputValue:def, showCancelButton:true, confirmButtonText:'Sao chép', cancelButtonText:'Hủy', confirmButtonColor:'#16a34a' });
+    if(!value) return;
+    const res = await api(`/diary/copy?from=${value}&to=${val('diaryDate')}`,{method:'POST'});
+    await loadDiary();
+    Toast.fire({icon:'success',title:'Đã sao chép '+(res.copied||0)+' món'});
+}
+async function quickAddToday(food){
+    const {value} = await Swal.fire({ title:'Thêm "'+food.name+'" vào hôm nay', input:'number', inputValue:100,
+        inputLabel:'Số gram', inputAttributes:{min:0, step:1}, showCancelButton:true, confirmButtonText:'Thêm', cancelButtonText:'Hủy', confirmButtonColor:'#16a34a' });
+    if(value===undefined || value===null || value==='') return;
+    const g = (+value)/100;
+    const body = { foodName:food.name, grams:+value,
+        carb:r1(food.carb*g), fat:r1(food.fat*g), protein:r1(food.protein*g), calo:r1(food.calo*g) };
+    await api('/diary?date='+val('diaryDate'),{method:'POST', body:JSON.stringify(body)});
+    Toast.fire({icon:'success',title:'Đã thêm vào hôm nay'});
+}
+
+// ==================== RESET ====================
+async function resetSettings(){
+    const c = await Swal.fire({title:'Reset cấu hình về mặc định?', icon:'question', showCancelButton:true, confirmButtonText:'Reset', cancelButtonText:'Hủy', confirmButtonColor:'#f59e0b'});
+    if(!c.isConfirmed) return;
+    SETTINGS = await api('/settings/reset',{method:'POST'});
+    fillSettingsForm(); renderTotals(LAST_TOTALS); renderLossCalc();
+    Toast.fire({icon:'success',title:'Đã reset cấu hình'});
+}
+async function clearHistory(){
+    const c = await Swal.fire({title:'Xóa lịch sử cân nặng & calo?', text:'Toàn bộ nhật ký ăn uống và cân nặng theo ngày sẽ bị xóa. Database món ăn, lịch tập và cấu hình được giữ nguyên.', icon:'warning',
+        showCancelButton:true, confirmButtonText:'Xóa lịch sử', cancelButtonText:'Hủy', confirmButtonColor:'#ef4444'});
+    if(!c.isConfirmed) return;
+    await api('/reset/history',{method:'POST'});
+    await loadDiary(); if(typeof loadStats==='function') loadStats();
+    Toast.fire({icon:'success',title:'Đã xóa lịch sử'});
+}
+async function resetAll(){
+    const c = await Swal.fire({title:'Xóa sạch TOÀN BỘ dữ liệu gym?',
+        html:'Sẽ xóa hết nhật ký, cân nặng, lịch tập, món ăn, cấu hình và <b>nạp lại dữ liệu mặc định</b>.<br>Thao tác này <b class="text-danger">không thể hoàn tác</b>.',
+        icon:'error', showCancelButton:true, confirmButtonText:'Xóa sạch & nạp lại', cancelButtonText:'Hủy', confirmButtonColor:'#ef4444'});
+    if(!c.isConfirmed) return;
+    await api('/reset/all',{method:'POST'});
+    await loadSettings(); await loadFoods(); await loadExercises(); await loadWorkout(); await loadDiary();
+    if(typeof loadStats==='function') loadStats();
+    Toast.fire({icon:'success',title:'Đã reset toàn bộ về mặc định'});
+}
+
+// ==================== THƯ VIỆN BÀI TẬP ====================
+async function loadExercises(){
+    EXERCISES = await api('/exercises');
+    EXMAP = {};
+    EXERCISES.forEach(e=> EXMAP[e.name.trim().toLowerCase()] = e);
+    renderExercises();
+}
+function renderExercises(){
+    const kw = (document.getElementById('exSearch').value||'').toLowerCase();
+    const list = EXERCISES.filter(e=> e.name.toLowerCase().includes(kw) || (e.muscleGroup||'').toLowerCase().includes(kw));
+    document.getElementById('libraryGrid').innerHTML = list.map(e=>`
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card h-100">
+                <div class="ratio ratio-4x3 bg-light rounded-top overflow-hidden d-flex align-items-center justify-content-center">
+                    ${e.imageUrl ? `<img src="${esc(e.imageUrl)}" alt="${esc(e.name)}" style="object-fit:cover;width:100%;height:100%">`
+                        : `<div class="text-muted small d-flex align-items-center justify-content-center h-100"><i class="bi bi-image fs-3"></i></div>`}
+                </div>
+                <div class="card-body p-2">
+                    <div class="fw-semibold small text-truncate" title="${esc(e.name)}">${esc(e.name)}</div>
+                    ${e.muscleGroup ? `<span class="badge bg-success-subtle text-success">${esc(e.muscleGroup)}</span>` : ''}
+                    <div class="mt-2 d-flex gap-2">
+                        <button class="btn btn-outline-primary btn-sm py-0 px-2" onclick="openExerciseModalById(${e.id})"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-outline-danger btn-sm py-0 px-2" onclick="deleteExercise(${e.id})"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>`).join('') || '<div class="col-12 text-center text-muted py-4">Chưa có bài tập nào</div>';
+}
+function openExerciseModalById(id){ openExerciseModal(EXERCISES.find(x=>x.id===id) || {}); }
+function openExerciseModal(e){
+    e = e || {};
+    set('exId', e.id||''); set('exName', e.name||''); set('exMuscle', e.muscleGroup||'');
+    set('exImage', e.imageUrl||''); set('exNote', e.note||'');
+    const prev = document.getElementById('exImagePreview');
+    if(e.imageUrl){ prev.src = e.imageUrl; prev.classList.remove('d-none'); } else { prev.src=''; prev.classList.add('d-none'); }
+    document.getElementById('exerciseModalTitle').textContent = e.id ? 'Sửa bài tập' : 'Thêm bài tập';
+    new bootstrap.Modal('#exerciseModal').show();
+}
+async function uploadExerciseImage(input){
+    const file = input.files[0]; if(!file) return;
+    const fd = new FormData(); fd.append('file', file);
+    try {
+        const res = await fetch(API+'/upload',{method:'POST', body:fd});
+        const data = await res.json();
+        if(!res.ok){ Toast.fire({icon:'error',title:data.error||'Lỗi tải ảnh'}); return; }
+        set('exImage', data.url);
+        const prev = document.getElementById('exImagePreview'); prev.src = data.url; prev.classList.remove('d-none');
+        Toast.fire({icon:'success',title:'Đã tải ảnh'});
+    } catch(err){ Toast.fire({icon:'error',title:'Lỗi tải ảnh'}); }
+    input.value = '';
+}
+async function saveExercise(){
+    const name = val('exName').trim();
+    if(!name){ Toast.fire({icon:'error',title:'Nhập tên bài tập'}); return; }
+    const body = { name, muscleGroup:val('exMuscle')||null, imageUrl:val('exImage')||null, note:val('exNote')||null };
+    const id = val('exId'); if(id) body.id = +id;
+    await api('/exercises',{method:'POST', body:JSON.stringify(body)});
+    bootstrap.Modal.getInstance('#exerciseModal').hide();
+    await loadExercises();
+    await loadWorkout();
+    Toast.fire({icon:'success',title:'Đã lưu bài tập'});
+}
+async function deleteExercise(id){
+    const c = await Swal.fire({title:'Xóa bài tập này?', icon:'warning', showCancelButton:true, confirmButtonText:'Xóa', cancelButtonText:'Hủy', confirmButtonColor:'#ef4444'});
+    if(!c.isConfirmed) return;
+    await api('/exercises/'+id,{method:'DELETE'});
+    await loadExercises(); await loadWorkout();
+    Toast.fire({icon:'success',title:'Đã xóa'});
+}
+let VIEWED_NAME = '';
+function viewExercise(name){
+    VIEWED_NAME = name || '';
+    const e = EXMAP[ String(name||'').trim().toLowerCase() ];
+    document.getElementById('exViewTitle').textContent = name;
+    if(!e){
+        document.getElementById('exViewBody').innerHTML = `<p class="text-muted">Bài "<b>${esc(name)}</b>" chưa có trong thư viện.</p>
+            <button class="btn btn-success btn-sm" onclick="editViewedExercise()"><i class="bi bi-plus-lg"></i> Thêm vào thư viện</button>`;
+    } else {
+        document.getElementById('exViewBody').innerHTML = `
+            ${e.imageUrl ? `<img src="${esc(e.imageUrl)}" class="img-fluid rounded mb-2" style="max-height:320px">` : '<div class="text-muted mb-2"><i class="bi bi-image fs-1"></i><br>Chưa có ảnh</div>'}
+            ${e.muscleGroup ? `<div><span class="badge bg-success-subtle text-success">${esc(e.muscleGroup)}</span></div>` : ''}
+            ${e.note ? `<p class="text-start mt-2 small">${esc(e.note)}</p>` : ''}
+            <button class="btn btn-outline-primary btn-sm mt-2" onclick="editViewedExercise()"><i class="bi bi-pencil"></i> Sửa / thêm ảnh</button>`;
+    }
+    new bootstrap.Modal('#exerciseViewModal').show();
+}
+function editViewedExercise(){
+    const m = bootstrap.Modal.getInstance('#exerciseViewModal'); if(m) m.hide();
+    const e = EXMAP[VIEWED_NAME.trim().toLowerCase()] || {name: VIEWED_NAME};
+    openExerciseModal(e);
+}
+
+// ==================== NGỮ CẢNH NGÀY ====================
+function renderDayContext(){
+    const box = document.getElementById('dayContext');
+    if(!box) return;
+    const date = new Date(val('diaryDate'));
+    if(isNaN(date)){ box.classList.add('d-none'); return; }
+    const jsDow = date.getDay();            // 0=CN..6=T7
+    const dow = jsDow === 0 ? 7 : jsDow;    // 1=T2..7=CN
+    const w = (WORKOUT||[]).find(x=>x.dayOfWeek===dow);
+    const dowName = ['','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'][dow];
+    let html = `<i class="bi bi-calendar-event me-1"></i><b>${dowName}</b>`;
+    if(w && w.program){
+        const count = (w.exercises||'').split('\n').map(s=>s.trim()).filter(Boolean).length;
+        html += ` · Buổi tập: <b class="text-success">${esc(w.program)}</b>` + (count?` (${count} bài)`:'');
+    } else {
+        html += ` · <span class="text-muted">Chưa có lịch tập</span>`;
+    }
+    box.innerHTML = html;
+    box.classList.remove('d-none');
+}
+
+// ==================== WORKOUT ====================
+const DOW = ['','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'];
+async function loadWorkout(){
+    WORKOUT = await api('/workout');
+    const map = {}; WORKOUT.forEach(w=>map[w.dayOfWeek]=w);
+    let html = '';
+    for(let i=1;i<=7;i++){
+        const w = map[i]||{dayOfWeek:i, program:'', exercises:''};
+        const isRest = (w.program||'').toLowerCase().includes('rest');
+        html += `<div class="col-md-6 col-xl-4">
+            <div class="card day-card ${isRest?'rest':''} h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">${DOW[i]}</span>
+                        <span class="pill-day">${esc(w.program||'—')}</span>
+                    </div>
+                    <input class="form-control form-control-sm mb-2" id="wprog${i}" value="${esc(w.program||'')}" placeholder="Nhóm tập (Push/Pull/Leg/Rest)">
+                    <textarea class="form-control form-control-sm" id="wex${i}" rows="5" placeholder="Mỗi dòng 1 bài tập..." oninput="renderWorkoutPreview(${i})">${esc(w.exercises||'')}</textarea>
+                    <div class="mt-2 d-flex flex-wrap gap-2" id="wprev${i}"></div>
+                </div>
+            </div></div>`;
+    }
+    document.getElementById('workoutGrid').innerHTML = html;
+    for(let i=1;i<=7;i++) renderWorkoutPreview(i);
+    renderDayContext();
+}
+/** Hiển thị danh sách bài tập của 1 ngày kèm ảnh thumbnail lấy từ thư viện (khớp theo tên). */
+function renderWorkoutPreview(i){
+    const ta = document.getElementById('wex'+i); if(!ta) return;
+    const lines = ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    const box = document.getElementById('wprev'+i);
+    box.innerHTML = lines.map(name=>{
+        const e = EXMAP[name.toLowerCase()];
+        const thumb = (e && e.imageUrl)
+            ? `<img src="${esc(e.imageUrl)}" style="width:34px;height:34px;object-fit:cover" class="rounded">`
+            : `<span class="d-inline-flex align-items-center justify-content-center rounded bg-light text-muted" style="width:34px;height:34px"><i class="bi bi-image"></i></span>`;
+        const missing = e ? '' : ' border-warning';
+        return `<div class="d-flex align-items-center gap-1 border rounded${missing} px-1 clickable" title="Xem / thêm ảnh" data-ex-name="${esc(name)}">
+                    ${thumb}<span class="small">${esc(name)}</span>
+                </div>`;
+    }).join('');
+}
+async function saveWorkout(){
+    const days = [];
+    for(let i=1;i<=7;i++){
+        days.push({dayOfWeek:i, program:val('wprog'+i)||'', exercises:val('wex'+i)||''});
+    }
+    WORKOUT = await api('/workout',{method:'PUT', body:JSON.stringify(days)});
+    await loadWorkout();
+    Toast.fire({icon:'success',title:'Đã lưu lịch tập'});
+}
+
+// ==================== STATS ====================
+async function loadStats(){
+    const from = val('statFrom'), to = val('statTo');
+    if(!from||!to) return;
+    const data = await api(`/stats?from=${from}&to=${to}`);
+    drawWeight(data.weightSeries||[]);
+    drawCalorie(data.calorieSeries||[]);
+}
+function drawWeight(series){
+    const ctx = document.getElementById('weightChart');
+    if(weightChartObj) weightChartObj.destroy();
+    weightChartObj = new Chart(ctx,{ type:'line',
+        data:{ labels:series.map(p=>p.date), datasets:[{ label:'Cân nặng (kg)', data:series.map(p=>p.weight),
+            borderColor:'#16a34a', backgroundColor:'rgba(22,163,74,.12)', fill:true, tension:.3, pointRadius:3 }] },
+        options:{ plugins:{title:{display:true,text:'Diễn biến cân nặng'}}, scales:{y:{beginAtZero:false}} } });
+}
+function drawCalorie(series){
+    const ctx = document.getElementById('calorieChart');
+    if(calorieChartObj) calorieChartObj.destroy();
+    calorieChartObj = new Chart(ctx,{ type:'bar',
+        data:{ labels:series.map(p=>p.date), datasets:[{ label:'Calo nạp (kcal)', data:series.map(p=>p.calo),
+            backgroundColor:'#0d9488' }] },
+        options:{ plugins:{title:{display:true,text:'Calo nạp mỗi ngày'}}, scales:{y:{beginAtZero:true}} } });
+}
+function renderLossCalc(){
+    const s = SETTINGS;
+    const fatMass = s.currentWeight * s.bodyFatPct;
+    const leanMass = s.currentWeight - fatMass;
+    const targetWeight = leanMass / (1 - s.targetBodyFatPct);
+    const kgToLose = s.currentWeight - targetWeight;
+    const weeklyLossKg = s.currentWeight * s.weeklyLossPct;
+    const weeks = weeklyLossKg>0 ? kgToLose / weeklyLossKg : 0;
+    const items = [
+        ['Cân nặng hiện tại', r1(s.currentWeight)+' kg'],
+        ['Khối lượng mỡ', r1(fatMass)+' kg ('+Math.round(s.bodyFatPct*100)+'%)'],
+        ['Khối lượng nạc', r1(leanMass)+' kg'],
+        ['Cân nặng mục tiêu', r1(targetWeight)+' kg ('+Math.round(s.targetBodyFatPct*100)+'% mỡ)'],
+        ['Cần giảm', r1(kgToLose)+' kg'],
+        ['Tốc độ giảm', r1(weeklyLossKg)+' kg/tuần'],
+        ['Thời gian dự kiến', (weeks>0? Math.ceil(weeks):0)+' tuần (~'+r1(weeks/4.345)+' tháng)'],
+        ['TDEE ước tính', Math.round(tdeeFrom(s))+' kcal/ngày'],
+    ];
+    document.getElementById('lossCalc').innerHTML = items.map(([k,v])=>`
+        <div class="col-md-3 col-6">
+            <div class="border rounded-3 p-2 h-100">
+                <div class="small text-muted">${k}</div>
+                <div class="fw-bold">${v}</div>
+            </div>
+        </div>`).join('');
+}
+function tdeeFrom(s){
+    const bmr = 10*s.currentWeight + 6.25*s.height - 5*s.age + (s.gender==='FEMALE'?-161:5);
+    return bmr * (s.activityFactor||1.55);
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+</script>
+</body>
+</html>
