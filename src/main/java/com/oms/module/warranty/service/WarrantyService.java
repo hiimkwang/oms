@@ -7,6 +7,7 @@ import com.oms.module.warranty.entity.WarrantyActivity;
 import com.oms.module.warranty.entity.WarrantyTicket;
 import com.oms.module.warranty.repository.WarrantyTicketRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class WarrantyService {
 
     private final WarrantyTicketRepository warrantyRepo;
@@ -82,9 +84,10 @@ public class WarrantyService {
 
     @Transactional
     public WarrantyTicket createTicket(WarrantyTicket request) {
-        if (request.getTicketCode() == null || request.getTicketCode().trim().isEmpty()) {
-            request.setTicketCode("BH-" + System.currentTimeMillis());
-        }
+        // Luôn sinh mã & id ở server (bỏ giá trị client gửi) -> tránh mass-assignment/trùng mã
+        request.setId(null);
+        request.setTicketCode("BH-" + System.currentTimeMillis() + "-"
+                + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase());
 
         request.setStatus(WarrantyTicket.TicketStatus.RECEIVED);
 
@@ -104,7 +107,7 @@ public class WarrantyService {
 
             notificationService.create(title, message, Notification.NotificationType.WARRANTY, link);
         } catch (Exception e) {
-            System.err.println("Lỗi khi gửi thông báo bảo hành mới: " + e.getMessage());
+            log.error("Lỗi khi gửi thông báo bảo hành mới: {}", e.getMessage());
         }
 
         return savedTicket;

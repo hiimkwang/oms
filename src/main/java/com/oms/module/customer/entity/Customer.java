@@ -5,6 +5,7 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Formula;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -48,5 +49,5 @@ public class Customer {
     @Formula("(SELECT COUNT(o.id) FROM orders o WHERE o.customer_id = id AND o.status = 'COMPLETED')")
     private Integer orderCount;
     @Formula("(SELECT COALESCE(SUM(o.total_amount), 0) FROM orders o WHERE o.customer_id = id AND o.status = 'COMPLETED')")
-    private Double totalSpent;
+    private BigDecimal totalSpent;
 }

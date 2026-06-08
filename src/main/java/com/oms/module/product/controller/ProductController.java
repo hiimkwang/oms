@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,7 +16,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/products")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class ProductController {
 
@@ -42,6 +42,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.updateProduct(sku, request));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{sku}")
     public ResponseEntity<Void> deleteProduct(@PathVariable String sku) {
         productService.deleteProduct(sku);
@@ -52,7 +53,8 @@ public class ProductController {
     public ResponseEntity<List<ProductVariant>> searchVariants(@RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(productService.searchVariantsForOrder(keyword));
     }
-    // Hứng request Xóa hàng loạt
+    // Hứng request Xóa hàng loạt (chỉ ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/bulk")
     public ResponseEntity<?> deleteBulkProducts(@RequestBody List<Long> ids) {
         try {

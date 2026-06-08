@@ -25,7 +25,15 @@ public class UserApiController {
 
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody Map<String, String> payload) {
-        String username = payload.get("username").trim();
+        String usernameRaw = payload.get("username");
+        String password = payload.get("password");
+        if (usernameRaw == null || usernameRaw.isBlank()) {
+            return ResponseEntity.badRequest().body("Lỗi: Tên đăng nhập không được để trống!");
+        }
+        if (password == null || password.isBlank()) {
+            return ResponseEntity.badRequest().body("Lỗi: Mật khẩu không được để trống!");
+        }
+        String username = usernameRaw.trim();
 
         // 1. Kiểm tra xem username đã tồn tại chưa
         if (userRepository.findByUsername(username).isPresent()) {
@@ -37,10 +45,14 @@ public class UserApiController {
         user.setFullName(payload.get("fullName"));
         user.setUsername(username);
         // Mã hóa mật khẩu
-        user.setPassword(passwordEncoder.encode(payload.get("password")));
+        user.setPassword(passwordEncoder.encode(password));
 
+        String roleStr = payload.get("role");
+        if (roleStr == null || roleStr.isBlank()) {
+            return ResponseEntity.badRequest().body("Lỗi: Vui lòng chọn quyền hạn!");
+        }
         try {
-            user.setRole(User.Role.valueOf(payload.get("role")));
+            user.setRole(User.Role.valueOf(roleStr));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Lỗi: Quyền hạn không hợp lệ!");
         }
@@ -50,8 +62,12 @@ public class UserApiController {
         // 3. Gắn vào chi nhánh (nếu có chọn)
         String branchIdStr = payload.get("branchId");
         if (branchIdStr != null && !branchIdStr.isEmpty()) {
-            Branch branch = branchRepository.findById(Long.parseLong(branchIdStr)).orElse(null);
-            user.setBranch(branch);
+            try {
+                Branch branch = branchRepository.findById(Long.parseLong(branchIdStr)).orElse(null);
+                user.setBranch(branch);
+            } catch (NumberFormatException e) {
+                return ResponseEntity.badRequest().body("Lỗi: Chi nhánh không hợp lệ!");
+            }
         }
 
         userRepository.save(user);

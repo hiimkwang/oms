@@ -218,10 +218,10 @@
                         window.location.href = '/ui/suppliers';
                     });
                 } else {
-                    const errorData = await response.json();
+                    const msg = await OMSGetError(response, 'Không thể lưu dữ liệu.');
                     Toast.fire({
                         icon: 'error',
-                        title: 'Lỗi: ' + (err.message || 'Không thể lưu dữ liệu.')
+                        title: 'Lỗi: ' + msg
                     });
                 }
             } catch (error) {

@@ -5,6 +5,7 @@ import com.oms.module.customer.repository.CustomerGroupRepository;
 import com.oms.module.customer.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -41,6 +42,9 @@ public class CustomerGroupController {
 
     @PostMapping
     public ResponseEntity<?> createGroup(@RequestBody CustomerGroup req) {
+        // Chặn mass-assignment: không cho client tự gán id/createdAt khi tạo mới
+        req.setId(null);
+        req.setCreatedAt(null);
         if (req.getCode() == null || req.getCode().isBlank()) {
             req.setCode("N" + System.currentTimeMillis());
         }
@@ -59,22 +63,35 @@ public class CustomerGroupController {
 
     // API Cập nhật nhóm
     @PutMapping("/{code}")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> updateGroup(@PathVariable String code, @RequestBody CustomerGroup req) {
         try {
             CustomerGroup existing = groupRepository.findByCode(code)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy nhóm"));
-            existing.setName(req.getName());
+
+            String oldName = existing.getName();
+            String newName = req.getName();
+
+            existing.setName(newName);
             existing.setNote(req.getNote());
             existing.setAutoUpdate(req.getAutoUpdate());
             existing.setConditions(req.getConditions());
             existing.setColorCode(req.getColorCode());
-            return ResponseEntity.ok(groupRepository.save(existing));
+            CustomerGroup saved = groupRepository.save(existing);
+
+            // Nếu đổi tên nhóm -> cập nhật lại tên nhóm cho toàn bộ khách hàng đang thuộc nhóm cũ
+            // (tránh việc khách bị "rớt nhóm" âm thầm do liên kết theo chuỗi tên).
+            if (oldName != null && newName != null && !oldName.equals(newName)) {
+                customerRepository.renameCustomerGroup(oldName, newName);
+            }
+            return ResponseEntity.ok(saved);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
-    // API Xóa hàng loạt nhóm khách hàng
+    // API Xóa hàng loạt nhóm khách hàng (chỉ ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/bulk-delete")
     public ResponseEntity<?> bulkDeleteGroups(@RequestBody List<String> codes) {
         try {

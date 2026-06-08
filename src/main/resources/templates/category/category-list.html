@@ -212,7 +212,7 @@
                     </tr>
                 </th:block>
 
-                <tr th:if="${#lists.isEmpty(categories)}">
+                <tr th:if="${#lists.isEmpty(categories)}" data-empty>
                     <td colspan="4" class="text-center py-5 text-muted">
                         <i class="bi bi-folder-x fs-2 d-block mb-2"></i>Chưa có danh mục nào.
                     </td>
@@ -229,28 +229,27 @@
             </div>
             <div class="d-flex align-items-center gap-3">
                 <nav>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>
-                        </li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
-                    </ul>
+                    <ul class="pagination pagination-sm mb-0" id="categoryPagination"></ul>
                 </nav>
             </div>
         </div>
     </div>
 
     <script th:inline="javascript">
+        let categoryPager = null;
         document.addEventListener("DOMContentLoaded", function () {
-            // Logic Tìm kiếm nội bộ (Client-side)
+            categoryPager = OMSPaginate({tbodyId: 'categoryTableBody', pageSize: 20, paginationId: 'categoryPagination', infoId: 'recordInfo', noun: 'danh mục'});
+
+            // Logic Tìm kiếm nội bộ (Client-side) -> đánh dấu data-filtered-out rồi phân trang lại
             const searchInput = document.getElementById('catSearchInput');
             searchInput.addEventListener('input', function () {
                 const val = this.value.trim().toLowerCase();
                 const rows = document.querySelectorAll('.category-row');
                 rows.forEach(row => {
-                    const name = row.getAttribute('data-name').toLowerCase();
-                    row.style.display = name.includes(val) ? "" : "none";
+                    const name = (row.getAttribute('data-name') || '').toLowerCase();
+                    row.setAttribute('data-filtered-out', name.includes(val) ? '0' : '1');
                 });
+                if (categoryPager) categoryPager.refresh();
             });
         });
 

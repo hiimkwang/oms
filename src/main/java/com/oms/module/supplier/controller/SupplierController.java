@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -17,7 +18,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/suppliers")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class SupplierController {
 
@@ -48,6 +48,7 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.updateSupplier(supplierCode, request));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/bulk-delete")
     public ResponseEntity<?> bulkDelete(@RequestBody List<String> codes) {
         try {

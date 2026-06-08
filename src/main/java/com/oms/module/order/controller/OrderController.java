@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,7 +15,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/orders")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class OrderController {
 
@@ -44,7 +44,8 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateOrder(orderCode, request));
     }
 
-    // XÓA ĐƠN HÀNG
+    // XÓA ĐƠN HÀNG (chỉ ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{orderCode}")
     public ResponseEntity<?> deleteOrder(@PathVariable String orderCode) {
         orderService.deleteOrder(orderCode);

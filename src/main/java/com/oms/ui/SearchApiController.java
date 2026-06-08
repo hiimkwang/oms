@@ -43,6 +43,8 @@ public class SearchApiController {
             map.put("code", p.getSku() != null ? p.getSku() : "");
             map.put("imageUrl", p.getImageUrl() != null ? p.getImageUrl() : "");
             map.put("costPrice", p.getPrice());
+            // Tổng tồn kho để hiển thị ở ô tìm kiếm nhanh (thiết thực hơn giá bán)
+            map.put("stock", p.getStockQuantity() != null ? p.getStockQuantity() : 0);
             // BỔ SUNG ĐOẠN NÀY: Lấy thêm danh sách biến thể nhét vào JSON
             if (p.getVariants() != null && !p.getVariants().isEmpty()) {
                 List<Map<String, Object>> variants = p.getVariants().stream().map(v -> {

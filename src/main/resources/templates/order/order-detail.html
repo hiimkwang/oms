@@ -184,6 +184,11 @@
             color: #2b3445;
         }
 
+        /* Dòng chính khi có dòng Serial/Bảo hành đi kèm -> bỏ viền dưới để 2 dòng liền mạch */
+        .table-product tr.has-sn-row > td {
+            border-bottom: none;
+        }
+
         .edit-element {
             display: none !important;
         }
@@ -194,6 +199,12 @@
 
         .is-editing .edit-element {
             display: block !important;
+        }
+
+        /* Với ô bảng (th/td) phải dùng table-cell, KHÔNG dùng block kẻo vỡ bố cục cột (nút Xóa bị lệch) */
+        .is-editing th.edit-element,
+        .is-editing td.edit-element {
+            display: table-cell !important;
         }
 
         .is-editing .edit-element-flex {
@@ -1059,38 +1070,50 @@
                     if (item.note) viewExtraHtml += `<div class="text-warning small mt-1"><i class="bi bi-journal-text me-1"></i>${item.note}</div>`;
                 }
 
-                let editExtraHtml = '';
+                let snBoxHtml = '';
+                let editLinksHtml = '';
                 if (isEdit) {
-                    let warrantyHtml = item.showWarranty ? `
-                        <div class="input-group input-group-sm mt-2 mb-1" style="max-width: 320px;">
-                            <span class="input-group-text bg-light text-muted" style="font-size: 11px;">S/N</span>
-                            <input type="text" class="form-control" placeholder="Số Serial..." value="${item.serialNumber || ''}" onchange="editCart[${index}].serialNumber=this.value">
-                            <span class="input-group-text bg-light text-muted border-start-0" style="font-size: 11px;">Bảo hành</span>
-                            <input type="text" class="form-control text-center px-1" placeholder="0" value="${new Intl.NumberFormat('en-US').format(item.warrantyMonths || 0)}" oninput="formatNumberInput(this)" onchange="editCart[${index}].warrantyMonths=parseNumber(this.value)" style="max-width: 50px;">
-                            <span class="input-group-text bg-light text-muted" style="font-size: 11px;">tháng</span>
+                    snBoxHtml = item.showWarranty ? `
+                        <div class="sn-warranty-box">
+                            <div class="d-flex align-items-end gap-3 flex-wrap">
+                                <div style="flex: 1 1 320px; min-width: 220px;">
+                                    <div class="sn-label"><i class="bi bi-upc-scan me-1"></i>Số Serial / IMEI</div>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Nhập số serial sản phẩm..." value="${item.serialNumber || ''}" onchange="editCart[${index}].serialNumber=this.value">
+                                </div>
+                                <div style="flex: 0 0 140px;">
+                                    <div class="sn-label"><i class="bi bi-shield-check me-1"></i>Bảo hành</div>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control text-center" placeholder="0" value="${new Intl.NumberFormat('en-US').format(item.warrantyMonths || 0)}" oninput="formatNumberInput(this)" onchange="editCart[${index}].warrantyMonths=parseNumber(this.value)">
+                                        <span class="input-group-text">tháng</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>` : '';
 
                     const noteHtml = item.note ? `<div class="text-warning small mt-1"><i class="bi bi-journal-text me-1"></i>${item.note}</div>` : '';
-                    editExtraHtml = `
-                        ${warrantyHtml} ${noteHtml}
-                        <div class="mt-1 d-flex gap-3">
+                    editLinksHtml = `
+                        ${noteHtml}
+                        <div class="mt-2 d-flex gap-3">
                             <a href="javascript:void(0)" onclick="toggleWarrantyInput(${index})" class="text-link" style="font-size:11px;"><i class="bi bi-shield-check me-1"></i>${item.showWarranty ? 'Ẩn bảo hành' : 'Thêm S/N & Bảo hành'}</a>
                             <a href="javascript:void(0)" onclick="openLineNoteModal(${index})" class="text-link" style="font-size:11px;"><i class="bi bi-pencil-square me-1"></i>Ghi chú</a>
                         </div>`;
                 }
 
+                const hasSnRow = isEdit && item.showWarranty;
                 html += `
-                    <tr>
+                    <tr${hasSnRow ? ' class="has-sn-row"' : ''}>
                         <td>
                             <div class="fw-bold text-dark">${name} ${customBadge}</div>
                             <div class="text-muted mt-1" style="font-size:11px;">SKU: ${item.sku}</div>
-                            ${viewExtraHtml} ${editExtraHtml}
+                            ${viewExtraHtml} ${editLinksHtml}
                         </td>
                         <td class="text-center align-middle">${qty}</td>
                         <td class="text-end align-middle">${price}</td>
                         <td class="text-end align-middle fw-bold text-dark">${total}</td>
-                        <td class="text-end align-middle fw-bold" style="font-size: 12px;">${profitHtml}</td> <td class="text-center align-middle edit-element">${btnDel}</td>
-                    </tr>`;
+                        <td class="text-end align-middle fw-bold" style="font-size: 12px;">${profitHtml}</td>
+                        <td class="text-center align-middle edit-element">${btnDel}</td>
+                    </tr>
+                    ${hasSnRow ? `<tr class="sn-extra-row"><td colspan="6" style="padding-top: 0;">${snBoxHtml}</td></tr>` : ''}`;
             });
             tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted py-4">Chưa có sản phẩm</td></tr>';
         }
@@ -1134,13 +1157,18 @@
                         let html = '';
                         searchResult.forEach((v) => {
                             const fullName = v.productName + (v.variantName ? ' - ' + v.variantName : '');
+                            const stock = (v.actualStock != null ? v.actualStock : (v.stockQuantity || 0));
+                            const stockClass = stock > 0 ? 'text-success' : 'text-danger';
 
                             html += `<li class="p-2 border-bottom dropdown-item-hover d-flex justify-content-between align-items-center" onclick="addEditCart('${v.sku}', \`${fullName}\`, ${v.price}, ${v.costPrice || 0})">
                                     <div>
                                         <div class="fw-bold text-primary" style="font-size: 13px;">${fullName}</div>
                                         <div class="text-muted" style="font-size: 11px;">SKU: ${v.sku}</div>
                                     </div>
-                                    <div class="fw-bold text-dark" style="font-size: 13px;">${formatMoney(v.price)}</div>
+                                    <div class="text-end" style="white-space: nowrap;">
+                                        <div class="fw-bold text-dark" style="font-size: 12.5px;">Giá vốn: ${formatMoney(v.costPrice || 0)}</div>
+                                        <div class="${stockClass}" style="font-size: 11px;"><i class="bi bi-box-seam me-1"></i>Tồn: ${new Intl.NumberFormat('en-US').format(stock)}</div>
+                                    </div>
                                 </li>`;
                         });
                         list.innerHTML = html || '<li class="p-2 text-muted small">Không tìm thấy</li>';
@@ -1368,8 +1396,8 @@
                     await Toast.fire({icon: 'success', title: 'Đã xóa đơn hàng thành công!'});
                     window.location.href = '/ui/orders';
                 } else {
-                    const errorMsg = await res.text();
-                    Toast.fire({icon: 'error', title: 'Không thể xóa: ' + (errorMsg || 'Vui lòng kiểm tra lại!')});
+                    const errorMsg = await OMSGetError(res, 'Vui lòng kiểm tra lại!');
+                    Toast.fire({icon: 'error', title: 'Không thể xóa: ' + errorMsg});
                 }
             } catch (e) {
                 Toast.fire({icon: 'error', title: 'Lỗi kết nối đến máy chủ!'});

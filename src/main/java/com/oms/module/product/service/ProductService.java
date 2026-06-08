@@ -34,7 +34,10 @@ public class ProductService {
         // 1. Tự sinh SKU mẹ nếu rỗng dựa trên tên sản phẩm
         String sku = request.getSku();
         if (sku == null || sku.trim().isEmpty() || "AUTO".equals(sku)) {
-            sku = generateSlugFromName(request.getName());
+            sku = ensureUniqueSku(generateSlugFromName(request.getName()));
+        } else if (productRepository.existsBySku(sku) || productVariantRepository.existsBySku(sku)) {
+            // SKU do người dùng nhập: không cho trùng -> báo lỗi rõ ràng thay vì để DB ném 500
+            throw new RuntimeException("Mã SKU '" + sku + "' đã tồn tại trong hệ thống!");
         }
 
         Category category = null;
@@ -71,7 +74,9 @@ public class ProductService {
             for (ProductVariantRequest vReq : request.getVariants()) {
                 String varSku = vReq.getSku();
                 if (varSku == null || varSku.trim().isEmpty() || varSku.startsWith("AUTO")) {
-                    varSku = sku + "-" + generateSlugFromName(vReq.getVariantName());
+                    varSku = ensureUniqueSku(sku + "-" + generateSlugFromName(vReq.getVariantName()));
+                } else if (productVariantRepository.existsBySku(varSku)) {
+                    throw new RuntimeException("Mã SKU biến thể '" + varSku + "' đã tồn tại!");
                 }
 
                 int vStock = vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0;
@@ -293,13 +298,28 @@ public class ProductService {
     // ================= HÀM TIỆN ÍCH TẠO SKU =================
     private String generateSlugFromName(String name) {
         if (name == null || name.trim().isEmpty()) {
-            return UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+            return UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.ROOT);
         }
         // Loại bỏ dấu tiếng Việt
         String normalized = java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFD);
         String noAccent = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "").replaceAll("Đ", "D").replaceAll("đ", "d");
-        // Bỏ ký tự đặc biệt, thay khoảng trắng bằng dấu gạch ngang và viết hoa
-        String baseSku = noAccent.replaceAll("[^a-zA-Z0-9\\s-]", "").trim().replaceAll("\\s+", "-").toUpperCase();
+        // Bỏ ký tự đặc biệt, thay khoảng trắng bằng dấu gạch ngang và viết hoa (Locale.ROOT tránh lỗi locale)
+        String baseSku = noAccent.replaceAll("[^a-zA-Z0-9\\s-]", "").trim().replaceAll("\\s+", "-").toUpperCase(Locale.ROOT);
+        // Nếu tên toàn ký tự đặc biệt -> baseSku rỗng -> fallback UUID để không vi phạm ràng buộc NOT NULL/UNIQUE
+        if (baseSku.isEmpty()) {
+            return UUID.randomUUID().toString().substring(0, 6).toUpperCase(Locale.ROOT);
+        }
         return baseSku;
+    }
+
+    // Đảm bảo SKU sinh tự động là duy nhất (cả ở Product lẫn ProductVariant)
+    private String ensureUniqueSku(String base) {
+        String candidate = base;
+        int counter = 1;
+        while (productRepository.existsBySku(candidate) || productVariantRepository.existsBySku(candidate)) {
+            candidate = base + "-" + counter;
+            counter++;
+        }
+        return candidate;
     }
 }

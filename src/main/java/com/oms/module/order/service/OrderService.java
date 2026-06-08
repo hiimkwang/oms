@@ -151,14 +151,15 @@ public class OrderService {
         }
 
         // GHI LOG VÀ RUNG CHUÔNG NẾU ĐỔI TRẠNG THÁI
+        BigDecimal requestPaid = request.getAmountPaid() != null ? request.getAmountPaid() : BigDecimal.ZERO;
         if (!oldStatus.equals(newStatus)) {
             addActivityLog(order, "Cập nhật trạng thái", "Chuyển trạng thái từ [" + translateStatus(oldStatus) + "] sang [" + translateStatus(newStatus) + "]");
             if (CANCELLED.equals(newStatus) || COMPLETED.equals(newStatus)) {
                 String translatedStatus = translateStatus(newStatus);
                 notificationService.create("Cập nhật đơn hàng " + order.getOrderCode(), "Đơn hàng đã chuyển sang trạng thái: " + translatedStatus, Notification.NotificationType.ORDER, "/ui/orders/detail/" + order.getOrderCode());
             }
-        } else if (order.getAmountPaid().compareTo(request.getAmountPaid()) != 0) {
-            addActivityLog(order, "Thanh toán", "Cập nhật số tiền đã thanh toán: " + request.getAmountPaid() + "đ");
+        } else if (order.getAmountPaid().compareTo(requestPaid) != 0) {
+            addActivityLog(order, "Thanh toán", "Cập nhật số tiền đã thanh toán: " + requestPaid + "đ");
         } else {
             addActivityLog(order, "Cập nhật thông tin", "Thay đổi thông tin chi tiết đơn hàng");
         }
@@ -203,7 +204,9 @@ public class OrderService {
                         productName = detailReq.getName();
                     }
                 } catch (Exception e) {
-                    log.error("Cảnh báo: Lỗi khi lấy thông tin biến thể SKU {}: {}", detailReq.getSku(), e);
+                    // Không nuốt lỗi: nếu không lấy được biến thể sẽ làm sai giá vốn (COGS) -> dừng giao dịch
+                    log.error("Lỗi khi lấy thông tin biến thể SKU {}", detailReq.getSku(), e);
+                    throw new RuntimeException("Không thể lấy thông tin sản phẩm SKU: " + detailReq.getSku());
                 }
             } else {
                 // Nếu là sản phẩm tùy chỉnh, lấy giá vốn gửi từ Request (thường là 0)
@@ -211,6 +214,13 @@ public class OrderService {
             }
 
             BigDecimal unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : BigDecimal.ZERO;
+            // Chống dữ liệu tiền âm gửi từ client
+            if (unitPrice.compareTo(BigDecimal.ZERO) < 0) {
+                throw new RuntimeException("Đơn giá sản phẩm [" + productName + "] không được âm!");
+            }
+            if (detailReq.getQuantity() <= 0) {
+                throw new RuntimeException("Số lượng sản phẩm [" + productName + "] phải lớn hơn 0!");
+            }
             BigDecimal quantity = BigDecimal.valueOf(detailReq.getQuantity());
             BigDecimal lineTotal = unitPrice.multiply(quantity);
 
@@ -233,12 +243,32 @@ public class OrderService {
             totalItemsAmount = totalItemsAmount.add(lineTotal);
         }
 
-        BigDecimal finalTotal = totalItemsAmount.add(order.getShippingFee()).subtract(order.getDiscountAmount());
+        BigDecimal discount = order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO;
+        if (discount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("Chiết khấu không được âm!");
+        }
+        // Chặn chiết khấu vượt quá tiền hàng + phí ship (tránh tổng đơn = 0 mà vẫn xuất hàng).
+        // Bỏ qua kiểm tra này với đơn NHÁP để người dùng còn lưu nháp khi đang nhập dở.
+        BigDecimal shippingFee = order.getShippingFee() != null ? order.getShippingFee() : BigDecimal.ZERO;
+        BigDecimal maxDiscount = totalItemsAmount.add(shippingFee);
+        if (!DRAFT.equals(order.getStatus()) && discount.compareTo(maxDiscount) > 0) {
+            throw new RuntimeException("Chiết khấu (" + discount + "đ) không được lớn hơn tổng tiền hàng + phí ship (" + maxDiscount + "đ)!");
+        }
+        order.setDiscountAmount(discount);
+
+        BigDecimal finalTotal = totalItemsAmount.add(shippingFee).subtract(discount);
         order.setTotalAmount(finalTotal.compareTo(BigDecimal.ZERO) > 0 ? finalTotal : BigDecimal.ZERO);
     }
 
     public List<Order> findTop10ByCustomer_CodeOrderByCreatedAtDescByCode(String orderCode) {
         return orderRepository.findTop10ByCustomer_CodeOrderByCreatedAtDesc(orderCode);
+    }
+
+    // Trả về bản sao danh sách đã sắp xếp theo SKU để khóa hàng theo thứ tự cố định (chống deadlock)
+    private List<OrderDetail> sortedBySku(List<OrderDetail> details) {
+        List<OrderDetail> copy = new ArrayList<>(details);
+        copy.sort(java.util.Comparator.comparing(d -> d.getSku() == null ? "" : d.getSku()));
+        return copy;
     }
 
     /**
@@ -254,20 +284,22 @@ public class OrderService {
             throw new RuntimeException("Không xác định được chi nhánh xuất hàng!");
         }
 
-        for (OrderDetail detail : order.getDetails()) {
+        // Khóa các dòng theo thứ tự SKU cố định để tránh deadlock giữa các giao dịch đồng thời
+        for (OrderDetail detail : sortedBySku(order.getDetails())) {
             if (detail.getIsCustom() != null && detail.getIsCustom()) continue;
 
-            ProductVariant variant = variantRepository.findBySku(detail.getSku()).orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể có mã SKU: " + detail.getSku()));
+            ProductVariant variant = variantRepository.findBySkuForUpdate(detail.getSku()).orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể có mã SKU: " + detail.getSku()));
 
-            // Ép văng lỗi nếu không có hàng tại chi nhánh này
-            Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variant.getId(), branchId).orElseThrow(() -> new RuntimeException("Sản phẩm [" + detail.getProductName() + "] chưa từng được nhập vào chi nhánh này!"));
+            // Ép văng lỗi nếu không có hàng tại chi nhánh này. Dùng khóa ghi để chống bán âm khi nhiều đơn cùng lúc.
+            Inventory inv = inventoryRepository.findByVariantIdAndBranchIdForUpdate(variant.getId(), branchId).orElseThrow(() -> new RuntimeException("Sản phẩm [" + detail.getProductName() + "] chưa từng được nhập vào chi nhánh này!"));
 
             if (inv.getAvailableStock() > inv.getStock()) {
                 inv.setAvailableStock(inv.getStock());
             }
 
-            // Kiểm tra xem có đủ hàng để bán không
-            if (inv.getAvailableStock() < detail.getQuantity() && !isCompleted) {
+            // Kiểm tra xem có đủ hàng để bán không (luôn kiểm tra, kể cả khi hoàn thành đơn,
+            // để không cho phép xuất quá tồn kho thực tế).
+            if (inv.getAvailableStock() < detail.getQuantity()) {
                 throw new RuntimeException("Sản phẩm [" + detail.getProductName() + "] chỉ còn " + inv.getAvailableStock() + " chiếc có thể bán tại kho này!");
             }
 
@@ -304,12 +336,12 @@ public class OrderService {
 
         if (branchId == null) return;
 
-        for (OrderDetail detail : order.getDetails()) {
+        for (OrderDetail detail : sortedBySku(order.getDetails())) {
             if (detail.getIsCustom() != null && detail.getIsCustom()) continue;
 
-            ProductVariant variant = variantRepository.findBySku(detail.getSku()).orElse(null);
+            ProductVariant variant = variantRepository.findBySkuForUpdate(detail.getSku()).orElse(null);
             if (variant != null) {
-                Inventory inv = inventoryRepository.findByVariantIdAndBranchId(variant.getId(), branchId).orElse(Inventory.builder().variantId(variant.getId()).branchId(branchId).stock(0).availableStock(0).build());
+                Inventory inv = inventoryRepository.findByVariantIdAndBranchIdForUpdate(variant.getId(), branchId).orElse(Inventory.builder().variantId(variant.getId()).branchId(branchId).stock(0).availableStock(0).build());
 
                 if (inv.getAvailableStock() > inv.getStock()) {
                     inv.setAvailableStock(inv.getStock());

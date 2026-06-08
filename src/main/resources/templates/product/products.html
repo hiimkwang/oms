@@ -197,7 +197,7 @@
                     <th class="text-end pe-4">Ngày tạo</th>
                 </tr>
                 </thead>
-                <tbody>
+                <tbody id="productTableBody">
 
                 <th:block th:each="p, iterStat : ${products}">
                     <tr class="cursor-pointer main-row" data-bs-toggle="collapse"
@@ -254,6 +254,7 @@
                                         </th>
                                         <th class="pb-2 fw-semibold">SKU</th>
                                         <th class="pb-2 fw-semibold text-center">Tồn kho</th>
+                                        <th class="pb-2 fw-semibold text-end">Giá vốn</th>
                                         <th class="pb-2 fw-semibold text-end pe-4">Giá bán</th>
                                     </tr>
                                     </thead>
@@ -275,6 +276,8 @@
                                         <td class="text-center fw-bold"
                                             th:classappend="${v.actualStock > 0 ? 'text-success' : 'text-danger'}"
                                             th:text="${v.actualStock}"></td>
+                                        <td class="text-end text-secondary"
+                                            th:text="${v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') + ' đ' : '---'}"></td>
                                         <td class="text-dark fw-bold text-end pe-4"
                                             th:text="${v.price != null ? #numbers.formatDecimal(v.price, 0, 'COMMA', 0, 'POINT') + ' đ' : '---'}"></td>
                                     </tr>
@@ -285,7 +288,7 @@
                     </tr>
                 </th:block>
 
-                <tr th:if="${#lists.isEmpty(products)}">
+                <tr th:if="${#lists.isEmpty(products)}" data-empty>
                     <td colspan="6" class="text-center py-5 text-muted">
                         <i class="bi bi-box-seam fs-2 d-block mb-2"></i>Chưa có sản phẩm nào phù hợp.
                     </td>
@@ -309,12 +312,7 @@
                     <span class="small text-muted">kết quả</span>
                 </div>
                 <nav>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>
-                        </li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a></li>
-                    </ul>
+                    <ul class="pagination pagination-sm mb-0" id="productPagination"></ul>
                 </nav>
             </div>
         </div>
@@ -322,6 +320,10 @@
     </div>
 
     <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            OMSPaginate({tbodyId: 'productTableBody', pageSize: 20, paginationId: 'productPagination', infoId: 'recordInfo', noun: 'sản phẩm'});
+        });
+
         // Xử lý Checkbox & Bulk Actions
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('.item-check');

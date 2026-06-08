@@ -7,6 +7,7 @@ import com.oms.module.warranty.entity.WarrantyTicket;
 import com.oms.module.warranty.service.WarrantyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ public class WarrantyApiController {
         return ResponseEntity.ok(saved);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/bulk")
     public ResponseEntity<?> deleteBulk(@RequestBody List<Long> ids) {
         warrantyService.deleteBulk(ids);

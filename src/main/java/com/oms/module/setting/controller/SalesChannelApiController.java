@@ -16,6 +16,10 @@ public class SalesChannelApiController {
     // API Tạo mới kênh
     @PostMapping
     public ResponseEntity<SalesChannel> createChannel(@RequestBody SalesChannel request) {
+        if (request.getCode() == null || request.getCode().isBlank()) {
+            throw new RuntimeException("Mã kênh bán hàng không được để trống");
+        }
+        request.setId(null); // chặn mass-assignment ghi đè bản ghi khác qua id
         request.setActive(true);
         request.setCode(request.getCode().toUpperCase());
         SalesChannel saved = channelRepository.save(request);
@@ -25,6 +29,9 @@ public class SalesChannelApiController {
     // API Cập nhật kênh
     @PutMapping("/{id}")
     public ResponseEntity<SalesChannel> updateChannel(@PathVariable Long id, @RequestBody SalesChannel request) {
+        if (request.getCode() == null || request.getCode().isBlank()) {
+            throw new RuntimeException("Mã kênh bán hàng không được để trống");
+        }
         SalesChannel channel = channelRepository.findById(id).orElseThrow(() -> new RuntimeException("Không tìm thấy kênh bán hàng"));
 
         channel.setName(request.getName());

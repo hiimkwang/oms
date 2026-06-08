@@ -40,7 +40,7 @@ public class NotificationService {
 
     @Transactional
     public void markAllAsRead() {
-        notificationRepo.findAll().forEach(n -> n.setRead(true));
+        notificationRepo.markAllAsRead();
     }
     public List<Notification> getAll() {
         return notificationRepo.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));

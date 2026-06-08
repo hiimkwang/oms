@@ -322,8 +322,8 @@
                 if (res.ok) {
                     Toast.fire({icon: 'success', title: 'Đã xác nhận hoàn tiền!'}).then(() => window.location.reload());
                 } else {
-                    const err = await res.text();
-                    Toast.fire({icon: 'error', title: err || 'Lỗi xử lý hoàn tiền'});
+                    const err = await OMSGetError(res, 'Lỗi xử lý hoàn tiền');
+                    Toast.fire({icon: 'error', title: err});
                 }
             } catch (e) {
                 Toast.fire({icon: 'error', title: 'Lỗi kết nối'});
@@ -337,8 +337,8 @@
                 if (res.ok) {
                     Toast.fire({icon: 'success', title: 'Đã nhập hàng vào kho!'}).then(() => window.location.reload());
                 } else {
-                    const err = await res.text();
-                    Toast.fire({icon: 'error', title: err || 'Lỗi xử lý nhập kho'});
+                    const err = await OMSGetError(res, 'Lỗi xử lý nhập kho');
+                    Toast.fire({icon: 'error', title: err});
                 }
             } catch (e) {
                 Toast.fire({icon: 'error', title: 'Lỗi kết nối'});

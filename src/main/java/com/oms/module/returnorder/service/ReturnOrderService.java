@@ -56,8 +56,23 @@ public class ReturnOrderService {
     public ReturnOrder createReturnOrder(ReturnOrderRequest request) {
         Order originalOrder = orderRepo.findByOrderCode(request.getOriginalOrderCode()).orElseThrow(() -> new RuntimeException("Không tìm thấy đơn gốc!"));
 
+        // GUARD 1: Chỉ cho phép trả hàng với đơn đã HOÀN THÀNH (đã giao/đã bán).
+        if (!com.oms.constant.CommonConstants.OrderStatusConstant.COMPLETED.equals(originalOrder.getStatus())) {
+            throw new RuntimeException("Chỉ có thể tạo phiếu trả hàng cho đơn hàng đã hoàn thành!");
+        }
+
+        // GUARD 2: Mỗi đơn chỉ có 1 phiếu trả còn hiệu lực (tránh trùng phiếu, hoàn tiền/nhập kho nhiều lần).
+        if (returnRepo.existsByOriginalOrder_OrderCodeAndStatusNot(originalOrder.getOrderCode(), REJECTED)) {
+            throw new RuntimeException("Đơn hàng này đã có phiếu trả hàng đang xử lý!");
+        }
+
+        // GUARD 3: Phải có chi tiết hàng trả hợp lệ.
+        if (request.getDetails() == null || request.getDetails().isEmpty()) {
+            throw new RuntimeException("Phiếu trả hàng phải có ít nhất 1 sản phẩm!");
+        }
+
         String user = getCurrentUserName();
-        String returnCode = "TH" + System.currentTimeMillis();
+        String returnCode = "TH" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase();
 
         originalOrder.setStatus(RETURNED);
 
@@ -78,17 +93,37 @@ public class ReturnOrderService {
         ReturnOrder returnOrder = ReturnOrder.builder().returnCode(returnCode).originalOrder(originalOrder).reason(request.getReason()).note(request.getNote()).returnFee(request.getReturnFee() != null ? request.getReturnFee() : BigDecimal.ZERO) // Phí khách chịu
                 .shopReturnFee(request.getShopReturnFee() != null ? request.getShopReturnFee() : BigDecimal.ZERO).refundStatus(UNPAID).restockStatus(RESTOCK_PENDING).status(PENDING).createdBy(user).build();
 
+        // Tổng số lượng đã mua theo SKU trong đơn gốc -> chặn trả khống/trả quá số đã mua
+        java.util.Map<String, Integer> orderedQtyBySku = new java.util.HashMap<>();
+        if (originalOrder.getDetails() != null) {
+            for (com.oms.module.order.entity.OrderDetail od : originalOrder.getDetails()) {
+                if (od.getSku() == null) continue;
+                orderedQtyBySku.merge(od.getSku(), od.getQuantity() != null ? od.getQuantity() : 0, Integer::sum);
+            }
+        }
+
         BigDecimal totalRefund = BigDecimal.ZERO;
         List<ReturnOrderDetail> details = new ArrayList<>();
 
         for (ReturnOrderRequest.ReturnItemRequest item : request.getDetails()) {
-            BigDecimal lineTotal = item.getUnitPrice().multiply(new BigDecimal(item.getQuantity()));
+            BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
+            int qty = item.getQuantity() != null ? item.getQuantity() : 0;
+            if (qty <= 0) {
+                throw new RuntimeException("Số lượng trả của sản phẩm [" + item.getProductName() + "] phải lớn hơn 0!");
+            }
+            int orderedQty = orderedQtyBySku.getOrDefault(item.getSku(), 0);
+            if (qty > orderedQty) {
+                throw new RuntimeException("Số lượng trả của [" + item.getProductName() + "] (" + qty + ") vượt quá số đã mua trong đơn (" + orderedQty + ")!");
+            }
+            BigDecimal lineTotal = unitPrice.multiply(new BigDecimal(qty));
             totalRefund = totalRefund.add(lineTotal);
 
-            details.add(ReturnOrderDetail.builder().returnOrder(returnOrder).sku(item.getSku()).productName(item.getProductName()).quantity(item.getQuantity()).unitPrice(item.getUnitPrice()).refundAmount(lineTotal).build());
+            details.add(ReturnOrderDetail.builder().returnOrder(returnOrder).sku(item.getSku()).productName(item.getProductName()).quantity(qty).unitPrice(unitPrice).refundAmount(lineTotal).build());
         }
 
-        returnOrder.setTotalRefundAmount(totalRefund.subtract(returnOrder.getReturnFee()));
+        // Không cho số tiền hoàn về âm khi phí trả hàng lớn hơn giá trị hàng hoàn.
+        BigDecimal refundAfterFee = totalRefund.subtract(returnOrder.getReturnFee());
+        returnOrder.setTotalRefundAmount(refundAfterFee.compareTo(BigDecimal.ZERO) > 0 ? refundAfterFee : BigDecimal.ZERO);
         returnOrder.setDetails(details);
 
         ReturnActivity act = ReturnActivity.builder().returnOrder(returnOrder).action("Tạo phiếu trả hàng").description("Lý do: " + request.getReason()).createdBy(user).build();
@@ -106,7 +141,7 @@ public class ReturnOrderService {
 
             notificationService.create(title, message, Notification.NotificationType.WARNING, link);
         } catch (Exception e) {
-            System.err.println("Lỗi khi gửi thông báo trả hàng: " + e.getMessage());
+            log.error("Lỗi khi gửi thông báo trả hàng: {}", e.getMessage());
         }
 
         return savedReturnOrder;
@@ -124,22 +159,30 @@ public class ReturnOrderService {
 
     @Transactional
     public void processRefund(Long returnOrderId, String method) {
-        ReturnOrder returnOrder = returnRepo.findById(returnOrderId).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
+        ReturnOrder returnOrder = returnRepo.findByIdForUpdate(returnOrderId).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
 
         if (REFUNDED.equals(returnOrder.getRefundStatus())) {
             throw new RuntimeException("Phiếu này đã được hoàn tiền!");
         }
 
+        // Validate hình thức thanh toán hợp lệ trước khi tạo phiếu chi
+        CashTransaction.PaymentMethod paymentMethod;
+        try {
+            paymentMethod = CashTransaction.PaymentMethod.valueOf(method);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new RuntimeException("Hình thức thanh toán không hợp lệ!");
+        }
+
         // 1. TẠO PHIẾU CHI: HOÀN TIỀN CHO KHÁCH (Như cũ)
         if (returnOrder.getTotalRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
-            com.oms.module.cashbook.entity.CashTransaction refundPayment = com.oms.module.cashbook.entity.CashTransaction.builder().code("PC-HT-" + System.currentTimeMillis()).type(com.oms.module.cashbook.entity.CashTransaction.TransactionType.PAYMENT).paymentMethod(com.oms.module.cashbook.entity.CashTransaction.PaymentMethod.valueOf(method)).targetGroup(com.oms.module.cashbook.entity.CashTransaction.TargetGroup.CUSTOMER).targetId(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getId() : null).targetName(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getFullName() : "Khách trả hàng").amount(returnOrder.getTotalRefundAmount()).reason("Hoàn tiền cho khách").description("Hoàn tiền phiếu trả hàng " + returnOrder.getReturnCode() + " (Đơn gốc: " + returnOrder.getOriginalOrder().getOrderCode() + ")").transactionDate(java.time.LocalDateTime.now()).creatorName(getCurrentUserName()).build();
+            com.oms.module.cashbook.entity.CashTransaction refundPayment = com.oms.module.cashbook.entity.CashTransaction.builder().code("PC-HT-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase()).type(com.oms.module.cashbook.entity.CashTransaction.TransactionType.PAYMENT).paymentMethod(paymentMethod).targetGroup(com.oms.module.cashbook.entity.CashTransaction.TargetGroup.CUSTOMER).targetId(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getId() : null).targetName(returnOrder.getOriginalOrder().getCustomer() != null ? returnOrder.getOriginalOrder().getCustomer().getFullName() : "Khách trả hàng").amount(returnOrder.getTotalRefundAmount()).reason("Hoàn tiền cho khách").description("Hoàn tiền phiếu trả hàng " + returnOrder.getReturnCode() + " (Đơn gốc: " + returnOrder.getOriginalOrder().getOrderCode() + ")").transactionDate(java.time.LocalDateTime.now()).creatorName(getCurrentUserName()).build();
             cashRepo.save(refundPayment);
         }
 
         // 2. TẠO PHIẾU CHI (MỚI): CHI PHÍ PHÁT SINH SHOP TỰ CHỊU
         if (returnOrder.getShopReturnFee() != null && returnOrder.getShopReturnFee().compareTo(BigDecimal.ZERO) > 0) {
-            com.oms.module.cashbook.entity.CashTransaction shopFeePayment = com.oms.module.cashbook.entity.CashTransaction.builder().code("PC-PH-" + (System.currentTimeMillis() + 1)) // Cộng 1ms để tránh trùng mã code
-                    .type(com.oms.module.cashbook.entity.CashTransaction.TransactionType.PAYMENT).paymentMethod(com.oms.module.cashbook.entity.CashTransaction.PaymentMethod.valueOf(method)).targetGroup(com.oms.module.cashbook.entity.CashTransaction.TargetGroup.OTHER) // Ghi nhận là chi phí Khác/Nội bộ
+            com.oms.module.cashbook.entity.CashTransaction shopFeePayment = com.oms.module.cashbook.entity.CashTransaction.builder().code("PC-PH-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase())
+                    .type(com.oms.module.cashbook.entity.CashTransaction.TransactionType.PAYMENT).paymentMethod(paymentMethod).targetGroup(com.oms.module.cashbook.entity.CashTransaction.TargetGroup.OTHER) // Ghi nhận là chi phí Khác/Nội bộ
                     .targetName("Chi phí vận hành (Trả hàng)").amount(returnOrder.getShopReturnFee()).reason("Phí phát sinh hàng hoàn").description("Chi phí Shop tự chịu cho phiếu trả hàng " + returnOrder.getReturnCode() + " (Đơn gốc: " + returnOrder.getOriginalOrder().getOrderCode() + ")").transactionDate(java.time.LocalDateTime.now()).creatorName(getCurrentUserName()).build();
             cashRepo.save(shopFeePayment);
         }
@@ -159,21 +202,27 @@ public class ReturnOrderService {
 
     @Transactional
     public void processRestock(Long returnOrderId, Long branchId) {
-        ReturnOrder returnOrder = returnRepo.findById(returnOrderId).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
+        ReturnOrder returnOrder = returnRepo.findByIdForUpdate(returnOrderId).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
 
         if (RESTOCK_RESTOCKED.equals(returnOrder.getRestockStatus())) {
             throw new RuntimeException("Phiếu này đã được nhập kho!");
         }
+        if (branchId == null) {
+            throw new RuntimeException("Vui lòng chọn chi nhánh nhập hàng trả về!");
+        }
 
-        for (com.oms.module.returnorder.entity.ReturnOrderDetail detail : returnOrder.getDetails()) {
-            com.oms.module.product.entity.ProductVariant variant = variantRepo.findBySku(detail.getSku()).orElse(null);
+        // Khóa hàng theo thứ tự SKU cố định để tránh deadlock
+        List<com.oms.module.returnorder.entity.ReturnOrderDetail> lockOrder = new ArrayList<>(returnOrder.getDetails());
+        lockOrder.sort(java.util.Comparator.comparing(d -> d.getSku() == null ? "" : d.getSku()));
+        for (com.oms.module.returnorder.entity.ReturnOrderDetail detail : lockOrder) {
+            com.oms.module.product.entity.ProductVariant variant = variantRepo.findBySkuForUpdate(detail.getSku()).orElse(null);
             if (variant != null) {
                 variant.setStockQuantity((variant.getStockQuantity() != null ? variant.getStockQuantity() : 0) + detail.getQuantity());
                 variantRepo.save(variant);
 
-                com.oms.module.inventory.entity.Inventory inv = inventoryRepo.findByVariantIdAndBranchId(variant.getId(), branchId).orElse(com.oms.module.inventory.entity.Inventory.builder().variantId(variant.getId()).branchId(branchId).stock(0).availableStock(0).build());
-                inv.setStock(inv.getStock() + detail.getQuantity());
-                inv.setAvailableStock(inv.getAvailableStock() + detail.getQuantity());
+                com.oms.module.inventory.entity.Inventory inv = inventoryRepo.findByVariantIdAndBranchIdForUpdate(variant.getId(), branchId).orElse(com.oms.module.inventory.entity.Inventory.builder().variantId(variant.getId()).branchId(branchId).stock(0).availableStock(0).inboundStock(0).build());
+                inv.setStock((inv.getStock() != null ? inv.getStock() : 0) + detail.getQuantity());
+                inv.setAvailableStock((inv.getAvailableStock() != null ? inv.getAvailableStock() : 0) + detail.getQuantity());
                 inventoryRepo.save(inv);
             }
         }
@@ -193,7 +242,7 @@ public class ReturnOrderService {
             try {
                 notificationService.create("Hoàn tất trả hàng: " + returnOrder.getReturnCode(), "Đã xử lý xong hoàn tiền và nhập lại kho cho đơn gốc " + returnOrder.getOriginalOrder().getOrderCode(), Notification.NotificationType.RETURN, "/ui/returns/" + returnOrder.getReturnCode());
             } catch (Exception e) {
-                System.err.println("Lỗi khi gửi thông báo hoàn tất trả hàng: " + e.getMessage());
+                log.error("Lỗi khi gửi thông báo hoàn tất trả hàng: {}", e.getMessage());
             }
 
         }

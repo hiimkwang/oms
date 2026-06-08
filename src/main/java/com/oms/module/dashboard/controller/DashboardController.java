@@ -40,8 +40,9 @@ public class DashboardController {
 
         LocalDateTime now = LocalDateTime.now();
 
-        if (preset == null && start == null && end == null) {
-            preset = "thisWeek";
+        // Tránh NPE ở switch(preset): nếu thiếu preset -> suy ra "custom" khi có start/end, ngược lại "thisWeek"
+        if (preset == null || preset.isBlank()) {
+            preset = (start != null || end != null) ? "custom" : "thisWeek";
         }
 
         // 1. LOGIC XỬ LÝ THỜI GIAN
@@ -146,7 +147,8 @@ public class DashboardController {
         List<BigDecimal> chartExpenses = new ArrayList<>();
         List<BigDecimal> chartProfit = new ArrayList<>();
 
-        long daysBetween = java.time.Duration.between(start, end).toDays();
+        // Đếm số ngày theo LỊCH (không theo số giờ) để không bị thiếu/thừa bucket ngày cuối
+        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(start.toLocalDate(), end.toLocalDate());
 
         // NẾU LỌC DƯỚI 35 NGÀY -> VẼ THEO TỪNG NGÀY
         if (daysBetween <= 35) {

@@ -174,7 +174,7 @@
                     <th class="text-center pe-4">Trạng thái</th>
                 </tr>
                 </thead>
-                <tbody>
+                <tbody id="returnTableBody">
 
                 <tr th:each="r : ${returns}" class="cursor-pointer main-row"
                     th:data-url="@{/ui/returns/{code}(code=${r.returnCode})}"
@@ -208,7 +208,7 @@
                     </td>
                 </tr>
 
-                <tr th:if="${#lists.isEmpty(returns)}">
+                <tr th:if="${#lists.isEmpty(returns)}" data-empty>
                     <td colspan="7" class="text-center py-5 text-muted">
                         <i class="bi bi-arrow-counterclockwise fs-2 d-block mb-2"></i>Chưa có yêu cầu trả hàng nào.
                     </td>
@@ -218,27 +218,10 @@
         </div>
 
         <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
-            <div class="text-muted small" id="recordInfo">
-                <span th:if="${returns != null and not #lists.isEmpty(returns)}"
-                      th:text="'Hiển thị 1 - ' + ${#lists.size(returns)} + ' trên tổng số ' + ${#lists.size(returns)} + ' phiếu trả hàng'"></span>
-                <span th:unless="${returns != null and not #lists.isEmpty(returns)}">Hiển thị 0 phiếu trả hàng</span>
-            </div>
+            <div class="text-muted small" id="recordInfo"></div>
             <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="small text-muted">Hiển thị</span>
-                    <select class="form-select form-select-sm w-auto">
-                        <option>20</option>
-                    </select>
-                    <span class="small text-muted">kết quả</span>
-                </div>
                 <nav>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-left"></i></a>
-                        </li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item disabled"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a>
-                        </li>
-                    </ul>
+                    <ul class="pagination pagination-sm mb-0" id="returnPagination"></ul>
                 </nav>
             </div>
         </div>
@@ -246,6 +229,10 @@
     </div>
 
     <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            OMSPaginate({tbodyId: 'returnTableBody', pageSize: 20, paginationId: 'returnPagination', infoId: 'recordInfo', noun: 'phiếu trả hàng'});
+        });
+
         function toggleAll(source) {
             const checkboxes = document.querySelectorAll('.item-check');
             checkboxes.forEach(cb => cb.checked = source.checked);
@@ -309,8 +296,8 @@
                     await Toast.fire({icon: 'success', title: `Đã xóa thành công ${ids.length} phiếu!`});
                     window.location.reload();
                 } else {
-                    const errText = await res.text();
-                    Toast.fire({icon: 'error', title: 'Lỗi: ' + (errText || 'Không thể xóa phiếu!')});
+                    const errText = await OMSGetError(res, 'Không thể xóa phiếu!');
+                    Toast.fire({icon: 'error', title: 'Lỗi: ' + errText});
                 }
             } catch (err) {
                 Toast.fire({icon: 'error', title: 'Lỗi kết nối đến máy chủ!'});

@@ -246,7 +246,7 @@
                         <th class="text-center">Trạng thái</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="warrantyTableBody">
                     <tr th:each="t : ${tickets}">
                         <td class="ps-4"><input type="checkbox" class="form-check-input tick-checkbox"
                                                 th:value="${t.id}" onchange="checkSelection()"></td>
@@ -280,7 +280,7 @@
                                   class="status-badge badge-canceled">Đã hủy</span>
                         </td>
                     </tr>
-                    <tr th:if="${#lists.isEmpty(tickets)}">
+                    <tr th:if="${#lists.isEmpty(tickets)}" data-empty>
                         <td colspan="8" class="text-center py-5 text-muted">
                             <i class="bi bi-tools fs-2 d-block mb-3 opacity-25"></i>
                             Không có phiếu bảo hành/sửa chữa nào phù hợp.
@@ -291,12 +291,19 @@
             </div>
 
             <div class="p-3 bg-white border-top d-flex justify-content-between align-items-center">
-                <div class="small text-muted" th:text="'Hiển thị ' + ${tickets.size()} + ' bản ghi'"></div>
+                <div class="small text-muted" id="recordInfo"></div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="warrantyPagination"></ul>
+                </nav>
             </div>
         </div>
     </div>
 
     <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            OMSPaginate({tbodyId: 'warrantyTableBody', pageSize: 20, paginationId: 'warrantyPagination', infoId: 'recordInfo', noun: 'bản ghi'});
+        });
+
         function handleEnter(e) {
             if (e.key === 'Enter') applyFilters();
         }
@@ -376,7 +383,8 @@
                         await Swal.fire('Đã xóa!', `Đã xóa thành công ${ids.length} phiếu.`, 'success');
                         window.location.reload();
                     } else {
-                        Toast.fire({icon: 'error', title: 'Có lỗi xảy ra khi xóa!'});
+                        const msg = await OMSGetError(res, 'Có lỗi xảy ra khi xóa!');
+                        Toast.fire({icon: 'error', title: msg});
                     }
                 } catch (e) {
                     Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ!'});

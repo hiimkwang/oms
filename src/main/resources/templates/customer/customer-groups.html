@@ -172,13 +172,7 @@
                         <span class="small text-muted">kết quả</span>
                     </div>
                     <nav>
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item disabled"><a class="page-link" href="#"><i
-                                    class="bi bi-chevron-left"></i></a></li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#"><i class="bi bi-chevron-right"></i></a>
-                            </li>
-                        </ul>
+                        <ul class="pagination pagination-sm mb-0" id="groupPagination"></ul>
                     </nav>
                 </div>
             </div>
@@ -187,6 +181,11 @@
 
     <script th:inline="none">
         let allGroups = [];
+
+        // --- PHÂN TRANG PHÍA CLIENT ---
+        const GROUP_PAGE_SIZE = 20;
+        let groupCurrentPage = 1;
+        let groupCache = [];
 
         document.addEventListener('DOMContentLoaded', async function () {
             await loadGroups();
@@ -242,20 +241,28 @@
                 return matchKeyword && matchType;
             });
 
-            renderTable(filtered);
+            groupCache = filtered;
+            groupCurrentPage = 1;
+            renderTable();
         }
 
-        function renderTable(dataList) {
+        function renderTable() {
             const tbody = document.getElementById('groupTableBody');
             const info = document.getElementById('recordInfo');
 
-            if (dataList.length === 0) {
-                // Đã tăng colspan lên 6 vì thêm 1 cột
+            const total = groupCache.length;
+            if (total === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted"><i class="bi bi-folder-x fs-2 d-block mb-2"></i>Không tìm thấy kết quả phù hợp.</td></tr>';
                 info.innerText = 'Hiển thị 0 nhóm';
+                renderGroupPagination(0);
                 clearSelection();
                 return;
             }
+
+            const totalPages = Math.ceil(total / GROUP_PAGE_SIZE);
+            if (groupCurrentPage > totalPages) groupCurrentPage = totalPages;
+            const startIdx = (groupCurrentPage - 1) * GROUP_PAGE_SIZE;
+            const dataList = groupCache.slice(startIdx, startIdx + GROUP_PAGE_SIZE);
 
             let html = '';
             dataList.forEach(g => {
@@ -289,8 +296,35 @@
                 `;
             });
             tbody.innerHTML = html;
-            info.innerText = `Hiển thị 1 - ${dataList.length} trên tổng số ${dataList.length} nhóm`;
+            const fromIdx = startIdx + 1;
+            const toIdx = startIdx + dataList.length;
+            info.innerText = `Hiển thị ${fromIdx} - ${toIdx} trên tổng số ${total} nhóm`;
+            renderGroupPagination(total);
             clearSelection();
+        }
+
+        function renderGroupPagination(total) {
+            const ul = document.getElementById('groupPagination');
+            if (!ul) return;
+            const totalPages = Math.ceil(total / GROUP_PAGE_SIZE);
+            if (totalPages <= 1) { ul.innerHTML = ''; return; }
+            let html = '';
+            html += `<li class="page-item ${groupCurrentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="goToGroupPage(${groupCurrentPage - 1}); return false;"><i class="bi bi-chevron-left"></i></a></li>`;
+            let s = Math.max(1, groupCurrentPage - 2);
+            let e = Math.min(totalPages, s + 4);
+            s = Math.max(1, e - 4);
+            for (let p = s; p <= e; p++) {
+                html += `<li class="page-item ${p === groupCurrentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="goToGroupPage(${p}); return false;">${p}</a></li>`;
+            }
+            html += `<li class="page-item ${groupCurrentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="goToGroupPage(${groupCurrentPage + 1}); return false;"><i class="bi bi-chevron-right"></i></a></li>`;
+            ul.innerHTML = html;
+        }
+
+        function goToGroupPage(p) {
+            const totalPages = Math.ceil(groupCache.length / GROUP_PAGE_SIZE);
+            if (p < 1 || p > totalPages) return;
+            groupCurrentPage = p;
+            renderTable();
         }
 
         // Ẩn/hiện thanh Thao tác hàng loạt

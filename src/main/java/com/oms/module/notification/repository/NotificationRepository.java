@@ -2,6 +2,8 @@ package com.oms.module.notification.repository;
 
 import com.oms.module.notification.entity.Notification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 
@@ -12,4 +14,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     // Đếm số lượng chưa đọc để hiện Badge (con số đỏ)
     long countByReadFalse();
+
+    // Đánh dấu đã đọc hàng loạt bằng 1 câu UPDATE (tránh load toàn bảng vào bộ nhớ)
+    @Modifying
+    @Query("UPDATE Notification n SET n.read = true WHERE n.read = false")
+    int markAllAsRead();
 }

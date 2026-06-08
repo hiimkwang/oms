@@ -234,7 +234,7 @@
                             th:text="${s.email != null and s.email != '' ? s.email : '---'}"></td>
                     </tr>
 
-                    <tr th:if="${#lists.isEmpty(suppliers)}">
+                    <tr th:if="${#lists.isEmpty(suppliers)}" data-empty>
                         <td colspan="6" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-2 d-block mb-2"></i>Chưa có nhà cung cấp nào.
                         </td>
@@ -244,27 +244,10 @@
             </div>
 
             <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
-                <div class="text-muted small">
-                    <span th:if="${not #lists.isEmpty(suppliers)}"
-                          th:text="'Hiển thị 1 - ' + ${#lists.size(suppliers)} + ' trên tổng số ' + ${#lists.size(suppliers)} + ' kết quả'"></span>
-                    <span th:unless="${not #lists.isEmpty(suppliers)}">Hiển thị 0 kết quả</span>
-                </div>
+                <div class="text-muted small" id="recordInfo"></div>
                 <div class="d-flex align-items-center gap-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="small text-muted">Hiển thị</span>
-                        <select class="form-select form-select-sm w-auto shadow-none">
-                            <option>20</option>
-                        </select>
-                        <span class="small text-muted">kết quả</span>
-                    </div>
-                    <nav th:if="${not #lists.isEmpty(suppliers)}">
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item disabled"><a class="page-link" href="#"><i
-                                    class="bi bi-chevron-left"></i></a></li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item disabled"><a class="page-link" href="#"><i
-                                    class="bi bi-chevron-right"></i></a></li>
-                        </ul>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="supplierPagination"></ul>
                     </nav>
                 </div>
             </div>
@@ -272,6 +255,10 @@
     </div>
 
     <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            OMSPaginate({tbodyId: 'supplierTableBody', pageSize: 20, paginationId: 'supplierPagination', infoId: 'recordInfo', noun: 'nhà cung cấp'});
+        });
+
         // 0. Hàm chống giật (Debounce) cho ô tìm kiếm
         let typingTimer;
 
@@ -366,10 +353,10 @@
                                 // Bỏ await đi để trình duyệt reload luôn cho mượt
                                 window.location.reload();
                             } else {
-                                res.text().then(msg => {
+                                OMSGetError(res, 'Vui lòng thử lại sau.').then(msg => {
                                     Toast.fire({
                                         icon: 'error',
-                                        title: 'Lỗi khi xóa: ' + (msg || 'Vui lòng thử lại sau.')
+                                        title: 'Lỗi khi xóa: ' + msg
                                     });
                                 });
                             }

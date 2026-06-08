@@ -27,6 +27,11 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     @Query("DELETE FROM Customer c WHERE c.code IN :codes")
     void deleteAllByCodeIn(@Param("codes") List<String> codes);
 
+    // Khi đổi tên nhóm: cập nhật lại tên nhóm cho tất cả khách hàng đang thuộc nhóm cũ
+    @Modifying
+    @Query("UPDATE Customer c SET c.customerGroup = :newName WHERE c.customerGroup = :oldName")
+    int renameCustomerGroup(@Param("oldName") String oldName, @Param("newName") String newName);
+
     long countByCustomerGroup(String customerGroup);
 
     List<Customer> findByFullNameContainingIgnoreCaseOrPhoneContaining(String fullName, String phone);

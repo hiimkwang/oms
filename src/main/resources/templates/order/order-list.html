@@ -234,6 +234,7 @@
                         <th>Mã đơn hàng</th>
                         <th>Ngày tạo</th>
                         <th>Khách hàng</th>
+                        <th>Sản phẩm</th>
                         <th>Kênh bán</th>
                         <th class="text-end">Khách phải trả</th>
                         <th class="text-end">Lãi/Lỗ</th>
@@ -243,7 +244,7 @@
                     </thead>
                     <tbody id="orderTableBody">
                     <tr>
-                        <td colspan="9" class="text-center py-5">
+                        <td colspan="10" class="text-center py-5">
                             <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
                             Đang tải dữ liệu...
                         </td>
@@ -256,13 +257,7 @@
                 <div class="text-muted small" id="recordInfo">Đang tải...</div>
                 <div class="d-flex align-items-center gap-3">
                     <nav>
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item disabled"><a class="page-link" href="#"><i
-                                    class="bi bi-chevron-left"></i></a></li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item disabled"><a class="page-link" href="#"><i
-                                    class="bi bi-chevron-right"></i></a></li>
-                        </ul>
+                        <ul class="pagination pagination-sm mb-0" id="orderPagination"></ul>
                     </nav>
                 </div>
             </div>
@@ -279,6 +274,11 @@
     <script th:inline="none">
         let allOrders = [];
         let currentTabStatus = 'ALL';
+
+        // --- PHÂN TRANG PHÍA CLIENT ---
+        const ORDER_PAGE_SIZE = 15;
+        let orderCurrentPage = 1;
+        let orderFilteredCache = [];
 
         const paymentLabelMap = {
             'UNPAID': 'Chưa thanh toán',
@@ -326,7 +326,7 @@
                 applyFilters();
             } catch (e) {
                 console.error(e);
-                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="9" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
+                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="10" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
             }
         }
 
@@ -414,7 +414,10 @@
                 return matchTab && matchChannel && matchDate && matchKeyword;
             });
 
-            renderTable(filteredOrders);
+            // Lưu kết quả đã lọc và quay về trang 1 mỗi khi đổi bộ lọc
+            orderFilteredCache = filteredOrders;
+            orderCurrentPage = 1;
+            renderTable();
         }
 
         function clearAllFilters() {
@@ -429,16 +432,25 @@
             applyFilters();
         }
 
-        function renderTable(dataList) {
+        function renderTable() {
             const tbody = document.getElementById('orderTableBody');
             const info = document.getElementById('recordInfo');
 
-            if (dataList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy đơn hàng nào phù hợp.</td></tr>';
+            const total = orderFilteredCache.length;
+
+            if (total === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy đơn hàng nào phù hợp.</td></tr>';
                 info.innerText = 'Hiển thị 0 kết quả';
+                renderOrderPagination(0);
                 clearSelection();
                 return;
             }
+
+            // Tính toán lát cắt theo trang hiện tại
+            const totalPages = Math.ceil(total / ORDER_PAGE_SIZE);
+            if (orderCurrentPage > totalPages) orderCurrentPage = totalPages;
+            const startIdx = (orderCurrentPage - 1) * ORDER_PAGE_SIZE;
+            const dataList = orderFilteredCache.slice(startIdx, startIdx + ORDER_PAGE_SIZE);
 
             let html = '';
             dataList.forEach(o => {
@@ -468,6 +480,22 @@
                 const cusCode = o.customer ? (o.customer.code || o.customer.id || '') : '';
                 const cusLink = cusCode ? `/ui/customers/${cusCode}` : 'javascript:void(0)';
                 const channelText = o.salesChannelCode || '---';
+
+                // --- DANH SÁCH SẢN PHẨM (đã gồm đủ tên biến thể trong productName) ---
+                const escAttr = (s) => (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                let productsHtml;
+                if (!details.length) {
+                    productsHtml = '<span class="text-muted">---</span>';
+                } else {
+                    productsHtml = details.map(d => {
+                        const pname = d.productName || d.sku || 'Sản phẩm';
+                        const qty = new Intl.NumberFormat('en-US').format(d.quantity || 0);
+                        return `<div class="text-truncate" style="max-width: 280px;" title="${escAttr(pname)}">
+                                    <span class="text-dark">${escAttr(pname)}</span>
+                                    <span class="text-muted ms-1">× ${qty}</span>
+                                </div>`;
+                    }).join('');
+                }
 
                 const pStatus = o.paymentStatus || 'UNPAID';
                 const pLabel = paymentLabelMap[pStatus] || pStatus;
@@ -505,6 +533,7 @@
                         <td>
                             <a href="${cusLink}" class="text-decoration-none fw-medium text-dark hover-primary">${cusName}</a>
                         </td>
+                        <td style="min-width: 200px; font-size: 12.5px;">${productsHtml}</td>
                         <td class="text-muted fw-medium">${channelText}</td>
                         <td class="text-end fw-bold text-dark">${totalAmount}</td>
                         <td class="text-end">${profitHtml}</td>
@@ -515,8 +544,47 @@
             });
 
             tbody.innerHTML = html;
-            info.innerText = `Hiển thị ${dataList.length} đơn hàng`;
+            const fromIdx = startIdx + 1;
+            const toIdx = startIdx + dataList.length;
+            info.innerText = `Hiển thị ${fromIdx}-${toIdx} trên tổng ${total} đơn hàng`;
+            renderOrderPagination(total);
             clearSelection();
+        }
+
+        // Vẽ thanh phân trang dựa trên tổng số bản ghi đã lọc
+        function renderOrderPagination(total) {
+            const ul = document.getElementById('orderPagination');
+            if (!ul) return;
+            const totalPages = Math.ceil(total / ORDER_PAGE_SIZE);
+            if (totalPages <= 1) {
+                ul.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            html += `<li class="page-item ${orderCurrentPage === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="goToOrderPage(${orderCurrentPage - 1}); return false;"><i class="bi bi-chevron-left"></i></a></li>`;
+
+            // Hiển thị tối đa 5 nút trang quanh trang hiện tại
+            let startPage = Math.max(1, orderCurrentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            startPage = Math.max(1, endPage - 4);
+
+            for (let p = startPage; p <= endPage; p++) {
+                html += `<li class="page-item ${p === orderCurrentPage ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="goToOrderPage(${p}); return false;">${p}</a></li>`;
+            }
+
+            html += `<li class="page-item ${orderCurrentPage === totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="goToOrderPage(${orderCurrentPage + 1}); return false;"><i class="bi bi-chevron-right"></i></a></li>`;
+            ul.innerHTML = html;
+        }
+
+        function goToOrderPage(p) {
+            const totalPages = Math.ceil(orderFilteredCache.length / ORDER_PAGE_SIZE);
+            if (p < 1 || p > totalPages) return;
+            orderCurrentPage = p;
+            renderTable();
         }
 
         function toggleBulkActionBar() {

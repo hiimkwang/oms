@@ -1,7 +1,9 @@
 package com.oms.module.inventory.repository;
 
 import com.oms.module.inventory.entity.Inventory;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +18,12 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     // 1. Tìm chính xác số tồn kho của 1 sản phẩm tại 1 chi nhánh cụ thể (Dùng khi Tạo đơn/Trừ kho)
     Optional<Inventory> findByVariantIdAndBranchId(Long variantId, Long branchId);
+
+    // 1b. Phiên bản KHÓA GHI (PESSIMISTIC_WRITE): dùng trong các giao dịch trừ/cộng kho
+    // để tuần tự hóa cập nhật tồn kho -> chống bán âm (oversell) và nhập đôi do race condition.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Inventory i WHERE i.variantId = :variantId AND i.branchId = :branchId")
+    Optional<Inventory> findByVariantIdAndBranchIdForUpdate(@Param("variantId") Long variantId, @Param("branchId") Long branchId);
 
     // 2. Xem 1 sản phẩm đang nằm rải rác ở những chi nhánh nào (Dùng cho Modal Kiểm tra tồn kho)
     List<Inventory> findByVariantId(Long variantId);

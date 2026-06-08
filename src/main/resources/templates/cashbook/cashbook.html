@@ -299,7 +299,7 @@
                         <th class="text-end pe-4">Số tiền</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="cashbookTableBody">
 
                     <tr th:each="t : ${transactions}">
                         <td class="ps-4"><input type="checkbox" class="form-check-input tx-checkbox" th:value="${t.id}"
@@ -332,7 +332,7 @@
                         </td>
                     </tr>
 
-                    <tr th:if="${#lists.isEmpty(transactions)}">
+                    <tr th:if="${#lists.isEmpty(transactions)}" data-empty>
                         <td colspan="7" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-2 d-block mb-3 opacity-25"></i>
                             Không tìm thấy giao dịch nào phù hợp.
@@ -343,16 +343,10 @@
             </div>
 
             <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
-                <div class="text-muted small" th:text="'Hiển thị ' + ${transactions.size()} + ' bản ghi'"></div>
+                <div class="text-muted small" id="recordInfo"></div>
                 <div class="d-flex align-items-center gap-3">
-                    <nav th:if="${transactions.size() > 0}">
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item disabled"><a class="page-link" href="#"><i
-                                    class="bi bi-chevron-left"></i></a></li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item disabled"><a class="page-link" href="#"><i
-                                    class="bi bi-chevron-right"></i></a></li>
-                        </ul>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="cashbookPagination"></ul>
                     </nav>
                 </div>
             </div>
@@ -360,6 +354,10 @@
     </div>
 
     <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            OMSPaginate({tbodyId: 'cashbookTableBody', pageSize: 20, paginationId: 'cashbookPagination', infoId: 'recordInfo', noun: 'bản ghi'});
+        });
+
         // --- XỬ LÝ MẶC ĐỊNH LỌC THÁNG NÀY KHI VỪA VÀO TRANG ---
         document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
@@ -517,10 +515,10 @@
                     });
                     window.location.reload();
                 } else {
-                    const errText = await res.text();
+                    const errText = await OMSGetError(res, 'Không thể xóa các giao dịch đã chọn!');
                     Toast.fire({
                         icon: 'error',
-                        title: 'Lỗi: ' + (errText || 'Không thể xóa các giao dịch đã chọn!')
+                        title: 'Lỗi: ' + errText
                     });
                 }
             } catch (e) {

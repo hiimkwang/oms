@@ -5,6 +5,7 @@ import com.oms.module.returnorder.entity.ReturnOrder;
 import com.oms.module.returnorder.service.ReturnOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class ReturnOrderApiController {
         return ResponseEntity.ok(returnService.createReturnOrder(request));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/refund")
     public ResponseEntity<?> processRefund(@PathVariable Long id, @RequestParam String method) {
         returnService.processRefund(id, method);
@@ -33,6 +35,7 @@ public class ReturnOrderApiController {
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/bulk")
     public ResponseEntity<?> deleteBulk(@RequestBody List<Long> ids) {
         try {

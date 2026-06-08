@@ -2,14 +2,17 @@ package com.oms.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity // Bật @PreAuthorize ở tầng method (kiểm soát truy cập chi tiết)
 public class SecurityConfig {
 
     @Bean
@@ -37,7 +40,9 @@ public class SecurityConfig {
                         .deleteCookies("JSESSIONID")
                         .permitAll()
                 )
-                .csrf(csrf -> csrf.disable());
+                // Bật lại CSRF: token được lưu vào cookie (đọc được bởi JS qua meta tag/cookie)
+                // để các lời gọi fetch và form POST kèm theo X-XSRF-TOKEN / _csrf.
+                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
         return http.build();
     }
 

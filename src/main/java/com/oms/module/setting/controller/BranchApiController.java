@@ -16,6 +16,7 @@ public class BranchApiController {
     // API Tạo mới chi nhánh
     @PostMapping
     public ResponseEntity<Branch> createBranch(@RequestBody Branch request) {
+        request.setId(null); // chặn mass-assignment ghi đè bản ghi khác qua id
         request.setActive(true); // Mặc định tạo mới là đang hoạt động
         Branch saved = branchRepository.save(request);
         return ResponseEntity.ok(saved);

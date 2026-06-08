@@ -28,6 +28,7 @@ import com.oms.module.warranty.service.WarrantyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -90,7 +91,12 @@ public class WebController {
 
     @PostMapping("/profile/change-password")
     public ResponseEntity<?> changePassword(@RequestParam String oldPassword, @RequestParam String newPassword, Principal principal) {
-        User user = customUserDetailsService.findByUsername(principal.getName()).orElse(null);
+        User user = customUserDetailsService.findByUsername(principal.getName())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        if (newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().body("Mật khẩu mới phải có ít nhất 6 ký tự!");
+        }
 
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             return ResponseEntity.badRequest().body("Mật khẩu cũ không chính xác!");
@@ -230,6 +236,7 @@ public class WebController {
         return "category/category-detail";
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/ui/categories/bulk-delete")
     public ResponseEntity<?> bulkDelete(@RequestBody List<Long> ids) {
         try {

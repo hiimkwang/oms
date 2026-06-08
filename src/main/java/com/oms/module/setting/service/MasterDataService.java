@@ -76,12 +76,17 @@ public class MasterDataService {
     public MasterData update(Long id, MasterData request) {
         MasterData existingData = getById(id);
 
+        if (request.getDataValue() == null || request.getDataValue().isBlank()) {
+            throw new RuntimeException("Giá trị không được để trống!");
+        }
+        String newValue = request.getDataValue().trim();
+
         // Nếu người dùng đổi tên, phải kiểm tra xem tên mới có bị trùng với cái khác không
-        if (!existingData.getDataValue().equalsIgnoreCase(request.getDataValue().trim()) && masterDataRepository.existsByDataTypeAndDataValueIgnoreCase(existingData.getDataType(), request.getDataValue().trim())) {
+        if (!existingData.getDataValue().equalsIgnoreCase(newValue) && masterDataRepository.existsByDataTypeAndDataValueIgnoreCase(existingData.getDataType(), newValue)) {
             throw new RuntimeException("Giá trị này đã tồn tại trong hệ thống!");
         }
 
-        existingData.setDataValue(request.getDataValue().trim());
+        existingData.setDataValue(newValue);
 
         if (request.getSortOrder() != null) {
             existingData.setSortOrder(request.getSortOrder());

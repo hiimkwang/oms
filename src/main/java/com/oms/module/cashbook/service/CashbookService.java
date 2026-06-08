@@ -35,7 +35,8 @@ public class CashbookService {
         String finalCode = request.getCode();
         if (finalCode == null || finalCode.isEmpty()) {
             String prefix = (request.getType() == CashTransaction.TransactionType.RECEIPT) ? "PT" : "PC";
-            finalCode = prefix + System.currentTimeMillis();
+            // Thêm hậu tố ngẫu nhiên để tránh trùng mã khi tạo nhiều giao dịch trong cùng mili-giây
+            finalCode = prefix + System.currentTimeMillis() + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase();
         }
 
         String targetName = "Khách vãng lai";
@@ -84,8 +85,7 @@ public class CashbookService {
             String message = String.format("Đã ghi nhận %s với %s. Số tiền: %s",
                     typeName.toLowerCase(), targetName, formattedAmount);
 
-            String link = isReceipt ? "/ui/cashbook/detail/" + savedTransaction.getId()
-                    : "/ui/cashbook/detail/" + savedTransaction.getId();
+            String link = "/ui/cashbook/detail/" + savedTransaction.getId();
 
             notificationService.create(
                     title,
@@ -94,7 +94,7 @@ public class CashbookService {
                     link
             );
         } catch (Exception e) {
-            log.error("Lỗi khi gửi thông báo: {}{}", e.getMessage(), e);
+            log.error("Lỗi khi gửi thông báo: {}", e.getMessage(), e);
         }
 
         return savedTransaction;
@@ -132,11 +132,13 @@ public class CashbookService {
     }
 
     private String getCurrentUserName() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return "Hệ thống";
+        Object principal = auth.getPrincipal();
         if (principal instanceof User) {
             return ((User) principal).getFullName();
         }
-        return SecurityContextHolder.getContext().getAuthentication().getName();
+        return auth.getName();
     }
 
     public CashTransaction getById(Long id) {
@@ -186,7 +188,14 @@ public class CashbookService {
         // 3. Tính Tồn quỹ cuối kỳ
         BigDecimal closingBalance = openingBalance.add(totalIn).subtract(totalOut);
 
+        // 4. Số dư Tiền mặt / Ngân hàng hiện tại (toàn bộ thời gian) theo chi nhánh đang lọc
+        BigDecimal cashIn = cashRepo.sumByMethodAndTypeAndBranch(CashTransaction.PaymentMethod.CASH, CashTransaction.TransactionType.RECEIPT, branchId);
+        BigDecimal cashOut = cashRepo.sumByMethodAndTypeAndBranch(CashTransaction.PaymentMethod.CASH, CashTransaction.TransactionType.PAYMENT, branchId);
+        BigDecimal bankIn = cashRepo.sumByMethodAndTypeAndBranch(CashTransaction.PaymentMethod.BANK, CashTransaction.TransactionType.RECEIPT, branchId);
+        BigDecimal bankOut = cashRepo.sumByMethodAndTypeAndBranch(CashTransaction.PaymentMethod.BANK, CashTransaction.TransactionType.PAYMENT, branchId);
+
         // Đóng gói gửi lên Controller
-        return new CashbookSummary(openingBalance, totalIn, totalOut, closingBalance, new BigDecimal(0), new BigDecimal(0));
+        return new CashbookSummary(openingBalance, totalIn, totalOut, closingBalance,
+                cashIn.subtract(cashOut), bankIn.subtract(bankOut));
     }
 }

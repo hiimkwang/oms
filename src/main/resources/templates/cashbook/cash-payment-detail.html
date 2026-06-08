@@ -281,9 +281,10 @@
                         window.location.href = "/ui/cashbook";
                     });
                 } else {
+                    const msg = await OMSGetError(res, 'Có lỗi xảy ra khi xóa phiếu!');
                     Toast.fire({
                         icon: 'error',
-                        title: 'Có lỗi xảy ra khi xóa phiếu!'
+                        title: msg
                     });
                 }
             } catch (err) {

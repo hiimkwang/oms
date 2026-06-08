@@ -225,7 +225,8 @@ public class ReportController {
         List<BigDecimal> aovData = new ArrayList<>();
         List<BigDecimal> profitData = new ArrayList<>(); // Mảng chứa lợi nhuận thực tế
 
-        long daysBetween = java.time.Duration.between(start, end).toDays();
+        // Đếm số ngày theo LỊCH (không theo số giờ) để không bị thiếu/thừa bucket ngày cuối
+        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(start.toLocalDate(), end.toLocalDate());
 
         // NẾU LỌC DƯỚI 35 NGÀY -> VẼ THEO TỪNG NGÀY
         if (daysBetween <= 35) {

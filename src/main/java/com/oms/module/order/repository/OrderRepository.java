@@ -26,6 +26,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COALESCE(SUM(d.costPrice * d.quantity), 0) FROM OrderDetail d " + "WHERE MONTH(d.order.createdAt) = :month " + "AND YEAR(d.order.createdAt) = :year " + "AND d.order.status NOT IN ('CANCELLED', 'CREATED')")
     Double sumCostOfGoodsSoldByMonthAndYear(@Param("month") int month, @Param("year") int year);
 
+    // Phiên bản BigDecimal của COGS theo tháng/năm (dùng cho báo cáo lợi nhuận chính xác)
+    @Query("SELECT COALESCE(SUM(d.costPrice * d.quantity), 0) FROM OrderDetail d " + "WHERE MONTH(d.order.createdAt) = :month " + "AND YEAR(d.order.createdAt) = :year " + "AND d.order.status NOT IN ('CANCELLED', 'CREATED')")
+    BigDecimal sumCostOfGoodsSoldByMonthAndYearBD(@Param("month") int month, @Param("year") int year);
+
     Optional<Order> findByOrderCode(String orderCode);
 
     boolean existsByOrderCode(String orderCode);

@@ -5,6 +5,7 @@ import com.oms.module.customer.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -53,6 +54,7 @@ public class CustomerController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{code}")
     public ResponseEntity<?> delete(@PathVariable String code) {
         try {
@@ -63,7 +65,8 @@ public class CustomerController {
         }
     }
 
-    // Bổ sung API xóa hàng loạt
+    // Bổ sung API xóa hàng loạt (chỉ ADMIN)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/bulk-delete")
     public ResponseEntity<?> bulkDelete(@RequestBody List<String> codes) {
         try {

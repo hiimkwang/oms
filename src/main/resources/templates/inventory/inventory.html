@@ -372,9 +372,10 @@
         </div>
 
         <div class="p-3 bg-white border-top text-muted small d-flex justify-content-between align-items-center">
-            <span th:if="${not #lists.isEmpty(inventories)}"
-                  th:text="'Hiển thị 1 - ' + ${#lists.size(inventories)} + ' trên tổng số ' + ${#lists.size(inventories)}"></span>
-            <span th:if="${#lists.isEmpty(inventories)}">Hiển thị 0</span>
+            <span id="invRecordInfo"></span>
+            <nav>
+                <ul class="pagination pagination-sm mb-0" id="invPagination"></ul>
+            </nav>
         </div>
     </div>
 
@@ -437,6 +438,11 @@
         ];
 
         let config = JSON.parse(localStorage.getItem('inventory_column_config_v4')) || [...DEFAULT_COLUMNS];
+
+        // --- PHÂN TRANG PHÍA CLIENT (theo nhóm sản phẩm) ---
+        const INV_PAGE_SIZE = 20;
+        let invCurrentPage = 1;
+        let invGroupedList = [];
 
         document.addEventListener('DOMContentLoaded', function () {
             // Xử lý nút ngày
@@ -516,10 +522,24 @@
                 });
             });
 
+            // Lưu danh sách nhóm và render trang đầu
+            invGroupedList = Object.values(groupedData);
+            invCurrentPage = 1;
+            renderInventoryPage();
+        }
+
+        function renderInventoryPage() {
             const tbody = document.getElementById('inventoryBody');
             tbody.innerHTML = '';
 
-            Object.values(groupedData).forEach((prod, index) => {
+            const total = invGroupedList.length;
+            const totalPages = Math.max(1, Math.ceil(total / INV_PAGE_SIZE));
+            if (invCurrentPage > totalPages) invCurrentPage = totalPages;
+            const startIdx = (invCurrentPage - 1) * INV_PAGE_SIZE;
+            const pageItems = invGroupedList.slice(startIdx, startIdx + INV_PAGE_SIZE);
+
+            pageItems.forEach((prod, localIndex) => {
+                const index = startIdx + localIndex; // chỉ số toàn cục -> parentId duy nhất
                 const hasVariants = !prod.isSingle && prod.variants.length > 0;
                 const parentId = `prod-${index}`;
 
@@ -604,6 +624,41 @@
                     });
                 }
             });
+
+            // Cập nhật thông tin + thanh phân trang
+            const info = document.getElementById('invRecordInfo');
+            if (info) {
+                info.textContent = total === 0
+                    ? 'Hiển thị 0'
+                    : `Hiển thị ${startIdx + 1} - ${Math.min(startIdx + pageItems.length, total)} trên tổng ${total}`;
+            }
+            renderInvPagination(total, totalPages);
+
+            // Re-áp dụng cấu hình ẩn/hiện cột sau khi render lại bảng
+            if (typeof applyConfig === 'function') applyConfig();
+        }
+
+        function renderInvPagination(total, totalPages) {
+            const ul = document.getElementById('invPagination');
+            if (!ul) return;
+            if (totalPages <= 1) { ul.innerHTML = ''; return; }
+            let html = '';
+            html += `<li class="page-item ${invCurrentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="goToInvPage(${invCurrentPage - 1}); return false;"><i class="bi bi-chevron-left"></i></a></li>`;
+            let s = Math.max(1, invCurrentPage - 2);
+            let e = Math.min(totalPages, s + 4);
+            s = Math.max(1, e - 4);
+            for (let p = s; p <= e; p++) {
+                html += `<li class="page-item ${p === invCurrentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="goToInvPage(${p}); return false;">${p}</a></li>`;
+            }
+            html += `<li class="page-item ${invCurrentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="goToInvPage(${invCurrentPage + 1}); return false;"><i class="bi bi-chevron-right"></i></a></li>`;
+            ul.innerHTML = html;
+        }
+
+        function goToInvPage(p) {
+            const totalPages = Math.max(1, Math.ceil(invGroupedList.length / INV_PAGE_SIZE));
+            if (p < 1 || p > totalPages) return;
+            invCurrentPage = p;
+            renderInventoryPage();
         }
 
         // ĐÃ SỬA: Đổi trực tiếp Class Icon (Không dùng Rotate CSS)

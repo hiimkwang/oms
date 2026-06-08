@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -53,5 +54,5 @@ public class CustomerRequest {
     private String invoiceEmail;
     private Long orderCount;
     private LocalDateTime lastOrder;
-    private Double totalSpent;
+    private BigDecimal totalSpent;
 }

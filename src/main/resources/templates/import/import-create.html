@@ -871,11 +871,10 @@
                         window.location.href = "/ui/imports";
                     });
                 } else {
-                    const errText = await res.text();
-                    console.error("Lỗi 400 Bad Request chi tiết:", errText);
+                    const msg = await OMSGetError(res, 'Vui lòng kiểm tra lại dữ liệu!');
                     Toast.fire({
                         icon: 'error',
-                        title: 'Lỗi lưu đơn: Vui lòng kiểm tra lại dữ liệu!'
+                        title: 'Lỗi lưu đơn: ' + msg
                     });
                 }
             } catch (err) {

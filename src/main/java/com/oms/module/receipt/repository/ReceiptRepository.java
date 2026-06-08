@@ -1,7 +1,9 @@
 package com.oms.module.receipt.repository;
 
 import com.oms.module.receipt.entity.Receipt;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,6 +16,11 @@ import java.util.Optional;
 @Repository
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
     Optional<Receipt> findByCode(String code);
+
+    // Khóa ghi dòng phiếu nhập: đảm bảo xác nhận nhập kho (confirmImport) chỉ chạy 1 lần (idempotent)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Receipt r WHERE r.id = :id")
+    Optional<Receipt> findByIdForUpdate(@Param("id") Long id);
 
     boolean existsByCode(String code);
 

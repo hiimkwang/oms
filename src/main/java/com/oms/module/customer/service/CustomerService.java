@@ -63,7 +63,7 @@ public class CustomerService {
 
             // --- 5. Thông tin thống kê ---
             req.setOrderCount(c.getOrderCount() != null ? c.getOrderCount().longValue() : 0L);
-            req.setTotalSpent(c.getTotalSpent() != null ? c.getTotalSpent() : 0.0);
+            req.setTotalSpent(c.getTotalSpent() != null ? c.getTotalSpent() : java.math.BigDecimal.ZERO);
 
             return req;
         }).collect(Collectors.toList());
@@ -88,8 +88,10 @@ public class CustomerService {
         Customer c = customerRepository.findByCode(code)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khách hàng: " + code));
 
-        // Kiểm tra trùng SĐT nếu có đổi SĐT
-        if (!c.getPhone().equals(req.getPhoneNumber()) && customerRepository.existsByPhone(req.getPhoneNumber())) {
+        // Kiểm tra trùng SĐT nếu có đổi SĐT (null-safe để tránh NPE khi khách chưa có SĐT)
+        if (!java.util.Objects.equals(c.getPhone(), req.getPhoneNumber())
+                && req.getPhoneNumber() != null && !req.getPhoneNumber().isBlank()
+                && customerRepository.existsByPhone(req.getPhoneNumber())) {
             throw new RuntimeException("Số điện thoại này đã được sử dụng!");
         }
 
@@ -148,11 +150,11 @@ public class CustomerService {
 
         // 2. Phân loại nhóm Tự động và lấy danh sách TÊN các nhóm Thủ công
         List<CustomerGroup> autoGroups = allGroups.stream()
-                .filter(CustomerGroup::getAutoUpdate)
+                .filter(g -> Boolean.TRUE.equals(g.getAutoUpdate()))
                 .collect(Collectors.toList());
 
         List<String> manualGroupNames = allGroups.stream()
-                .filter(g -> !g.getAutoUpdate())
+                .filter(g -> !Boolean.TRUE.equals(g.getAutoUpdate()))
                 .map(CustomerGroup::getName)
                 .collect(Collectors.toList());
 
@@ -189,29 +191,43 @@ public class CustomerService {
 
     // Hàm phụ: Kiểm tra xem 1 khách hàng có thỏa mãn bộ điều kiện (JSON) không
     private boolean evaluateCondition(Customer customer, ConditionDTO condObj) {
+        // Không có rule -> coi như không khớp (tránh việc nhóm rỗng "ăn" toàn bộ khách)
+        if (condObj == null || condObj.getRules() == null || condObj.getRules().isEmpty()) {
+            return false;
+        }
+
         List<Boolean> results = new ArrayList<>();
 
         for (RuleDTO rule : condObj.getRules()) {
-            double customerValue = 0;
+            java.math.BigDecimal customerValue = java.math.BigDecimal.ZERO;
             if ("ORDER_COUNT".equals(rule.getField())) {
-                customerValue = customer.getOrderCount() != null ? customer.getOrderCount() : 0;
+                customerValue = customer.getOrderCount() != null
+                        ? java.math.BigDecimal.valueOf(customer.getOrderCount()) : java.math.BigDecimal.ZERO;
             } else if ("TOTAL_SPENT".equals(rule.getField())) {
-                customerValue = customer.getTotalSpent() != null ? customer.getTotalSpent() : 0;
+                customerValue = customer.getTotalSpent() != null
+                        ? customer.getTotalSpent() : java.math.BigDecimal.ZERO;
             }
 
-            double targetValue = Double.parseDouble(rule.getValue());
-            boolean match = false;
+            java.math.BigDecimal targetValue;
+            try {
+                targetValue = new java.math.BigDecimal(rule.getValue());
+            } catch (NumberFormatException | NullPointerException e) {
+                // Giá trị cấu hình không hợp lệ -> rule này không khớp, ghi log để dễ truy vết
+                log.warn("Giá trị điều kiện nhóm không hợp lệ: {}", rule.getValue());
+                results.add(false);
+                continue;
+            }
 
-            switch (rule.getOperator()) {
-                case ">":
-                    match = customerValue > targetValue;
-                    break;
-                case "<":
-                    match = customerValue < targetValue;
-                    break;
-                case "=":
-                    match = customerValue == targetValue;
-                    break;
+            int cmp = customerValue.compareTo(targetValue);
+            boolean match;
+            switch (rule.getOperator() != null ? rule.getOperator() : "") {
+                case ">":  match = cmp > 0; break;
+                case ">=": match = cmp >= 0; break;
+                case "<":  match = cmp < 0; break;
+                case "<=": match = cmp <= 0; break;
+                case "=":  match = cmp == 0; break;
+                case "!=": match = cmp != 0; break;
+                default:   match = false; break; // toán tử lạ -> không khớp
             }
             results.add(match);
         }

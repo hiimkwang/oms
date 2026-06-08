@@ -243,9 +243,10 @@
                     });
 
                 } else {
+                    const msg = await OMSGetError(response, 'Không thể xóa. Danh mục này có thể đang chứa sản phẩm!');
                     Toast.fire({
                         icon: 'error',
-                        title: 'Không thể xóa. Danh mục này đang chứa sản phẩm!'
+                        title: msg
                     });
                 }
             } catch (err) {

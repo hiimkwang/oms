@@ -1,7 +1,9 @@
 package com.oms.module.product.repository;
 
 import com.oms.module.product.entity.ProductVariant;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +19,13 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     List<ProductVariant> searchAndFilterVariants(@Param("keyword") String keyword, @Param("stockStatus") String stockStatus, @Param("minStock") Integer minStock, @Param("maxStock") Integer maxStock, @Param("startDate") java.time.LocalDateTime startDate, @Param("endDate") java.time.LocalDateTime endDate);
 
     Optional<ProductVariant> findBySku(String sku);
+
+    // Phiên bản KHÓA GHI: dùng khi cập nhật stockQuantity/costPrice (MAC) trong giao dịch nhập/xuất kho
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT v FROM ProductVariant v WHERE v.sku = :sku")
+    Optional<ProductVariant> findBySkuForUpdate(@Param("sku") String sku);
+
+    boolean existsBySku(String sku);
 
     @Modifying
     @Transactional

@@ -18,6 +18,13 @@ public interface CashTransactionRepository extends JpaRepository<CashTransaction
     @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.type = 'PAYMENT' AND c.reason = 'Chi phí vận hành' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
     Double sumOperatingExpensesByMonthAndYear(@Param("month") int month, @Param("year") int year);
 
+    // Phiên bản BigDecimal (dùng cho báo cáo lợi nhuận chính xác về tiền tệ)
+    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.type = 'RECEIPT' AND c.reason = 'Thu nhập khác' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
+    BigDecimal sumOtherIncomeByMonthAndYearBD(@Param("month") int month, @Param("year") int year);
+
+    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM CashTransaction c WHERE c.type = 'PAYMENT' AND c.reason = 'Chi phí vận hành' AND MONTH(c.transactionDate) = :month AND YEAR(c.transactionDate) = :year")
+    BigDecimal sumOperatingExpensesByMonthAndYearBD(@Param("month") int month, @Param("year") int year);
+
     boolean existsByCode(String code);
 
     @Query("SELECT COALESCE(SUM(CASE WHEN t.type = 'RECEIPT' THEN t.amount ELSE 0 END), 0) - " +
@@ -46,6 +53,13 @@ public interface CashTransactionRepository extends JpaRepository<CashTransaction
             "WHERE t.paymentMethod = :method AND t.type = :type")
     BigDecimal sumByMethodAndType(@Param("method") CashTransaction.PaymentMethod method,
                                   @Param("type") CashTransaction.TransactionType type);
+
+    // 3b. Như trên nhưng lọc theo chi nhánh (dùng cho số dư Tiền mặt/Ngân hàng theo chi nhánh)
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM CashTransaction t " +
+            "WHERE t.paymentMethod = :method AND t.type = :type AND (:branchId IS NULL OR t.branchId = :branchId)")
+    BigDecimal sumByMethodAndTypeAndBranch(@Param("method") CashTransaction.PaymentMethod method,
+                                           @Param("type") CashTransaction.TransactionType type,
+                                           @Param("branchId") Long branchId);
 
     List<CashTransaction> findByTransactionDateBetweenOrderByTransactionDateDesc(
             LocalDateTime start, LocalDateTime end);

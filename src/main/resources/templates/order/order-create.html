@@ -78,6 +78,11 @@
             font-size: 13px;
         }
 
+        /* Dòng chính khi có dòng Serial/Bảo hành -> bỏ viền dưới cho liền mạch */
+        .table-product tr.has-sn-row > td {
+            border-bottom: none;
+        }
+
         .img-placeholder {
             width: 45px;
             height: 45px;
@@ -754,6 +759,8 @@
                 let html = '';
                 productSearchResults.forEach((v, index) => {
                     const imgHtml = v.imageUrl ? `<img src="${v.imageUrl}">` : '<i class="bi bi-image"></i>';
+                    const stock = (v.actualStock != null ? v.actualStock : (v.stockQuantity || 0));
+                    const stockClass = stock > 0 ? 'text-success' : 'text-danger';
                     html += `
                         <li class="p-2 border-bottom dropdown-item-hover d-flex align-items-center gap-2" onclick="addToCartByIndex(${index})">
                             <div class="img-placeholder" style="width:30px; height:30px;">${imgHtml}</div>
@@ -761,7 +768,10 @@
                                 <div class="fw-bold text-primary" style="font-size: 13px;">${v.productName}</div>
                                 <div class="text-muted" style="font-size: 11px;">${v.variantName ? v.variantName + ' - ' : ''}SKU: ${v.sku}</div>
                             </div>
-                            <div class="fw-bold text-dark" style="font-size: 13px;">${formatMoney(v.price || 0)}</div>
+                            <div class="text-end" style="white-space: nowrap;">
+                                <div class="fw-bold text-dark" style="font-size: 12.5px;">Giá vốn: ${formatMoney(v.costPrice || 0)}</div>
+                                <div class="${stockClass}" style="font-size: 11px;"><i class="bi bi-box-seam me-1"></i>Tồn: ${new Intl.NumberFormat('en-US').format(stock)}</div>
+                            </div>
                         </li>`;
                 });
                 listEl.innerHTML = html || '<li class="p-3 text-muted text-center small">Không tìm thấy</li>';
@@ -936,19 +946,28 @@
                 let warrantyHtml = '';
                 if (item.showWarranty) {
                     warrantyHtml = `
-                        <div class="input-group input-group-sm mt-2 mb-1" style="max-width: 320px;">
-                            <span class="input-group-text bg-light text-muted" style="font-size: 11px;">S/N</span>
-                            <input type="text" class="form-control" placeholder="Số Serial..." value="${item.serialNumber || ''}" onchange="cart[${index}].serialNumber=this.value">
-                            <span class="input-group-text bg-light text-muted border-start-0" style="font-size: 11px;">Bảo hành</span>
-                            <input type="text" class="form-control text-center px-1 shadow-none" placeholder="0" value="${new Intl.NumberFormat('en-US').format(item.warrantyMonths || 0)}" oninput="formatNumberInput(this)" onchange="cart[${index}].warrantyMonths=parseNumber(this.value)" style="max-width: 50px;">
-                            <span class="input-group-text bg-light text-muted" style="font-size: 11px;">tháng</span>
+                        <div class="sn-warranty-box">
+                            <div class="d-flex align-items-end gap-2">
+                                <div style="flex: 1 1 auto; min-width: 0;">
+                                    <div class="sn-label"><i class="bi bi-upc-scan me-1"></i>Số Serial / IMEI</div>
+                                    <input type="text" class="form-control form-control-sm" placeholder="Nhập số serial..." value="${item.serialNumber || ''}" onchange="cart[${index}].serialNumber=this.value">
+                                </div>
+                                <div style="flex: 0 0 110px;">
+                                    <div class="sn-label"><i class="bi bi-shield-check me-1"></i>Bảo hành</div>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control text-center px-1" placeholder="0" value="${new Intl.NumberFormat('en-US').format(item.warrantyMonths || 0)}" oninput="formatNumberInput(this)" onchange="cart[${index}].warrantyMonths=parseNumber(this.value)">
+                                        <span class="input-group-text px-2">tháng</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     `;
                 }
 
                 const imgHtml = item.imageUrl ? `<img src="${item.imageUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : `<i class="bi bi-box-seam text-muted"></i>`;
 
-                html += `<tr>
+                const hasSnRow = !!item.showWarranty;
+                html += `<tr${hasSnRow ? ' class="has-sn-row"' : ''}>
                     <td class="ps-3 align-middle">
                         <div class="d-flex align-items-center gap-2">
                             <div class="img-product flex-shrink-0" style="width: 36px; height: 36px; border-radius: 4px; overflow: hidden; background: #f1f5f9; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center;">${imgHtml}</div>
@@ -957,7 +976,6 @@
                                 <div class="text-muted mt-1 text-truncate" style="font-size: 10.5px;">Mã: ${item.sku || 'N/A'}</div>
                             </div>
                         </div>
-                        ${warrantyHtml}
                         ${noteHtml}
                         <div class="mt-2 d-flex gap-3">
                             <a href="javascript:void(0)" onclick="toggleWarrantyInput(${index})" class="text-link" style="font-size:11px;"><i class="bi bi-shield-check me-1"></i>${item.showWarranty ? 'Ẩn bảo hành' : 'Thêm S/N & BH'}</a>
@@ -973,7 +991,8 @@
                     <td class="text-end fw-bold text-dark align-middle" style="font-size: 12.5px;">${formatMoney(lineTotal)}</td>
                     <td class="text-end fw-bold ${profitColor} align-middle" style="font-size: 12px;">${profitSign}${formatMoney(lineProfit)}</td>
                     <td class="text-center align-middle"><i class="bi bi-trash text-danger cursor-pointer fs-6" onclick="removeCartItem(${index})"></i></td>
-                </tr>`;
+                </tr>
+                ${hasSnRow ? `<tr class="sn-extra-row"><td colspan="6" class="px-3" style="padding-top: 0;">${warrantyHtml}</td></tr>` : ''}`;
             });
             tbody.innerHTML = html;
             document.getElementById('totalItemsText').innerText = `(${new Intl.NumberFormat('en-US').format(totalQty)})`;

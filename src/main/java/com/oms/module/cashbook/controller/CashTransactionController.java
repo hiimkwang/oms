@@ -7,6 +7,7 @@ import com.oms.module.customer.repository.CustomerRepository;
 import com.oms.module.supplier.repository.SupplierRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,7 +24,7 @@ public class CashTransactionController {
     private final UserRepository userRepository;
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody CashTransactionRequest request) {
+    public ResponseEntity<?> create(@jakarta.validation.Valid @RequestBody CashTransactionRequest request) {
         return ResponseEntity.ok(cashbookService.createTransaction(request));
     }
 
@@ -49,12 +50,14 @@ public class CashTransactionController {
         return ResponseEntity.ok(cashbookService.updateDetails(id, desc, attachments));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         cashbookService.deleteTransaction(id);
         return ResponseEntity.ok("Đã xóa");
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/bulk")
     public ResponseEntity<?> deleteBulk(@RequestBody List<Long> ids) {
         for (Long id : ids) {

@@ -616,10 +616,10 @@
                     });
                     window.location.href = "/ui/customers";
                 } else {
-                    const errorMsg = await res.text();
+                    const errorMsg = await OMSGetError(res, 'Không thể xóa khách hàng này!');
                     Toast.fire({
                         icon: 'error',
-                        title: errorMsg || 'Không thể xóa khách hàng này!'
+                        title: errorMsg
                     });
                 }
             } catch (e) {
