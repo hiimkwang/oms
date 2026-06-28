@@ -341,7 +341,7 @@ public class WebController {
 
 
     @GetMapping("/ui/cashbook")
-    public String cashbookOverview(Model model, @RequestParam(required = false) String keyword, @RequestParam(required = false) Long branchId, @RequestParam(required = false) String type, @RequestParam(required = false, defaultValue = "today") String preset, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+    public String cashbookOverview(Model model, @RequestParam(required = false) String keyword, @RequestParam(required = false) Long branchId, @RequestParam(required = false) String type, @RequestParam(required = false) String reason, @RequestParam(required = false, defaultValue = "today") String preset, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -374,17 +374,30 @@ public class WebController {
             }
         }
 
-        List<CashTransaction> filteredTransactions = cashbookService.filterTransactions(keyword, branchId, type, start, end);
+        List<CashTransaction> filteredTransactions = cashbookService.filterTransactions(keyword, branchId, type, reason, start, end);
 
         model.addAttribute("transactions", filteredTransactions);
-        model.addAttribute("summary", cashbookService.getSummary(start, end));
-        model.addAttribute("branches", branchService.findAll());
 
         CashbookSummary summaryData = cashbookService.getSummary(start, end, branchId);
         model.addAttribute("summary", summaryData);
 
         model.addAttribute("branches", branchService.findAll());
+        model.addAttribute("reasons", cashbookService.getDistinctReasons());
         return "cashbook/cashbook";
+    }
+
+    @GetMapping("/ui/capital")
+    public String capitalManagement(Model model) {
+        model.addAttribute("summary", cashbookService.getCapitalSummary());
+        model.addAttribute("transactions", cashbookService.getCapitalTransactions());
+        return "capital/capital";
+    }
+
+    // Báo cáo Thu/Chi theo loại nay nằm trong trang Sổ quỹ (tab "Theo loại").
+    // Giữ lại đường dẫn cũ -> chuyển hướng sang tab tương ứng để bookmark cũ không bị lỗi.
+    @GetMapping("/ui/cashbook/by-category")
+    public String cashFlowByCategoryRedirect() {
+        return "redirect:/ui/cashbook?preset=thisMonth";
     }
 
     @GetMapping("/ui/cashbook/receipt/create")

@@ -1,8 +1,14 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
 <head></head>
 <body>
 <div class="oms-container pb-5">
+    <!-- Nhân viên (STAFF) không xem giá vốn -> ẩn cột giá vốn -->
+    <style th:if="${!isAdmin}">
+        .col-price-cost { display: none !important; }
+    </style>
     <style>
         /* Thống nhất style chuẩn hệ thống */
         .filter-btn {
@@ -329,7 +335,7 @@
                     th:data-available="${(v.stock != null and v.availableStock != null and v.availableStock > v.stock) ? v.stock : v.availableStock}"
                     th:data-transaction="${(v.stock != null and v.availableStock != null and v.stock >= v.availableStock) ? (v.stock - v.availableStock) : 0}"
                     th:data-inbound="${v.inboundStock != null ? v.inboundStock : 0}"
-                    th:data-cost="${v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') : '0'}"
+                    th:data-cost="${isAdmin ? (v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') : '0') : '0'}"
                     th:data-price="${v.price != null ? #numbers.formatDecimal(v.price, 0, 'COMMA', 0, 'POINT') : '0'}"
                     th:data-unit="${v.unit}"
                     th:data-image="${v.imageUrl}"

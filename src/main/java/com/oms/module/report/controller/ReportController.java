@@ -4,6 +4,8 @@ import com.oms.constant.CommonConstants;
 import com.oms.module.cashbook.repository.CashTransactionRepository;
 import com.oms.module.inventory.repository.InventoryRepository;
 import com.oms.module.order.repository.OrderRepository;
+import com.oms.module.report.dto.InventoryMovementRow;
+import com.oms.module.report.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -28,6 +30,7 @@ public class ReportController {
     private final OrderRepository orderRepo;
     private final InventoryRepository inventoryRepo;
     private final CashTransactionRepository cashTransactionRepository;
+    private final ReportService reportService;
 
     @GetMapping("/ui/reports")
     public String reportOverview(Model model, @RequestParam(required = false, defaultValue = "overview") String tab, @RequestParam(required = false, defaultValue = "30days") String preset, @RequestParam(required = false) String channel,
@@ -78,6 +81,10 @@ public class ReportController {
                     startTime = now.minusDays(30).with(LocalTime.MIN);
             }
         }
+
+        // Phòng NPE: preset=custom nhưng client không truyền start/end -> mặc định 30 ngày gần nhất
+        if (startTime == null) startTime = now.minusDays(30).with(LocalTime.MIN);
+        if (endTime == null) endTime = now.with(LocalTime.MAX);
 
         model.addAttribute("preset", preset);
         model.addAttribute("startDate", startTime);
@@ -183,6 +190,60 @@ public class ReportController {
         }
 
         return "reports/report";
+    }
+
+    // BÁO CÁO BÁN CHẠY / TỒN ĐỌNG (thuộc Quản lý kho)
+    @GetMapping("/ui/stock-movement")
+    public String inventoryMovement(Model model,
+                                    @RequestParam(required = false, defaultValue = "30days") String preset,
+                                    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+                                    @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startTime = start;
+        LocalDateTime endTime = (end != null) ? end : now.with(LocalTime.MAX);
+
+        if (!"custom".equals(preset) || startTime == null) {
+            endTime = now.with(LocalTime.MAX);
+            switch (preset) {
+                case "7days":
+                    startTime = now.minusDays(7).with(LocalTime.MIN);
+                    break;
+                case "thisMonth":
+                    startTime = now.withDayOfMonth(1).with(LocalTime.MIN);
+                    break;
+                case "90days":
+                    startTime = now.minusDays(90).with(LocalTime.MIN);
+                    break;
+                case "30days":
+                default:
+                    startTime = now.minusDays(30).with(LocalTime.MIN);
+                    break;
+            }
+        }
+
+        List<InventoryMovementRow> rows = reportService.getInventoryMovement(startTime, endTime);
+
+        // Tổng vốn đang chôn trong tồn đọng (DEAD + SLOW)
+        BigDecimal deadCapital = BigDecimal.ZERO;
+        int fastCount = 0, deadCount = 0, slowCount = 0;
+        for (InventoryMovementRow r : rows) {
+            if ("DEAD".equals(r.getCategory()) || "SLOW".equals(r.getCategory())) {
+                deadCapital = deadCapital.add(r.getCostValue() != null ? r.getCostValue() : BigDecimal.ZERO);
+            }
+            if ("FAST".equals(r.getCategory())) fastCount++;
+            else if ("DEAD".equals(r.getCategory())) deadCount++;
+            else if ("SLOW".equals(r.getCategory())) slowCount++;
+        }
+
+        model.addAttribute("rows", rows);
+        model.addAttribute("preset", preset);
+        model.addAttribute("startDate", startTime);
+        model.addAttribute("endDate", endTime);
+        model.addAttribute("deadCapital", deadCapital);
+        model.addAttribute("fastCount", fastCount);
+        model.addAttribute("deadCount", deadCount);
+        model.addAttribute("slowCount", slowCount);
+        return "reports/inventory-movement";
     }
 
     private void loadGeneralKPIs(Model model, LocalDateTime start, LocalDateTime end) {

@@ -211,7 +211,9 @@ public class ReceiptService {
         }
 
         String currentWorker = getCurrentUserName();
-        //BigDecimal ratio = calculateExtraCostRatio(receipt);
+        // Phân bổ phí ship & chiết khấu của phiếu vào GIÁ VỐN (landed cost) theo tỉ lệ giá nhập.
+        // ratio = (phí ship − chiết khấu) / tiền hàng. Có thể âm khi chiết khấu > phí (làm giảm giá vốn).
+        BigDecimal ratio = calculateExtraCostRatio(receipt);
 
         // Khóa hàng theo thứ tự SKU cố định để tránh deadlock khi nhiều phiếu chạy đồng thời
         List<ReceiptDetail> lockOrder = new java.util.ArrayList<>(receipt.getDetails());
@@ -219,10 +221,11 @@ public class ReceiptService {
         for (ReceiptDetail detail : lockOrder) {
             ProductVariant variant = variantRepository.findBySkuForUpdate(detail.getSku()).orElseThrow(() -> new RuntimeException("Không thấy SP mã: " + detail.getSku()));
 
-            //BigDecimal extraCostPerItem = detail.getImportPrice().multiply(ratio);
-            //BigDecimal actualImportPrice = detail.getImportPrice().add(extraCostPerItem);
+            // Giá vốn thực tế mỗi sản phẩm = giá nhập + phần phí/chiết khấu phân bổ
+            BigDecimal extraCostPerItem = detail.getImportPrice().multiply(ratio);
+            BigDecimal actualImportPrice = detail.getImportPrice().add(extraCostPerItem);
 
-            updateMAC(variant, detail.getQuantity(), detail.getImportPrice());
+            updateMAC(variant, detail.getQuantity(), actualImportPrice);
             updateBranchInventoryForImport(receipt.getBranchId(), variant.getId(), detail.getQuantity());
 
             int currentVariantStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
@@ -250,6 +253,9 @@ public class ReceiptService {
 
         receipt.setStatus(CANCELLED);
         removeInboundStock(receipt, receipt.getDetails());
+
+        // Đảo các phiếu chi đã trả NCC cho phiếu nhập này để quỹ không bị "chi khống"
+        cashbookService.reversePaymentsByReference(receipt.getCode());
 
         receiptRepository.save(receipt);
         logActivity(receipt, "Hủy phiếu nhập hàng", getCurrentUserName());

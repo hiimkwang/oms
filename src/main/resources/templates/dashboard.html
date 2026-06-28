@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.dashboard-container})}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::div.dashboard-container})}">
 <head></head>
 <body>
 <div class="dashboard-container pb-5">
@@ -194,7 +195,7 @@
             </div>
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-3" th:if="${isAdmin}">
             <div class="dash-card p-4 h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
@@ -266,6 +267,77 @@
         <div class="status-card" onclick="window.location.href='/ui/orders?status=CANCELLED'">
             <div class="status-val text-danger" th:text="${canceledOrders ?: 0}">0</div>
             <div class="status-lbl"><i class="bi bi-x-circle me-1 fs-6"></i>Đã Hủy</div>
+        </div>
+    </div>
+
+    <!-- CÔNG NỢ (chỉ ADMIN xem) -->
+    <div class="row g-4 mb-4" th:if="${isAdmin}">
+        <div class="col-md-6">
+            <div class="dash-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">Công nợ phải thu (khách còn nợ)</div>
+                        <div class="metric-value text-info"
+                             th:text="${#numbers.formatDecimal(customerReceivables, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                        </div>
+                    </div>
+                    <div class="icon-box icon-blue"><i class="bi bi-arrow-down-left-square"></i></div>
+                </div>
+                <div class="mt-2 text-muted" style="font-size: 12px;"><i
+                        class="bi bi-people-fill text-info me-1"></i>Tổng tiền hàng khách chưa thanh toán
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="dash-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="metric-label">Công nợ phải trả (nợ NCC)</div>
+                        <div class="metric-value text-danger"
+                             th:text="${#numbers.formatDecimal(supplierPayables, 0, 'COMMA', 0, 'POINT')} + '₫'">0₫
+                        </div>
+                    </div>
+                    <div class="icon-box icon-orange"><i class="bi bi-arrow-up-right-square"></i></div>
+                </div>
+                <div class="mt-2 text-muted" style="font-size: 12px;"><i
+                        class="bi bi-truck text-orange me-1"></i>Tổng tiền nhập hàng chưa trả nhà cung cấp
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CẢNH BÁO TỒN KHO THẤP -->
+    <div class="dash-card mb-4 overflow-hidden" th:if="${lowStockCount > 0}">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center"
+             style="background:#fffbeb;">
+            <div class="card-title-custom mb-0 text-warning-emphasis">
+                <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Cảnh báo tồn kho thấp
+                <span class="badge bg-warning text-dark ms-1" th:text="${lowStockCount}">0</span>
+                <span class="text-muted fw-normal small ms-1"
+                      th:text="'(tồn ≤ ' + ${lowStockThreshold} + ')'">(tồn ≤ 5)</span>
+            </div>
+            <a th:href="@{/ui/inventory(stockStatus='in_stock')}"
+               class="text-decoration-none small fw-bold btn btn-light btn-sm">Xem kho <i
+                    class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="p-3 d-flex flex-wrap gap-2">
+            <a th:each="it : ${lowStockItems}" th:href="@{/ui/inventory(keyword=${it[0]})}"
+               class="d-flex align-items-center gap-2 text-decoration-none border rounded px-2 py-1"
+               style="background:#fff;">
+                <div style="width:34px;height:34px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                    <img th:if="${it[4] != null}" th:src="${it[4]}"
+                         style="width:100%;height:100%;object-fit:cover;">
+                    <i th:unless="${it[4] != null}" class="bi bi-box-seam text-muted"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold text-dark text-truncate" style="font-size:12.5px;max-width:220px;"
+                         th:text="${it[1]} + (${it[2]} != null and ${it[2]} != '' ? ' - ' + ${it[2]} : '')">Tên SP -
+                        Biến thể</div>
+                </div>
+                <span class="badge ms-1"
+                      th:classappend="${it[3] != null and it[3] <= 0} ? 'bg-danger' : 'bg-warning text-dark'"
+                      th:text="'Còn ' + ${it[3]}">Còn 0</span>
+            </a>
         </div>
     </div>
 

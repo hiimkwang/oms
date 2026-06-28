@@ -29,6 +29,17 @@ public class SecurityConfig {
                         .requestMatchers("/ui/settings/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/settings/**").hasRole("ADMIN")
 
+                        // Các trang tài chính nhạy cảm: chỉ ADMIN (nhân viên không xem giá vốn/lãi lỗ/vốn)
+                        .requestMatchers("/ui/reports/**", "/ui/reports").hasRole("ADMIN")
+                        .requestMatchers("/ui/stock-movement").hasRole("ADMIN")
+                        .requestMatchers("/ui/capital/**", "/ui/capital").hasRole("ADMIN")
+                        .requestMatchers("/ui/cashbook/**", "/ui/cashbook").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/cashbook/**").hasRole("ADMIN")
+                        // Đối soát sàn TMĐT: hiển thị doanh thu/phí/chênh lệch + có thể tạo đơn & ghi đã thu -> chỉ ADMIN
+                        .requestMatchers("/ui/reconciliation/**", "/ui/reconciliation").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/reconciliation/**").hasRole("ADMIN")
+                        .requestMatchers("/ui/tools/selling-pricing").hasRole("ADMIN")
+
                         // Các trang còn lại (Bán hàng, Đơn hàng, Dashboard...) thì cả STAFF và ADMIN đều được vào
                         .anyRequest().authenticated()
                 )

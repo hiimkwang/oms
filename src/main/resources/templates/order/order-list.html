@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
 <head></head>
 <body>
 <div class="oms-container pb-5">
@@ -173,7 +175,7 @@
                 <div class="input-group search-box flex-grow-1">
                     <span class="input-group-text"><i class="bi bi-search fs-5 text-muted"></i></span>
                     <input type="text" id="orderSearchInput" class="form-control"
-                           placeholder="Tìm kiếm theo mã đơn hàng, tên KH, SĐT...">
+                           placeholder="Tìm kiếm theo mã đơn, tên KH, SĐT, mã vận đơn sàn...">
                 </div>
 
                 <div class="d-flex gap-2 align-items-center">
@@ -216,8 +218,20 @@
                     <a href="javascript:void(0)" class="text-decoration-none fw-medium"
                        style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
                 </div>
-                <div>
-                    <button class="btn btn-white border-danger text-danger fw-medium px-4 shadow-sm"
+                <div class="d-flex align-items-center gap-2">
+                    <select id="bulkStatusSelect" class="form-select form-select-sm w-auto"
+                            style="font-size: 13px; min-width: 180px;">
+                        <option value="">-- Chuyển sang trạng thái --</option>
+                        <option th:each="status : ${orderStatuses}" th:value="${status.dataValue}"
+                                th:text="${status.dataLabel}"></option>
+                    </select>
+                    <button class="btn btn-primary fw-medium px-3 shadow-sm"
+                            style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;"
+                            onclick="bulkUpdateStatus()">
+                        <i class="bi bi-arrow-repeat me-1"></i>Cập nhật trạng thái
+                    </button>
+                    <span class="text-muted small">|</span>
+                    <button class="btn btn-white border-danger text-danger fw-medium px-3 shadow-sm"
                             style="font-size: 13px; padding-top: 6px; padding-bottom: 6px;"
                             onclick="deleteSelectedOrders()">
                         <i class="bi bi-trash3 me-1"></i>Xóa đơn hàng
@@ -236,15 +250,16 @@
                         <th>Khách hàng</th>
                         <th>Sản phẩm</th>
                         <th>Kênh bán</th>
+                        <th>Mã đơn sàn</th>
                         <th class="text-end">Khách phải trả</th>
-                        <th class="text-end">Lãi/Lỗ</th>
+                        <th class="text-end" sec:authorize="hasRole('ADMIN')">Lãi/Lỗ</th>
                         <th class="text-center">Thanh toán</th>
                         <th class="text-center">Trạng thái</th>
                     </tr>
                     </thead>
                     <tbody id="orderTableBody">
                     <tr>
-                        <td colspan="10" class="text-center py-5">
+                        <td colspan="11" class="text-center py-5">
                             <div class="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
                             Đang tải dữ liệu...
                         </td>
@@ -268,6 +283,8 @@
         /*<![CDATA[*/
         const statusMapJsonString = /*[[${orderStatusMapJson}]]*/ '{}';
         const statusLabelMap = JSON.parse(statusMapJsonString || '{}');
+        // Nhân viên (STAFF) không xem cột Lãi/Lỗ
+        const IS_ADMIN = /*[[${isAdmin}]]*/ false;
         /*]]>*/
     </script>
 
@@ -290,6 +307,17 @@
         // Hàm format tiền thống nhất theo chuẩn có dấu phẩy en-US
         function formatMoney(amount) {
             return new Intl.NumberFormat('en-US').format(Math.round(amount || 0)) + '₫';
+        }
+
+        // Sao chép nhanh mã vận đơn sàn để dán sang trang đối soát của sàn TMĐT
+        function copyTracking(code, event) {
+            if (event) event.stopPropagation();
+            if (!code) return;
+            navigator.clipboard.writeText(code).then(() => {
+                Toast.fire({icon: 'success', title: 'Đã sao chép mã đơn sàn: ' + code});
+            }).catch(() => {
+                Toast.fire({icon: 'error', title: 'Không sao chép được, vui lòng copy thủ công'});
+            });
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -326,7 +354,7 @@
                 applyFilters();
             } catch (e) {
                 console.error(e);
-                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="10" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
+                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="11" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
             }
         }
 
@@ -405,11 +433,15 @@
                 const cusName = o.customer ? (o.customer.fullName || o.customer.name || '').toLowerCase() : '';
                 const cusPhone = o.customer ? (o.customer.phone || o.customer.phoneNumber || '') : '';
                 const orderCode = o.orderCode ? o.orderCode.toLowerCase() : '';
+                const tracking = (o.trackingCode || '').toLowerCase();
+                const refCode = (o.referenceCode || '').toLowerCase();
 
                 const matchKeyword = !keyword ||
                     orderCode.includes(keyword) ||
                     cusName.includes(keyword) ||
-                    cusPhone.includes(keyword);
+                    cusPhone.includes(keyword) ||
+                    tracking.includes(keyword) ||
+                    refCode.includes(keyword);
 
                 return matchTab && matchChannel && matchDate && matchKeyword;
             });
@@ -439,7 +471,7 @@
             const total = orderFilteredCache.length;
 
             if (total === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy đơn hàng nào phù hợp.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy đơn hàng nào phù hợp.</td></tr>';
                 info.innerText = 'Hiển thị 0 kết quả';
                 renderOrderPagination(0);
                 clearSelection();
@@ -473,7 +505,10 @@
 
                 const profitColor = totalProfit >= 0 ? 'text-success' : 'text-danger';
                 const profitSign = totalProfit > 0 ? '+' : '';
-                const profitHtml = `<span class="fw-bold ${profitColor}">${profitSign}${formatMoney(totalProfit)}</span>`;
+                // Chỉ ADMIN mới thấy cột Lãi/Lỗ
+                const profitCell = IS_ADMIN
+                    ? `<td class="text-end"><span class="fw-bold ${profitColor}">${profitSign}${formatMoney(totalProfit)}</span></td>`
+                    : '';
                 // ------------------------
 
                 const cusName = o.customer ? (o.customer.fullName || o.customer.lastName + ' ' + o.customer.firstName || 'Khách lẻ') : 'Khách lẻ';
@@ -497,6 +532,16 @@
                     }).join('');
                 }
 
+                // --- MÃ ĐƠN SÀN (để đối chiếu với đơn của sàn TMĐT) ---
+                const trackingRaw = o.referenceCode || '';
+                let trackingHtml;
+                if (trackingRaw) {
+                    const trackEsc = escAttr(trackingRaw);
+                    trackingHtml = `<span class="fw-medium text-dark" style="cursor:pointer" title="Bấm để sao chép mã đơn sàn" onclick="copyTracking('${trackEsc}', event)">${trackEsc} <i class="bi bi-clipboard text-muted ms-1" style="font-size:11px;"></i></span>`;
+                } else {
+                    trackingHtml = '<span class="text-muted">---</span>';
+                }
+
                 const pStatus = o.paymentStatus || 'UNPAID';
                 const pLabel = paymentLabelMap[pStatus] || pStatus;
                 let paymentBadge = '';
@@ -511,7 +556,7 @@
                 const st = o.status || 'CREATED';
                 const stLabel = statusLabelMap[st] || st;
                 let statusBadge = '';
-                if (st === 'CREATED' || st === 'CONFIRMED') {
+                if (st === 'CREATED' || st === 'CONFIRMED' || st === 'DRAFT') {
                     statusBadge = `<span class="status-badge badge-init">${stLabel}</span>`;
                 } else if (st === 'COMPLETED') {
                     statusBadge = `<span class="status-badge badge-success">${stLabel}</span>`;
@@ -535,8 +580,9 @@
                         </td>
                         <td style="min-width: 200px; font-size: 12.5px;">${productsHtml}</td>
                         <td class="text-muted fw-medium">${channelText}</td>
+                        <td>${trackingHtml}</td>
                         <td class="text-end fw-bold text-dark">${totalAmount}</td>
-                        <td class="text-end">${profitHtml}</td>
+                        ${profitCell}
                         <td class="text-center">${paymentBadge}</td>
                         <td class="text-center">${statusBadge}</td>
                     </tr>
@@ -607,6 +653,78 @@
         function clearSelection() {
             document.querySelectorAll('.order-checkbox, #checkAll').forEach(cb => cb.checked = false);
             toggleBulkActionBar();
+        }
+
+        async function bulkUpdateStatus() {
+            const checkboxes = document.querySelectorAll('.order-checkbox:checked');
+            if (checkboxes.length === 0) {
+                Toast.fire({icon: 'warning', title: 'Vui lòng chọn ít nhất 1 đơn hàng!'});
+                return;
+            }
+
+            const select = document.getElementById('bulkStatusSelect');
+            const newStatus = select.value;
+            if (!newStatus) {
+                Toast.fire({icon: 'warning', title: 'Vui lòng chọn trạng thái cần chuyển!'});
+                return;
+            }
+            const statusLabel = statusLabelMap[newStatus] || newStatus;
+            const orderCodes = Array.from(checkboxes).map(cb => cb.value);
+
+            const confirmation = await Swal.fire({
+                title: 'Xác nhận đổi trạng thái',
+                html: `Chuyển <b>${orderCodes.length}</b> đơn hàng đã chọn sang trạng thái <b>"${statusLabel}"</b>?<br><span class="text-muted small">Đơn nào không hợp lệ (vd: đã hủy/đã hoàn thành, thiếu tồn kho) sẽ được báo riêng.</span>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Xác nhận cập nhật',
+                cancelButtonText: 'Hủy bỏ'
+            });
+            if (!confirmation.isConfirmed) return;
+
+            const btn = document.querySelector('#bulkActionBar button.btn-primary');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/v1/orders/bulk-status', {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({orderCodes: orderCodes, status: newStatus})
+                });
+
+                if (!res.ok) {
+                    const errText = await OMSGetError(res, 'Không thể cập nhật trạng thái!');
+                    Toast.fire({icon: 'error', title: 'Lỗi: ' + errText});
+                } else {
+                    const data = await res.json();
+                    if (data.failed === 0) {
+                        await Swal.fire({
+                            title: 'Hoàn tất!',
+                            text: `Đã cập nhật thành công ${data.success}/${data.total} đơn hàng sang "${statusLabel}".`,
+                            icon: 'success'
+                        });
+                    } else {
+                        let failHtml = (data.failures || []).map(f =>
+                            `<li class="text-start"><b>${f.orderCode}</b>: ${f.error}</li>`).join('');
+                        await Swal.fire({
+                            title: 'Cập nhật xong (có đơn lỗi)',
+                            html: `Thành công <b>${data.success}</b>, lỗi <b>${data.failed}</b> trên tổng ${data.total} đơn.<hr>
+                                   <ul class="small" style="max-height:200px;overflow:auto;padding-left:18px;">${failHtml}</ul>`,
+                            icon: 'warning'
+                        });
+                    }
+                }
+            } catch (e) {
+                Toast.fire({icon: 'error', title: 'Lỗi kết nối đến máy chủ!'});
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                select.value = '';
+                await loadOrders();
+            }
         }
 
         async function deleteSelectedOrders() {

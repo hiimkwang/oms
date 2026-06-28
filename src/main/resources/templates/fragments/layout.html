@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content)">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:fragment="layout(content)">
 <head>
     <meta charset="UTF-8">
     <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}">
@@ -453,6 +454,7 @@
                         <li><a href="/ui/orders/create" class="nav-link py-2 fs-6"><span>Tạo đơn hàng</span></a></li>
                         <li><a href="/ui/orders" class="nav-link py-2 fs-6"><span>Danh sách đơn hàng</span></a></li>
                         <li><a href="/ui/returns" class="nav-link py-2 fs-6"><span>Yêu cầu trả hàng</span></a></li>
+                        <li><a href="/ui/reconciliation" class="nav-link py-2 fs-6"><span>Đối soát sàn TMĐT</span></a></li>
                     </ul>
                 </div>
             </li>
@@ -482,6 +484,7 @@
                         <li><a href="/ui/inventory" class="nav-link py-2 fs-6"><span>Tồn kho</span></a></li>
                         <li><a href="/ui/imports" class="nav-link py-2 fs-6"><span>Nhập hàng</span></a></li>
                         <li><a href="/ui/suppliers" class="nav-link py-2 fs-6"><span>Nhà cung cấp</span></a></li>
+                        <li th:if="${isAdmin}"><a href="/ui/stock-movement" class="nav-link py-2 fs-6"><span>Bán chạy / Tồn đọng</span></a></li>
                     </ul>
                 </div>
             </li>
@@ -522,11 +525,15 @@
                     <span>Bảo hành & Sửa chữa</span></a>
             </li>
 
-            <li class="nav-item mb-1">
+            <li class="nav-item mb-1" th:if="${isAdmin}">
                 <a href="/ui/cashbook" class="nav-link"><i class="bi bi-wallet2 me-2"></i> <span>Sổ quỹ (Thu/Chi)</span></a>
             </li>
 
-            <li class="nav-item mb-1">
+            <li class="nav-item mb-1" th:if="${isAdmin}">
+                <a href="/ui/capital" class="nav-link"><i class="bi bi-piggy-bank me-2"></i> <span>Quản lý vốn</span></a>
+            </li>
+
+            <li class="nav-item mb-1" th:if="${isAdmin}">
                 <a href="/ui/reports" class="nav-link"><i class="bi bi-bar-chart-line me-2"></i>
                     <span>Báo cáo</span></a>
             </li>

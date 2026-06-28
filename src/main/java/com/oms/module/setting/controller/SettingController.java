@@ -3,6 +3,7 @@ package com.oms.module.setting.controller;
 import com.oms.module.account.repository.UserRepository;
 import com.oms.module.setting.repository.BranchRepository;
 import com.oms.module.setting.repository.SalesChannelRepository;
+import com.oms.module.setting.service.BackupService;
 import com.oms.module.setting.service.MasterDataService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -21,6 +22,7 @@ public class SettingController {
     private final SalesChannelRepository channelRepository;
     private final UserRepository userRepository;
     private final MasterDataService masterDataService;
+    private final BackupService backupService;
 
     // 1. Cấu hình chung
     @GetMapping("/general")
@@ -56,5 +58,15 @@ public class SettingController {
         model.addAttribute("channels", channelRepository.findAll());
         model.addAttribute("activeMenu", "channels");
         return "settings/channels";
+    }
+
+    // 5. Sao lưu dữ liệu
+    @GetMapping("/backup")
+    public String backup(Model model) {
+        model.addAttribute("activeMenu", "backup");
+        model.addAttribute("backups", backupService.listBackups());
+        model.addAttribute("backupEnabled", backupService.isEnabled());
+        model.addAttribute("backupDir", backupService.getBackupDir());
+        return "settings/backup";
     }
 }

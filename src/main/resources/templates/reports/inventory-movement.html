@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .stat-card {
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            padding: 16px 18px;
+            height: 100%;
+        }
+
+        .stat-card .lbl {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .stat-card .val {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .table-custom thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-bottom: 1px solid #dee2e6;
+            padding: 12px 10px;
+            white-space: nowrap;
+        }
+
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .pill {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .pill-FAST {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .pill-NORMAL {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .pill-SLOW {
+            background: #ffedd5;
+            color: #9a3412;
+        }
+
+        .pill-DEAD {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .pill-SOLD_OUT {
+            background: #1e293b;
+            color: #fff;
+        }
+
+        .filter-tab {
+            border: 1px solid #dce0e4;
+            background: #fff;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .filter-tab.active {
+            background: #0d6efd;
+            color: #fff;
+            border-color: #0d6efd;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <div>
+            <h4 class="fw-bold mb-0 text-dark">Báo cáo Bán chạy / Tồn đọng</h4>
+            <div class="text-muted small mt-1">Biết SKU nào xoay vòng nhanh để nhập thêm, SKU nào "chôn vốn" để ngừng
+                nhập / xả hàng</div>
+            <div class="small mt-2" style="color:#64748b; max-width:760px;">
+                <i class="bi bi-info-circle me-1"></i>
+                <b>Cách phân loại</b> (dựa trên tốc độ bán trong kỳ lọc):
+                tốc độ bán TB/ngày = <i>số đã bán ÷ số ngày trong kỳ</i>;
+                số ngày dự kiến bán hết tồn = <i>tồn hiện tại ÷ tốc độ bán TB/ngày</i>.
+                <span class="badge bg-success-subtle text-success">Bán chạy</span> nếu ≤ 15 ngày ·
+                <span class="badge bg-warning-subtle text-warning">Bán chậm</span> nếu ≥ 60 ngày ·
+                <span class="badge bg-danger-subtle text-danger">Tồn đọng</span> nếu cả kỳ không bán được cái nào ·
+                còn lại là Bình thường.
+            </div>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <select class="form-select w-auto fw-semibold" id="presetSelect" onchange="changePreset()">
+                <option value="7days" th:selected="${preset == '7days'}">7 ngày qua</option>
+                <option value="30days" th:selected="${preset == '30days'}">30 ngày qua</option>
+                <option value="90days" th:selected="${preset == '90days'}">90 ngày qua</option>
+                <option value="thisMonth" th:selected="${preset == 'thisMonth'}">Tháng này</option>
+            </select>
+            <a th:href="@{/ui/inventory}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quản lý
+                kho</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="lbl"><i class="bi bi-fire text-success me-1"></i>SKU bán chạy</div>
+                <div class="val text-success" th:text="${fastCount}">0</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="lbl"><i class="bi bi-hourglass-split text-warning me-1"></i>SKU bán chậm</div>
+                <div class="val text-warning" th:text="${slowCount}">0</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="lbl"><i class="bi bi-snow text-danger me-1"></i>SKU tồn đọng</div>
+                <div class="val text-danger" th:text="${deadCount}">0</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card" style="background:#fef2f2;border-color:#fecaca;">
+                <div class="lbl"><i class="bi bi-cash-stack text-danger me-1"></i>Vốn đang chôn (chậm+đọng)</div>
+                <div class="val text-danger"
+                     th:text="${#numbers.formatDecimal(deadCapital, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+        <div class="card-body p-0">
+            <div class="p-3 d-flex gap-2 flex-wrap border-bottom">
+                <span class="filter-tab active" data-cat="ALL" onclick="filterCat(this)">Tất cả</span>
+                <span class="filter-tab" data-cat="FAST" onclick="filterCat(this)">Bán chạy</span>
+                <span class="filter-tab" data-cat="SLOW" onclick="filterCat(this)">Bán chậm</span>
+                <span class="filter-tab" data-cat="DEAD" onclick="filterCat(this)">Tồn đọng</span>
+                <span class="filter-tab" data-cat="SOLD_OUT" onclick="filterCat(this)">Hết hàng</span>
+            </div>
+            <div class="table-responsive" style="min-height: 360px;">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th class="ps-3">Sản phẩm</th>
+                        <th class="text-center">Đã bán (kỳ)</th>
+                        <th class="text-center">Tồn hiện tại</th>
+                        <th class="text-end">Vốn đang chôn</th>
+                        <th class="text-center">Phân loại</th>
+                    </tr>
+                    </thead>
+                    <tbody id="movementBody">
+                    <tr th:each="r : ${rows}" th:attr="data-category=${r.category}">
+                        <td class="ps-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width:38px;height:38px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                                    <img th:if="${r.imageUrl != null}" th:src="${r.imageUrl}"
+                                         style="width:100%;height:100%;object-fit:cover;">
+                                    <i th:unless="${r.imageUrl != null}" class="bi bi-box-seam text-muted"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold text-dark text-truncate" style="max-width:280px;"
+                                         th:text="${r.productName} + (${r.variantName} != null and ${r.variantName} != '' ? ' - ' + ${r.variantName} : '')">
+                                        Tên SP
+                                    </div>
+                                    <div class="small text-muted" th:text="'SKU: ' + ${r.sku}">SKU</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center fw-bold" th:text="${r.soldQty}">0</td>
+                        <td class="text-center"
+                            th:classappend="${r.stock <= 0} ? 'text-danger fw-bold' : 'text-dark'"
+                            th:text="${r.stock}">0</td>
+                        <td class="text-end fw-semibold"
+                            th:text="${#numbers.formatDecimal(r.costValue, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫</td>
+                        <td class="text-center">
+                            <span th:class="'pill pill-' + ${r.category}" th:text="${r.categoryLabel}">Phân loại</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(rows)}" data-empty>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-3 opacity-25"></i>
+                            Chưa có dữ liệu tồn kho. Hãy nhập hàng trước.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
+                <div class="text-muted small" id="recordInfo"></div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="movementPagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="none">
+        let movePaginator = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            movePaginator = OMSPaginate({
+                tbodyId: 'movementBody',
+                pageSize: 20,
+                paginationId: 'movementPagination',
+                infoId: 'recordInfo',
+                noun: 'sản phẩm'
+            });
+        });
+
+        function changePreset() {
+            const p = document.getElementById('presetSelect').value;
+            window.location.href = window.location.pathname + '?preset=' + p;
+        }
+
+        function filterCat(el) {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            const cat = el.getAttribute('data-cat');
+            document.querySelectorAll('#movementBody tr[data-category]').forEach(row => {
+                const match = (cat === 'ALL') || (row.getAttribute('data-category') === cat);
+                row.setAttribute('data-filtered-out', match ? '0' : '1');
+            });
+            if (movePaginator) movePaginator.refresh();
+        }
+    </script>
+</div>
+</body>
+</html>

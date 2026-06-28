@@ -225,6 +225,17 @@
         let uploadedImages = [];
         let searchTimeout;
 
+        // Tự chọn sẵn Lý do khi mở từ trang Quản lý vốn (vd: ?reason=Nhận vốn góp)
+        document.addEventListener('DOMContentLoaded', function () {
+            const presetReason = new URLSearchParams(window.location.search).get('reason');
+            if (presetReason) {
+                const sel = document.getElementById('reason');
+                if (sel && [...sel.options].some(o => o.value === presetReason)) {
+                    sel.value = presetReason;
+                }
+            }
+        });
+
         async function handleFileUpload(files) {
             for (let file of files) {
                 const formData = new FormData();

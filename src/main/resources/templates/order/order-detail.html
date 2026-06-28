@@ -1,8 +1,14 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
 <head></head>
 <body>
 <div class="oms-container pb-5" style="background-color: #f3f4f6; min-height: 100vh;">
+    <!-- Nhân viên (STAFF) không xem giá vốn / lãi lỗ -->
+    <style th:if="${!isAdmin}">
+        .fin-col { display: none !important; }
+    </style>
     <style>
         .card-custom {
             background: #fff;
@@ -396,7 +402,7 @@
                                 <th style="width: 15%; text-align: center;">Số lượng</th>
                                 <th style="width: 20%; text-align: right;">Đơn giá</th>
                                 <th style="width: 15%; text-align: right;">Thành tiền</th>
-                                <th style="width: 10%; text-align: right;">Lãi/Lỗ</th>
+                                <th style="width: 10%; text-align: right;" class="fin-col">Lãi/Lỗ</th>
                                 <th style="width: 5%;" class="edit-element"></th>
                             </tr>
                             </thead>
@@ -477,7 +483,7 @@
                                 </div>
                             </div>
 
-                            <div class="d-flex justify-content-between mb-3 small text-muted pb-3 border-bottom">
+                            <div class="d-flex justify-content-between mb-3 small text-muted pb-3 border-bottom fin-col">
                                 <span>Tổng Lãi / Lỗ dự kiến</span>
                                 <span class="fw-bold fs-6" id="viewTotalProfit">0₫</span>
                             </div>
@@ -1110,7 +1116,7 @@
                         <td class="text-center align-middle">${qty}</td>
                         <td class="text-end align-middle">${price}</td>
                         <td class="text-end align-middle fw-bold text-dark">${total}</td>
-                        <td class="text-end align-middle fw-bold" style="font-size: 12px;">${profitHtml}</td>
+                        <td class="text-end align-middle fw-bold fin-col" style="font-size: 12px;">${profitHtml}</td>
                         <td class="text-center align-middle edit-element">${btnDel}</td>
                     </tr>
                     ${hasSnRow ? `<tr class="sn-extra-row"><td colspan="6" style="padding-top: 0;">${snBoxHtml}</td></tr>` : ''}`;
@@ -1166,7 +1172,7 @@
                                         <div class="text-muted" style="font-size: 11px;">SKU: ${v.sku}</div>
                                     </div>
                                     <div class="text-end" style="white-space: nowrap;">
-                                        <div class="fw-bold text-dark" style="font-size: 12.5px;">Giá vốn: ${formatMoney(v.costPrice || 0)}</div>
+                                        <div class="fw-bold text-dark fin-col" style="font-size: 12.5px;">Giá vốn: ${formatMoney(v.costPrice || 0)}</div>
                                         <div class="${stockClass}" style="font-size: 11px;"><i class="bi bi-box-seam me-1"></i>Tồn: ${new Intl.NumberFormat('en-US').format(stock)}</div>
                                     </div>
                                 </li>`;

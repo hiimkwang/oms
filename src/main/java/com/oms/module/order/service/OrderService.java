@@ -1,5 +1,8 @@
 package com.oms.module.order.service;
 
+import com.oms.module.cashbook.dto.CashTransactionRequest;
+import com.oms.module.cashbook.entity.CashTransaction;
+import com.oms.module.cashbook.service.CashbookService;
 import com.oms.module.customer.entity.Customer;
 import com.oms.module.customer.service.CustomerService;
 import com.oms.module.inventory.entity.Inventory;
@@ -46,6 +49,7 @@ public class OrderService {
     private final NotificationService notificationService;
     private final ProductVariantRepository variantRepository;
     private final MasterDataService masterDataService;
+    private final CashbookService cashbookService;
 
     // LẤY DANH SÁCH ĐƠN HÀNG
     public List<Order> getAllOrders() {
@@ -86,6 +90,9 @@ public class OrderService {
         applyInventory(savedOrder, savedOrder.getStatus());
         notificationService.create("Đơn hàng mới", "Đơn hàng " + savedOrder.getOrderCode() + " vừa được tạo thành công.", Notification.NotificationType.ORDER, "/ui/orders/detail/" + savedOrder.getOrderCode());
 
+        // 4. GHI SỔ QUỸ phần tiền khách đã trả khi tạo đơn (đơn mới -> tiền cũ = 0)
+        syncSalesCashFlow(savedOrder, BigDecimal.ZERO, DRAFT, savedOrder.getAmountPaid(), savedOrder.getStatus());
+
         return savedOrder;
     }
 
@@ -94,6 +101,7 @@ public class OrderService {
     public Order updateOrder(String orderCode, OrderRequest request) {
         Order order = getOrderByCode(orderCode);
         String oldStatus = order.getStatus();
+        BigDecimal oldPaid = order.getAmountPaid();
         String newStatus = request.getStatus();
 
         // Tự động nhảy sang Đã xác nhận nếu đang sửa từ Nháp -> Tạo đơn
@@ -137,9 +145,27 @@ public class OrderService {
         order.setInvoiceCompanyAddress(request.getInvoiceCompanyAddress());
         order.setDiscountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO);
 
+        // Giữ lại GIÁ VỐN LỊCH SỬ theo SKU trước khi build lại, để sửa đơn không ghi đè
+        // COGS bằng giá vốn hiện tại (tránh bóp méo lợi nhuận đã chốt của đơn cũ).
+        java.util.Map<String, BigDecimal> historicalCostBySku = new java.util.HashMap<>();
+        for (OrderDetail oldDetail : order.getDetails()) {
+            if ((oldDetail.getIsCustom() == null || !oldDetail.getIsCustom())
+                    && oldDetail.getSku() != null && oldDetail.getCostPrice() != null) {
+                historicalCostBySku.putIfAbsent(oldDetail.getSku(), oldDetail.getCostPrice());
+            }
+        }
+
         // Xóa Details cũ, build lại Details mới theo request sửa
         order.getDetails().clear();
         buildOrderDetailsAndCalculateTotal(order, request.getDetails());
+
+        // Khôi phục giá vốn lịch sử cho các dòng đã tồn tại từ trước (dòng mới giữ giá vốn hiện tại)
+        for (OrderDetail detail : order.getDetails()) {
+            if ((detail.getIsCustom() == null || !detail.getIsCustom())
+                    && historicalCostBySku.containsKey(detail.getSku())) {
+                detail.setCostPrice(historicalCostBySku.get(detail.getSku()));
+            }
+        }
 
         if (!COMPLETED.equals(oldStatus) && COMPLETED.equals(newStatus)) {
             for (OrderDetail detail : order.getDetails()) {
@@ -158,7 +184,7 @@ public class OrderService {
                 String translatedStatus = translateStatus(newStatus);
                 notificationService.create("Cập nhật đơn hàng " + order.getOrderCode(), "Đơn hàng đã chuyển sang trạng thái: " + translatedStatus, Notification.NotificationType.ORDER, "/ui/orders/detail/" + order.getOrderCode());
             }
-        } else if (order.getAmountPaid().compareTo(requestPaid) != 0) {
+        } else if ((oldPaid != null ? oldPaid : BigDecimal.ZERO).compareTo(requestPaid) != 0) {
             addActivityLog(order, "Thanh toán", "Cập nhật số tiền đã thanh toán: " + requestPaid + "đ");
         } else {
             addActivityLog(order, "Cập nhật thông tin", "Thay đổi thông tin chi tiết đơn hàng");
@@ -167,19 +193,134 @@ public class OrderService {
         // ÁP DỤNG LẠI TỒN KHO MỚI
         applyInventory(order, newStatus);
 
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+
+        // GHI SỔ QUỸ phần chênh lệch tiền đã thu sau khi sửa đơn (gồm cả trường hợp hủy -> đảo ngược tiền đã thu)
+        syncSalesCashFlow(saved, oldPaid, oldStatus, saved.getAmountPaid(), newStatus);
+
+        return saved;
+    }
+
+    /**
+     * ĐỔI TRẠNG THÁI ĐƠN HÀNG (dùng cho cập nhật hàng loạt).
+     * Chỉ thay đổi trạng thái, giữ nguyên các thông tin khác của đơn.
+     * Mỗi đơn chạy trong 1 transaction riêng -> 1 đơn lỗi không làm hỏng các đơn còn lại.
+     */
+    @Transactional
+    public Order changeStatus(String orderCode, String newStatus) {
+        if (newStatus == null || newStatus.trim().isEmpty()) {
+            throw new RuntimeException("Trạng thái mới không hợp lệ!");
+        }
+        Order order = getOrderByCode(orderCode);
+        String oldStatus = order.getStatus();
+
+        // Tạo đơn -> tự nhảy sang Đã xác nhận (đồng bộ với updateOrder)
+        if (CREATED.equals(newStatus)) {
+            newStatus = CONFIRMED;
+        }
+
+        if (oldStatus != null && oldStatus.equals(newStatus)) {
+            throw new RuntimeException("Đơn " + orderCode + " đã ở trạng thái [" + translateStatus(newStatus) + "]");
+        }
+        if (CANCELLED.equals(oldStatus)) {
+            throw new RuntimeException("Đơn " + orderCode + " đã bị hủy, không thể đổi trạng thái!");
+        }
+        if (COMPLETED.equals(oldStatus) && !CANCELLED.equals(newStatus)) {
+            throw new RuntimeException("Đơn " + orderCode + " đã hoàn thành, chỉ có thể chuyển sang Hủy!");
+        }
+
+        // Nhả kho theo trạng thái cũ rồi áp lại theo trạng thái mới
+        revertInventory(order, oldStatus);
+        order.setStatus(newStatus);
+
+        // Kích hoạt bảo hành khi chuyển sang Hoàn thành
+        if (!COMPLETED.equals(oldStatus) && COMPLETED.equals(newStatus)) {
+            for (OrderDetail detail : order.getDetails()) {
+                if (detail.getWarrantyMonths() != null && detail.getWarrantyMonths() > 0) {
+                    detail.setWarrantyStartDate(LocalDateTime.now());
+                    detail.setWarrantyEndDate(LocalDateTime.now().plusMonths(detail.getWarrantyMonths()));
+                }
+            }
+        }
+
+        addActivityLog(order, "Cập nhật trạng thái", "Chuyển trạng thái từ [" + translateStatus(oldStatus) + "] sang [" + translateStatus(newStatus) + "] (cập nhật hàng loạt)");
+
+        applyInventory(order, newStatus);
+
+        if (CANCELLED.equals(newStatus) || COMPLETED.equals(newStatus)) {
+            notificationService.create("Cập nhật đơn hàng " + order.getOrderCode(), "Đơn hàng đã chuyển sang trạng thái: " + translateStatus(newStatus), Notification.NotificationType.ORDER, "/ui/orders/detail/" + order.getOrderCode());
+        }
+
+        Order saved = orderRepository.save(order);
+
+        // Đổi trạng thái không đổi số tiền đã trả, nhưng "tiền hiệu lực" có thể đổi
+        // (vd: Nháp->Xác nhận có tiền cọc -> ghi THU; *->Hủy -> đảo ngược tiền đã thu).
+        syncSalesCashFlow(saved, saved.getAmountPaid(), oldStatus, saved.getAmountPaid(), newStatus);
+
+        return saved;
     }
 
     // XÓA ĐƠN HÀNG
     @Transactional
     public void deleteOrder(String orderCode) {
         Order order = getOrderByCode(orderCode);
+        // Đảo ngược phần tiền đã ghi nhận vào Sổ quỹ trước khi xóa (coi như chuyển về trạng thái Hủy)
+        syncSalesCashFlow(order, order.getAmountPaid(), order.getStatus(), order.getAmountPaid(), CANCELLED);
         revertInventory(order, order.getStatus());
         orderRepository.delete(order);
     }
 
     public Order getOrderByCode(String orderCode) {
         return orderRepository.findByOrderCode(orderCode).orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode));
+    }
+
+    // ============================================================
+    // GHI SỔ QUỸ TỰ ĐỘNG CHO DÒNG TIỀN BÁN HÀNG
+    // ------------------------------------------------------------
+    // Mỗi khi số tiền KHÁCH ĐÃ TRẢ (amountPaid) của đơn thay đổi, ta ghi đúng phần CHÊNH LỆCH
+    // vào Sổ quỹ: tăng -> phiếu THU, giảm/hủy -> phiếu CHI điều chỉnh. Nhờ vậy "Tiền quỹ" và
+    // "Vốn thực" trên trang Quản lý vốn luôn phản ánh đủ tiền vào, đối xứng với phiếu nhập hàng
+    // (vốn dĩ đã tự sinh phiếu CHI). Đơn Nháp/Hủy coi như chưa thu (tiền hiệu lực = 0).
+    // ============================================================
+
+    /** Số tiền được coi là đã thực thu theo trạng thái đơn (Nháp/Hủy = 0). */
+    private BigDecimal effectivePaid(String status, BigDecimal paid) {
+        if (status == null || DRAFT.equals(status) || CANCELLED.equals(status)) return BigDecimal.ZERO;
+        return paid != null ? paid : BigDecimal.ZERO;
+    }
+
+    private CashTransaction.PaymentMethod mapPaymentMethod(String method) {
+        if (method != null && (method.equalsIgnoreCase("TRANSFER") || method.equalsIgnoreCase("BANK"))) {
+            return CashTransaction.PaymentMethod.BANK;
+        }
+        return CashTransaction.PaymentMethod.CASH;
+    }
+
+    /**
+     * Ghi vào Sổ quỹ phần chênh lệch tiền đã thu của đơn giữa trạng thái cũ và mới.
+     * Chạy trong cùng transaction với thao tác đơn hàng -> nếu đơn rollback thì phiếu quỹ cũng rollback (đảm bảo cân sổ).
+     */
+    private void syncSalesCashFlow(Order order, BigDecimal oldPaid, String oldStatus, BigDecimal newPaid, String newStatus) {
+        BigDecimal oldEff = effectivePaid(oldStatus, oldPaid);
+        BigDecimal newEff = effectivePaid(newStatus, newPaid);
+        BigDecimal delta = newEff.subtract(oldEff);
+        if (delta.signum() == 0) return;
+
+        boolean isReceipt = delta.signum() > 0;
+        CashTransactionRequest req = new CashTransactionRequest();
+        req.setType(isReceipt ? CashTransaction.TransactionType.RECEIPT : CashTransaction.TransactionType.PAYMENT);
+        req.setPaymentMethod(mapPaymentMethod(order.getPaymentMethod()));
+        req.setTargetGroup(CashTransaction.TargetGroup.CUSTOMER);
+        if (order.getCustomer() != null) req.setTargetId(order.getCustomer().getId());
+        req.setAmount(delta.abs());
+        req.setReason(isReceipt ? CashbookService.REASON_SALE_IN : CashbookService.REASON_SALE_ADJUST);
+        req.setDescription((isReceipt ? "Thu tiền đơn hàng " : "Điều chỉnh/hoàn tiền đơn hàng ") + order.getOrderCode());
+        req.setBranchId(order.getBranchId());
+        req.setReferenceCode(order.getOrderCode());
+        req.setTransactionDate(LocalDateTime.now());
+
+        // notify = false: phiếu thu sinh tự động theo từng đơn -> KHÔNG rung chuông để tránh spam thông báo.
+        cashbookService.createTransaction(req, false);
     }
 
     private void buildOrderDetailsAndCalculateTotal(Order order, List<OrderDetailRequest> detailRequests) {
@@ -211,6 +352,10 @@ public class OrderService {
             } else {
                 // Nếu là sản phẩm tùy chỉnh, lấy giá vốn gửi từ Request (thường là 0)
                 costPrice = detailReq.getCostPrice() != null ? detailReq.getCostPrice() : BigDecimal.ZERO;
+                // Chặn giá vốn âm gửi từ client (tránh COGS âm -> lợi nhuận khống)
+                if (costPrice.compareTo(BigDecimal.ZERO) < 0) {
+                    throw new RuntimeException("Giá vốn sản phẩm tùy chỉnh không được âm!");
+                }
             }
 
             BigDecimal unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : BigDecimal.ZERO;
@@ -341,11 +486,10 @@ public class OrderService {
 
             ProductVariant variant = variantRepository.findBySkuForUpdate(detail.getSku()).orElse(null);
             if (variant != null) {
-                Inventory inv = inventoryRepository.findByVariantIdAndBranchIdForUpdate(variant.getId(), branchId).orElse(Inventory.builder().variantId(variant.getId()).branchId(branchId).stock(0).availableStock(0).build());
-
-                if (inv.getAvailableStock() > inv.getStock()) {
-                    inv.setAvailableStock(inv.getStock());
-                }
+                // KHÔNG tạo bản ghi tồn kho mới khi nhả: nếu chi nhánh chưa từng có bản ghi cho SP này
+                // thì việc apply trước đó cũng không thể trừ ở đây -> bỏ qua, tránh tạo tồn kho khống.
+                Inventory inv = inventoryRepository.findByVariantIdAndBranchIdForUpdate(variant.getId(), branchId).orElse(null);
+                if (inv == null) continue;
 
                 // Nhả Có thể bán
                 inv.setAvailableStock(inv.getAvailableStock() + detail.getQuantity());

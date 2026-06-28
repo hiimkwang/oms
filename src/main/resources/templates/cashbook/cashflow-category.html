@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .cf-card { background:#fff; border-radius:10px; border:1px solid #e2e8f0; padding:16px 18px; height:100%; }
+        .cf-label { font-size:13px; color:#64748b; margin-bottom:6px; font-weight:500; }
+        .cf-value { font-size:22px; font-weight:700; line-height:1.2; }
+        .cf-bar { height:6px; border-radius:6px; background:#eef2f7; overflow:hidden; margin-top:6px; }
+        .cf-bar > span { display:block; height:100%; border-radius:6px; }
+        table.cf-table td, table.cf-table th { padding:10px 8px; font-size:13px; vertical-align:middle; border-bottom:1px solid #f0f0f0; }
+        table.cf-table th { color:#4b566b; font-weight:600; background:#f8f9fb; white-space:nowrap; }
+        .text-in { color:#10b981; } .text-out { color:#ef4444; }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-3 pt-2">
+        <div>
+            <h4 class="fw-bold mb-0 text-dark">Báo cáo Thu / Chi theo loại</h4>
+            <div class="text-muted small mt-1">Xem tiền vào/ra theo từng nhóm lý do. Gõ từ khóa (vd "Quảng cáo") để bóc tách khoản cụ thể.</div>
+        </div>
+        <a href="/ui/cashbook" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Về Sổ quỹ</a>
+    </div>
+
+    <!-- BỘ LỌC -->
+    <form method="get" action="/ui/cashbook/by-category" class="card border-0 shadow-sm p-3 mb-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Khoảng thời gian</label>
+                <select name="preset" class="form-select form-select-sm" onchange="toggleCustom(this.value)">
+                    <option value="today" th:selected="${preset=='today'}">Hôm nay</option>
+                    <option value="last7days" th:selected="${preset=='last7days'}">7 ngày qua</option>
+                    <option value="thisMonth" th:selected="${preset=='thisMonth'}">Tháng này</option>
+                    <option value="lastMonth" th:selected="${preset=='lastMonth'}">Tháng trước</option>
+                    <option value="thisYear" th:selected="${preset=='thisYear'}">Năm nay</option>
+                    <option value="custom" th:selected="${preset=='custom'}">Tùy chọn...</option>
+                </select>
+            </div>
+            <div class="col-md-3 cf-custom" th:classappend="${preset=='custom'} ? '' : 'd-none'">
+                <label class="form-label small text-muted mb-1">Từ ngày → Đến ngày</label>
+                <div class="d-flex gap-1">
+                    <input type="datetime-local" name="start" class="form-control form-control-sm"
+                           th:value="${startDate != null ? #temporals.format(startDate,'yyyy-MM-dd''T''HH:mm') : ''}">
+                    <input type="datetime-local" name="end" class="form-control form-control-sm"
+                           th:value="${endDate != null ? #temporals.format(endDate,'yyyy-MM-dd''T''HH:mm') : ''}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Tìm theo nội dung (lý do / mô tả)</label>
+                <input type="text" name="keyword" th:value="${keyword}" class="form-control form-control-sm" placeholder="VD: Quảng cáo, Bao bì, Shopee...">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Chi nhánh</label>
+                <select name="branchId" class="form-select form-select-sm">
+                    <option value="">Tất cả</option>
+                    <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}" th:selected="${selectedBranch != null and selectedBranch == b.id}"></option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-primary btn-sm w-100"><i class="bi bi-funnel"></i></button>
+            </div>
+        </div>
+    </form>
+
+    <!-- TỔNG QUAN -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="cf-card">
+                <div class="cf-label">Tổng thu trong kỳ</div>
+                <div class="cf-value text-in" th:text="${#numbers.formatDecimal(report.totalIn,0,'COMMA',0,'POINT')} + '₫'">0₫</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="cf-card">
+                <div class="cf-label">Tổng chi trong kỳ</div>
+                <div class="cf-value text-out" th:text="${#numbers.formatDecimal(report.totalOut,0,'COMMA',0,'POINT')} + '₫'">0₫</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="cf-card" style="background:#f5f9ff;border-color:#bfdbfe;">
+                <div class="cf-label">Chênh lệch (Thu − Chi)</div>
+                <div class="cf-value" th:classappend="${report.net.signum() >= 0} ? 'text-in' : 'text-out'"
+                     th:text="${(report.net.signum()>0?'+':'') + #numbers.formatDecimal(report.net,0,'COMMA',0,'POINT')} + '₫'">0₫</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KẾT QUẢ TÌM THEO TỪ KHÓA -->
+    <div th:if="${keyword != null and !keyword.isEmpty()}" class="card border-0 shadow-sm mb-3" style="border-left:4px solid #6366f1 !important;">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                <div class="fw-bold">Khoản khớp với từ khóa: “<span class="text-primary" th:text="${keyword}"></span>”
+                    <span class="text-muted small" th:text="'(' + ${report.matched.size()} + ' phiếu)'"></span></div>
+                <div class="small">
+                    <span class="me-3">Đã chi: <b class="text-out" th:text="${#numbers.formatDecimal(report.matchedOut,0,'COMMA',0,'POINT')} + '₫'">0₫</b></span>
+                    <span>Đã thu: <b class="text-in" th:text="${#numbers.formatDecimal(report.matchedIn,0,'COMMA',0,'POINT')} + '₫'">0₫</b></span>
+                </div>
+            </div>
+            <div class="table-responsive" th:if="${!report.matched.isEmpty()}">
+                <table class="table cf-table mb-0">
+                    <thead><tr><th>Mã phiếu</th><th>Ngày</th><th>Lý do</th><th>Diễn giải</th><th class="text-end">Số tiền</th></tr></thead>
+                    <tbody>
+                    <tr th:each="t : ${report.matched}">
+                        <td><a th:href="@{/ui/cashbook/detail/{id}(id=${t.id})}" class="text-decoration-none fw-bold" th:text="${t.code}"></a></td>
+                        <td class="text-muted" th:text="${#temporals.format(t.transactionDate,'dd/MM/yyyy')}"></td>
+                        <td th:text="${t.reason}"></td>
+                        <td class="text-muted" th:text="${t.description}"></td>
+                        <td class="text-end fw-bold" th:classappend="${t.type.name()=='RECEIPT'} ? 'text-in' : 'text-out'"
+                            th:text="${(t.type.name()=='RECEIPT'?'+':'-') + #numbers.formatDecimal(t.amount,0,'COMMA',0,'POINT')} + '₫'"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div th:if="${report.matched.isEmpty()}" class="text-muted small">Không có phiếu nào khớp trong kỳ đã chọn.</div>
+        </div>
+    </div>
+
+    <!-- THEO LOẠI -->
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white fw-bold"><i class="bi bi-arrow-down-circle text-success me-2"></i>Tiền THU theo loại</div>
+                <div class="card-body p-0">
+                    <table class="table cf-table mb-0">
+                        <thead><tr><th>Loại (lý do)</th><th class="text-center">Số phiếu</th><th class="text-end">Số tiền</th><th style="width:90px">Tỉ trọng</th></tr></thead>
+                        <tbody>
+                        <tr th:each="l : ${report.receiptLines}">
+                            <td th:text="${l.reason}"></td>
+                            <td class="text-center text-muted" th:text="${l.count}"></td>
+                            <td class="text-end fw-bold text-in" th:text="${#numbers.formatDecimal(l.amount,0,'COMMA',0,'POINT')} + '₫'"></td>
+                            <td>
+                                <div class="small text-muted" th:text="${l.percent} + '%'"></div>
+                                <div class="cf-bar"><span th:style="'width:' + ${l.percent} + '%;background:#10b981;'"></span></div>
+                            </td>
+                        </tr>
+                        <tr th:if="${report.receiptLines.isEmpty()}"><td colspan="4" class="text-center text-muted py-4">Không có khoản thu nào.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white fw-bold"><i class="bi bi-arrow-up-circle text-danger me-2"></i>Tiền CHI theo loại</div>
+                <div class="card-body p-0">
+                    <table class="table cf-table mb-0">
+                        <thead><tr><th>Loại (lý do)</th><th class="text-center">Số phiếu</th><th class="text-end">Số tiền</th><th style="width:90px">Tỉ trọng</th></tr></thead>
+                        <tbody>
+                        <tr th:each="l : ${report.paymentLines}">
+                            <td th:text="${l.reason}"></td>
+                            <td class="text-center text-muted" th:text="${l.count}"></td>
+                            <td class="text-end fw-bold text-out" th:text="${#numbers.formatDecimal(l.amount,0,'COMMA',0,'POINT')} + '₫'"></td>
+                            <td>
+                                <div class="small text-muted" th:text="${l.percent} + '%'"></div>
+                                <div class="cf-bar"><span th:style="'width:' + ${l.percent} + '%;background:#ef4444;'"></span></div>
+                            </td>
+                        </tr>
+                        <tr th:if="${report.paymentLines.isEmpty()}"><td colspan="4" class="text-center text-muted py-4">Không có khoản chi nào.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        function toggleCustom(v){
+            document.querySelectorAll('.cf-custom').forEach(function(el){
+                el.classList.toggle('d-none', v !== 'custom');
+            });
+        }
+    </script>
+</div>
+</body>
+</html>

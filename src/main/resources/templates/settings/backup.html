@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::div.setting-wrapper})}">
+<body>
+<div class="setting-wrapper">
+    <style>
+        .card-title-custom {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .table-custom th {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            background-color: #f8fafc;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table-custom td {
+            font-size: 13px;
+            color: #1e293b;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+    </style>
+
+    <div class="row g-4">
+        <div th:replace="~{settings/settings-sidebar :: sidebar}"></div>
+
+        <div class="col-md-9">
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="card-title-custom mb-0"><i class="bi bi-database-down text-primary me-2"></i>Sao lưu dữ
+                        liệu</h5>
+                    <button class="btn btn-primary btn-sm fw-bold px-3 shadow-sm" id="backupNowBtn"
+                            onclick="runBackup()">
+                        <i class="bi bi-cloud-arrow-down me-1"></i> Sao lưu ngay
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="alert small d-flex gap-2 mb-0"
+                         th:classappend="${backupEnabled} ? 'alert-success' : 'alert-warning'">
+                        <i class="bi bi-info-circle fs-5"></i>
+                        <div>
+                            <span th:if="${backupEnabled}">Tự động sao lưu <b>đang bật</b> — hệ thống sẽ tự sao lưu hằng
+                                ngày (mặc định 1h sáng).</span>
+                            <span th:unless="${backupEnabled}">Tự động sao lưu <b>đang tắt</b>. Bật lại bằng
+                                <code>app.backup.enabled=true</code> trong cấu hình.</span>
+                            <br>Thư mục lưu: <code th:text="${backupDir}">backups</code>.
+                            Cần cài sẵn <code>mysqldump</code> (đi kèm MySQL) trên máy chạy server.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="card-title-custom mb-0"><i class="bi bi-clock-history text-secondary me-2"></i>Các bản sao
+                        lưu gần đây</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-custom mb-0">
+                            <thead>
+                            <tr>
+                                <th>Tên file</th>
+                                <th>Dung lượng</th>
+                                <th>Thời gian</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(backups)}">
+                                <td colspan="3" class="text-center text-muted py-4">Chưa có bản sao lưu nào.</td>
+                            </tr>
+                            <tr th:each="b : ${backups}">
+                                <td class="fw-medium text-dark"><i class="bi bi-file-earmark-zip text-muted me-2"></i>
+                                    <span th:text="${b.name}"></span></td>
+                                <td th:text="${b.sizeKb} + ' KB'"></td>
+                                <td class="text-muted"
+                                    th:text="${#temporals.format(b.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="none">
+        async function runBackup() {
+            const btn = document.getElementById('backupNowBtn');
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang sao lưu...';
+            try {
+                const res = await fetch('/api/v1/settings/backup/run', {method: 'POST'});
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    await Swal.fire({
+                        title: 'Sao lưu thành công!',
+                        html: `File: <b>${data.fileName}</b><br>Dung lượng: ${data.sizeKb} KB`,
+                        icon: 'success'
+                    });
+                    window.location.reload();
+                } else {
+                    Swal.fire({title: 'Sao lưu thất bại', text: data.message || 'Lỗi không xác định', icon: 'error'});
+                }
+            } catch (e) {
+                Swal.fire({title: 'Lỗi', text: 'Không kết nối được máy chủ.', icon: 'error'});
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

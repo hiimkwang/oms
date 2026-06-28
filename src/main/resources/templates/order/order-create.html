@@ -1,8 +1,14 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
 <head></head>
 <body>
 <div class="oms-container pb-5" style="background-color: #f3f4f6;">
+    <!-- Nhân viên (STAFF) không xem giá vốn / lãi lỗ -->
+    <style th:if="${!isAdmin}">
+        .fin-col { display: none !important; }
+    </style>
     <style>
         .card-title-custom {
             font-size: 15px;
@@ -183,7 +189,7 @@
                         <div class="search-wrapper">
                             <span class="ps-3 text-muted"><i class="bi bi-search"></i></span>
                             <input type="text" id="productSearchInput" class="form-control form-control-custom w-100"
-                                   placeholder="Tìm theo tên, mã SKU... (F3)" autocomplete="off">
+                                   placeholder="Tìm theo tên, mã SKU hoặc quét mã vạch rồi Enter..." autocomplete="off">
                         </div>
                         <ul class="dropdown-menu w-100 shadow border mt-1 p-0 position-absolute custom-dropdown-list"
                             id="productDropdownList"></ul>
@@ -198,7 +204,7 @@
                                     <th style="width: 10%; text-align: center;">Số lượng</th>
                                     <th style="width: 15%; text-align: right;">Đơn giá</th>
                                     <th style="width: 15%; text-align: right;">Thành tiền</th>
-                                    <th style="width: 13%; text-align: right;">Lãi/Lỗ</th>
+                                    <th style="width: 13%; text-align: right;" class="fin-col">Lãi/Lỗ</th>
                                     <th style="width: 5%;"></th>
                                 </tr>
                                 </thead>
@@ -731,6 +737,15 @@
                 productTimeout = setTimeout(() => searchProducts(e.target.value), 300);
             });
 
+            // QUÉT MÃ VẠCH: máy quét gõ SKU rồi gửi Enter -> tìm đúng SKU và thêm thẳng vào giỏ
+            productInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const code = e.target.value.trim();
+                    if (code) addBySkuScan(code);
+                }
+            });
+
             customerInput.addEventListener('input', e => {
                 clearTimeout(customerTimeout);
                 customerTimeout = setTimeout(() => searchCustomers(e.target.value), 300);
@@ -769,13 +784,54 @@
                                 <div class="text-muted" style="font-size: 11px;">${v.variantName ? v.variantName + ' - ' : ''}SKU: ${v.sku}</div>
                             </div>
                             <div class="text-end" style="white-space: nowrap;">
-                                <div class="fw-bold text-dark" style="font-size: 12.5px;">Giá vốn: ${formatMoney(v.costPrice || 0)}</div>
+                                <div class="fw-bold text-dark fin-col" style="font-size: 12.5px;">Giá vốn: ${formatMoney(v.costPrice || 0)}</div>
                                 <div class="${stockClass}" style="font-size: 11px;"><i class="bi bi-box-seam me-1"></i>Tồn: ${new Intl.NumberFormat('en-US').format(stock)}</div>
                             </div>
                         </li>`;
                 });
                 listEl.innerHTML = html || '<li class="p-3 text-muted text-center small">Không tìm thấy</li>';
             } catch (error) {
+            }
+        }
+
+        // Thêm sản phẩm vào giỏ bằng cách quét/nhập đúng mã SKU rồi Enter
+        async function addBySkuScan(code) {
+            try {
+                const res = await fetch('/api/v1/products/variants/search?keyword=' + encodeURIComponent(code));
+                const results = await res.json();
+                // Ưu tiên khớp CHÍNH XÁC mã SKU (không phân biệt hoa thường)
+                let v = (results || []).find(x => (x.sku || '').toLowerCase() === code.toLowerCase());
+                // Nếu chỉ có đúng 1 kết quả thì lấy luôn
+                if (!v && results && results.length === 1) v = results[0];
+
+                if (!v) {
+                    Toast.fire({icon: 'error', title: 'Không tìm thấy SKU: ' + code});
+                    return;
+                }
+
+                const idx = cart.findIndex(item => item.sku === v.sku && !item.isCustom);
+                if (idx > -1) {
+                    cart[idx].quantity += 1;
+                } else {
+                    cart.push({
+                        sku: v.sku,
+                        name: v.productName + (v.variantName ? ' - ' + v.variantName : ''),
+                        price: v.price || 0,
+                        costPrice: v.costPrice || 0,
+                        quantity: 1,
+                        stock: v.stockQuantity || v.stock || 0,
+                        imageUrl: v.imageUrl || null,
+                        note: "",
+                        isCustom: false,
+                        showWarranty: false
+                    });
+                }
+                document.getElementById('productDropdownList').classList.remove('show');
+                document.getElementById('productSearchInput').value = '';
+                Toast.fire({icon: 'success', title: 'Đã thêm: ' + v.productName});
+                renderCart();
+            } catch (err) {
+                Toast.fire({icon: 'error', title: 'Lỗi khi quét SKU!'});
             }
         }
 
@@ -989,7 +1045,7 @@
                         <input type="text" class="form-control form-control-sm text-end px-1 shadow-none w-100" style="font-size: 12px;" value="${new Intl.NumberFormat('en-US').format(item.price)}" oninput="formatNumberInput(this)" onchange="cart[${index}].price=parseNumber(this.value); renderCart()">
                     </td>
                     <td class="text-end fw-bold text-dark align-middle" style="font-size: 12.5px;">${formatMoney(lineTotal)}</td>
-                    <td class="text-end fw-bold ${profitColor} align-middle" style="font-size: 12px;">${profitSign}${formatMoney(lineProfit)}</td>
+                    <td class="text-end fw-bold fin-col ${profitColor} align-middle" style="font-size: 12px;">${profitSign}${formatMoney(lineProfit)}</td>
                     <td class="text-center align-middle"><i class="bi bi-trash text-danger cursor-pointer fs-6" onclick="removeCartItem(${index})"></i></td>
                 </tr>
                 ${hasSnRow ? `<tr class="sn-extra-row"><td colspan="6" class="px-3" style="padding-top: 0;">${warrantyHtml}</td></tr>` : ''}`;

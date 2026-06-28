@@ -199,12 +199,13 @@
 
         <div class="card-header bg-white border-0 p-0">
             <ul class="nav nav-tabs nav-tabs-custom border-bottom px-3" id="cashbookTabs">
-                <li class="nav-item"><a class="nav-link" th:classappend="${param.type == null} ? 'active'"
+                <li class="nav-item"><a class="nav-link" style="cursor:pointer"
+                                        th:classappend="${param.type == null} ? 'active'"
                                         onclick="applyFilters('ALL')">Tất cả giao dịch</a></li>
-                <li class="nav-item"><a class="nav-link"
+                <li class="nav-item"><a class="nav-link" style="cursor:pointer"
                                         th:classappend="${param.type != null and param.type[0] == 'RECEIPT'} ? 'active'"
                                         onclick="applyFilters('RECEIPT')">Phiếu thu</a></li>
-                <li class="nav-item"><a class="nav-link"
+                <li class="nav-item"><a class="nav-link" style="cursor:pointer"
                                         th:classappend="${param.type != null and param.type[0] == 'PAYMENT'} ? 'active'"
                                         onclick="applyFilters('PAYMENT')">Phiếu chi</a></li>
             </ul>
@@ -254,6 +255,12 @@
                             Lọc
                         </button>
                     </div>
+
+                    <select class="form-select filter-btn w-auto" id="reasonFilter" onchange="applyFilters()">
+                        <option value="">Tất cả lý do</option>
+                        <option th:each="r : ${reasons}" th:value="${r}" th:text="${r}"
+                                th:selected="${param.reason != null and param.reason[0] == r}"></option>
+                    </select>
 
                     <select class="form-select filter-btn w-auto" id="branchFilter" onchange="applyFilters()">
                         <option value="ALL">Tất cả chi nhánh</option>
@@ -362,7 +369,7 @@
         document.addEventListener("DOMContentLoaded", function () {
             const urlParams = new URLSearchParams(window.location.search);
             // Nếu không có bất kỳ param lọc nào trên URL -> Tự động redirect để lọc theo tháng này
-            if (!urlParams.has('preset') && !urlParams.has('start') && !urlParams.has('keyword') && !urlParams.has('type')) {
+            if (!urlParams.has('preset') && !urlParams.has('start') && !urlParams.has('keyword') && !urlParams.has('type') && !urlParams.has('view')) {
                 urlParams.set('preset', 'thisMonth');
                 window.location.replace(window.location.pathname + '?' + urlParams.toString());
             }
@@ -403,13 +410,15 @@
         function applyFilters(overrideTabType) {
             const keyword = document.getElementById('txSearchInput').value.trim();
             const branchId = document.getElementById('branchFilter').value;
+            const reason = document.getElementById('reasonFilter').value;
             const preset = document.getElementById('datePreset').value;
 
             const params = new URLSearchParams(window.location.search);
 
-            // Xử lý Search & Chi nhánh
+            // Xử lý Search & Chi nhánh & Lý do
             if (keyword) params.set('keyword', keyword); else params.delete('keyword');
             if (branchId && branchId !== 'ALL') params.set('branchId', branchId); else params.delete('branchId');
+            if (reason) params.set('reason', reason); else params.delete('reason');
 
             // Xử lý Tabs
             if (overrideTabType !== undefined) {

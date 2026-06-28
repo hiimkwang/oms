@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
 <head></head>
 <body>
 <div class="oms-container pb-5">
@@ -254,7 +256,7 @@
                                         </th>
                                         <th class="pb-2 fw-semibold">SKU</th>
                                         <th class="pb-2 fw-semibold text-center">Tồn kho</th>
-                                        <th class="pb-2 fw-semibold text-end">Giá vốn</th>
+                                        <th class="pb-2 fw-semibold text-end" th:if="${isAdmin}">Giá vốn</th>
                                         <th class="pb-2 fw-semibold text-end pe-4">Giá bán</th>
                                     </tr>
                                     </thead>
@@ -276,7 +278,7 @@
                                         <td class="text-center fw-bold"
                                             th:classappend="${v.actualStock > 0 ? 'text-success' : 'text-danger'}"
                                             th:text="${v.actualStock}"></td>
-                                        <td class="text-end text-secondary"
+                                        <td class="text-end text-secondary" th:if="${isAdmin}"
                                             th:text="${v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') + ' đ' : '---'}"></td>
                                         <td class="text-dark fw-bold text-end pe-4"
                                             th:text="${v.price != null ? #numbers.formatDecimal(v.price, 0, 'COMMA', 0, 'POINT') + ' đ' : '---'}"></td>

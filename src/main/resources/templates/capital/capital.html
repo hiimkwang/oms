@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .cap-card {
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            padding: 18px 20px;
+            height: 100%;
+        }
+
+        .cap-label {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 6px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cap-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.2;
+        }
+
+        .cap-sub {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 6px;
+        }
+
+        .cap-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .table-custom thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-top: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            padding: 12px 10px;
+            white-space: nowrap;
+        }
+
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 12px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .text-in {
+            color: #10b981 !important;
+            font-weight: 600;
+        }
+
+        .text-out {
+            color: #ef4444 !important;
+            font-weight: 600;
+        }
+
+        .pill {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .pill-in {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .pill-out {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <div>
+            <h4 class="fw-bold mb-0 text-dark">Quản lý vốn</h4>
+            <div class="text-muted small mt-1">Theo dõi vốn đã góp, vốn đã rút và vốn đang nằm trong hàng hóa & tiền quỹ</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:href="@{/ui/cashbook/receipt/create(reason='Nhận vốn góp')}"
+               class="btn btn-success fw-bold px-3 shadow-sm">
+                <i class="bi bi-box-arrow-in-down me-2"></i>Góp vốn
+            </a>
+            <a th:href="@{/ui/cashbook/payment/create(reason='Rút vốn')}"
+               class="btn btn-outline-danger fw-bold px-3 shadow-sm">
+                <i class="bi bi-box-arrow-up me-2"></i>Rút vốn
+            </a>
+        </div>
+    </div>
+
+    <!-- CẢNH BÁO QUỸ ÂM -->
+    <div th:if="${summary.fundBalance.signum() < 0}" class="alert alert-danger d-flex align-items-start gap-2 mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+        <div>
+            <b>Tiền quỹ đang ÂM</b> (<span th:text="${#numbers.formatDecimal(summary.fundBalance,0,'COMMA',0,'POINT')} + '₫'"></span>).
+            Thường do <b>tiền vốn bạn tự bỏ vào chưa được ghi nhận</b>. Hãy bấm <b>Góp vốn</b> để ghi các khoản đã bỏ vào,
+            và đảm bảo mỗi đơn bán đều được đánh dấu đã thanh toán để hệ thống ghi phiếu thu.
+        </div>
+    </div>
+
+    <!-- HÀNG 1: DÒNG VỐN GÓP / RÚT -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="cap-card">
+                <div class="cap-label"><span class="cap-icon bg-success-subtle text-success"><i
+                        class="bi bi-arrow-down-circle"></i></span> Tổng vốn đã góp
+                </div>
+                <div class="cap-value text-success"
+                     th:text="${#numbers.formatDecimal(summary.totalContributed, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+                <div class="cap-sub">Tiền bạn đã bỏ vào để kinh doanh</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="cap-card">
+                <div class="cap-label"><span class="cap-icon bg-danger-subtle text-danger"><i
+                        class="bi bi-arrow-up-circle"></i></span> Tổng vốn / lợi nhuận đã rút
+                </div>
+                <div class="cap-value text-danger"
+                     th:text="${#numbers.formatDecimal(summary.totalWithdrawn, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+                <div class="cap-sub">Tiền đã rút ra khỏi hoạt động kinh doanh</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="cap-card" style="border-color:#bfdbfe; background:#f5f9ff;">
+                <div class="cap-label"><span class="cap-icon bg-primary-subtle text-primary"><i
+                        class="bi bi-piggy-bank"></i></span> Vốn ròng đã bỏ vào
+                </div>
+                <div class="cap-value text-primary"
+                     th:text="${#numbers.formatDecimal(summary.netCapital, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+                <div class="cap-sub">= Đã góp − Đã rút</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HÀNG 2: TÀI SẢN & CÔNG NỢ -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="cap-card">
+                <div class="cap-label"><span class="cap-icon bg-info-subtle text-info"><i
+                        class="bi bi-wallet2"></i></span> Tiền quỹ hiện có
+                </div>
+                <div class="cap-value"
+                     th:text="${#numbers.formatDecimal(summary.fundBalance, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+                <div class="cap-sub">
+                    TM: <span
+                        th:text="${#numbers.formatDecimal(summary.cashBalance, 0, 'COMMA', 0, 'POINT') + '₫'}"></span>
+                    · NH: <span
+                        th:text="${#numbers.formatDecimal(summary.bankBalance, 0, 'COMMA', 0, 'POINT') + '₫'}"></span>
+                </div>
+                <div class="cap-sub" th:if="${summary.salesReceived != null}">
+                    <i class="bi bi-bag-check text-success"></i> Đã thu bán hàng:
+                    <b th:text="${#numbers.formatDecimal(summary.salesReceived, 0, 'COMMA', 0, 'POINT') + '₫'}"></b>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cap-card">
+                <div class="cap-label"><span class="cap-icon bg-warning-subtle text-warning"><i
+                        class="bi bi-boxes"></i></span> Vốn nằm trong tồn kho
+                </div>
+                <div class="cap-value"
+                     th:text="${#numbers.formatDecimal(summary.inventoryValue, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+                <div class="cap-sub">Giá trị hàng tồn theo giá vốn</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cap-card">
+                <div class="cap-label"><span class="cap-icon bg-info-subtle text-info"><i
+                        class="bi bi-arrow-down-left-square"></i></span> Khách còn nợ (phải thu)
+                </div>
+                <div class="cap-value text-info"
+                     th:text="${#numbers.formatDecimal(summary.receivables, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+                <div class="cap-sub">Tiền hàng khách chưa trả</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="cap-card">
+                <div class="cap-label"><span class="cap-icon bg-danger-subtle text-danger"><i
+                        class="bi bi-arrow-up-right-square"></i></span> Nợ NCC (phải trả)
+                </div>
+                <div class="cap-value text-danger"
+                     th:text="${#numbers.formatDecimal(summary.payables, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+                <div class="cap-sub">Tiền nhập hàng chưa trả NCC</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CƠ CẤU TÀI SẢN -->
+    <div class="row g-3 mb-3" th:with="totAsset=${summary.inventoryValue.add(summary.receivables).add(summary.fundBalance.signum() > 0 ? summary.fundBalance : T(java.math.BigDecimal).ZERO)}">
+        <div class="col-12">
+            <div class="cap-card">
+                <div class="cap-label"><span class="cap-icon bg-primary-subtle text-primary"><i class="bi bi-pie-chart"></i></span> Cơ cấu tài sản hiện có</div>
+                <div th:if="${totAsset.signum() > 0}">
+                    <!-- Thanh xếp chồng -->
+                    <div style="display:flex;height:14px;border-radius:8px;overflow:hidden;margin:10px 0 14px;background:#eef2f7">
+                        <div th:if="${summary.fundBalance.signum() > 0}"
+                             th:style="'background:#06b6d4;width:' + ${summary.fundBalance.doubleValue() / totAsset.doubleValue() * 100} + '%'"></div>
+                        <div th:if="${summary.inventoryValue.signum() > 0}"
+                             th:style="'background:#f59e0b;width:' + ${summary.inventoryValue.doubleValue() / totAsset.doubleValue() * 100} + '%'"></div>
+                        <div th:if="${summary.receivables.signum() > 0}"
+                             th:style="'background:#3b82f6;width:' + ${summary.receivables.doubleValue() / totAsset.doubleValue() * 100} + '%'"></div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-4 small">
+                        <span><i class="bi bi-square-fill" style="color:#06b6d4"></i> Tiền quỹ:
+                            <b th:text="${#numbers.formatDecimal(summary.fundBalance,0,'COMMA',0,'POINT') + '₫'}"></b></span>
+                        <span><i class="bi bi-square-fill" style="color:#f59e0b"></i> Tồn kho:
+                            <b th:text="${#numbers.formatDecimal(summary.inventoryValue,0,'COMMA',0,'POINT') + '₫'}"></b></span>
+                        <span><i class="bi bi-square-fill" style="color:#3b82f6"></i> Phải thu:
+                            <b th:text="${#numbers.formatDecimal(summary.receivables,0,'COMMA',0,'POINT') + '₫'}"></b></span>
+                    </div>
+                </div>
+                <div th:unless="${totAsset.signum() > 0}" class="text-muted small mt-2">Chưa đủ dữ liệu để vẽ cơ cấu tài sản.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HÀNG 3: VỐN THỰC & CHÊNH LỆCH -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="cap-card" style="border-color:#bfdbfe; background:#f5f9ff;">
+                <div class="cap-label"><span class="cap-icon bg-primary-subtle text-primary"><i
+                        class="bi bi-bank"></i></span> Vốn thực hiện có
+                </div>
+                <div class="cap-value text-primary"
+                     th:text="${#numbers.formatDecimal(summary.netWorth, 0, 'COMMA', 0, 'POINT') + '₫'}">0₫
+                </div>
+                <div class="cap-sub">= Tiền quỹ + Tồn kho + Phải thu − Phải trả</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="cap-card"
+                 th:style="${summary.growth.signum() >= 0} ? 'border-color:#bbf7d0;background:#f0fdf4;' : 'border-color:#fecaca;background:#fef2f2;'">
+                <div class="cap-label"><span class="cap-icon"
+                                             th:classappend="${summary.growth.signum() >= 0} ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'"><i
+                        class="bi bi-graph-up-arrow"></i></span> Chênh lệch vs vốn ròng đã bỏ ra
+                </div>
+                <div class="cap-value"
+                     th:classappend="${summary.growth.signum() >= 0} ? 'text-success' : 'text-danger'"
+                     th:text="${(summary.growth.signum() > 0 ? '+' : '') + #numbers.formatDecimal(summary.growth, 0, 'COMMA', 0, 'POINT') + '₫'}">
+                    0₫
+                </div>
+                <div class="cap-sub" th:if="${summary.growth.signum() >= 0}">Vốn thực đang lớn hơn vốn bỏ ra 👍 (làm ăn có
+                    tích lũy)
+                </div>
+                <div class="cap-sub text-danger" th:unless="${summary.growth.signum() >= 0}">Cảnh báo: vốn thực đang nhỏ
+                    hơn vốn bỏ ra — vốn bị hao hụt!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-light border small d-flex gap-2 mb-4" role="alert">
+        <i class="bi bi-info-circle text-primary fs-5"></i>
+        <div>
+            <b>Cách hoạt động:</b> Mỗi lần bỏ thêm tiền vào kinh doanh, hãy bấm <b>Góp vốn</b> (ghi phiếu thu lý do
+            "Nhận vốn góp"). Mỗi lần lấy tiền ra dùng việc riêng, hãy bấm <b>Rút vốn</b> (ghi phiếu chi lý do "Rút vốn").
+            Nhờ vậy bạn luôn biết chính xác mình đã bỏ vào / rút ra bao nhiêu. <b>Vốn thực</b> đã tính cả tiền khách còn
+            nợ và trừ tiền mình nợ nhà cung cấp, nên phản ánh sát nhất số vốn thực tế bạn đang có.
+        </div>
+    </div>
+
+    <!-- SỔ GHI NHẬN GÓP / RÚT VỐN -->
+    <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+        <div class="card-header bg-white border-bottom py-3 px-3">
+            <span class="fw-bold text-dark"><i class="bi bi-journal-text me-2"></i>Lịch sử góp / rút vốn</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="min-height: 300px;">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th class="ps-4">Mã phiếu</th>
+                        <th>Ngày</th>
+                        <th>Loại</th>
+                        <th>Người thực hiện</th>
+                        <th>Diễn giải</th>
+                        <th class="text-end pe-4">Số tiền</th>
+                    </tr>
+                    </thead>
+                    <tbody id="capitalTableBody">
+                    <tr th:each="t : ${transactions}">
+                        <td class="ps-4">
+                            <a th:href="@{/ui/cashbook/detail/{id}(id=${t.id})}"
+                               class="text-primary fw-bold text-decoration-none" th:text="${t.code}"></a>
+                        </td>
+                        <td class="text-muted" th:text="${#temporals.format(t.transactionDate, 'dd/MM/yyyy HH:mm')}"></td>
+                        <td>
+                            <span th:if="${t.type.name() == 'RECEIPT'}" class="pill pill-in">Góp vốn</span>
+                            <span th:unless="${t.type.name() == 'RECEIPT'}" class="pill pill-out">Rút vốn</span>
+                        </td>
+                        <td class="text-dark" th:text="${t.creatorName ?: '---'}"></td>
+                        <td class="text-muted" th:text="${t.description ?: '---'}"></td>
+                        <td class="text-end fw-bold pe-4"
+                            th:classappend="${t.type.name() == 'RECEIPT' ? 'text-in' : 'text-out'}"
+                            th:text="${(t.type.name() == 'RECEIPT' ? '+' : '-') + #numbers.formatDecimal(t.amount, 0, 'COMMA', 0, 'POINT') + '₫'}">
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(transactions)}" data-empty>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-3 opacity-25"></i>
+                            Chưa có giao dịch góp / rút vốn nào. Bấm "Góp vốn" để bắt đầu ghi nhận.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
+                <div class="text-muted small" id="recordInfo"></div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="capitalPagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            OMSPaginate({
+                tbodyId: 'capitalTableBody',
+                pageSize: 20,
+                paginationId: 'capitalPagination',
+                infoId: 'recordInfo',
+                noun: 'giao dịch'
+            });
+        });
+    </script>
+</div>
+</body>
+</html>

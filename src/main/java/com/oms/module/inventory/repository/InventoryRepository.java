@@ -60,4 +60,18 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     @Query("SELECT SUM(i.stock) FROM Inventory i JOIN ProductVariant v ON i.variantId = v.id WHERE v.sku = :sku")
     Integer getTotalStockBySku(@Param("sku") String sku);
+
+    // BÁO CÁO BÁN CHẠY / TỒN ĐỌNG: tất cả biến thể đã từng nhập kho kèm tổng tồn & giá vốn
+    @Query("SELECT v.sku, p.name, v.variantName, COALESCE(SUM(i.stock), 0), v.costPrice, v.imageUrl " +
+            "FROM Inventory i JOIN ProductVariant v ON i.variantId = v.id JOIN v.product p " +
+            "GROUP BY v.id, v.sku, p.name, v.variantName, v.costPrice, v.imageUrl")
+    List<Object[]> findAllStockedVariants();
+
+    // CẢNH BÁO TỒN KHO THẤP: các biến thể (đã từng nhập kho) có tổng tồn <= ngưỡng
+    @Query("SELECT v.sku, p.name, v.variantName, COALESCE(SUM(i.stock), 0) AS total, v.imageUrl " +
+            "FROM Inventory i JOIN ProductVariant v ON i.variantId = v.id JOIN v.product p " +
+            "GROUP BY v.id, v.sku, p.name, v.variantName, v.imageUrl " +
+            "HAVING COALESCE(SUM(i.stock), 0) <= :threshold " +
+            "ORDER BY total ASC")
+    List<Object[]> findLowStockItems(@Param("threshold") int threshold);
 }

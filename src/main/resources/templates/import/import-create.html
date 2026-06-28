@@ -474,6 +474,15 @@
             });
             productInput.addEventListener('focus', e => searchProducts(e.target.value));
 
+            // QUÉT MÃ VẠCH: máy quét gõ SKU rồi gửi Enter -> tìm đúng SKU và thêm thẳng vào giỏ nhập
+            productInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const code = e.target.value.trim();
+                    if (code) addBySkuScan(code);
+                }
+            });
+
             let supplierTimeout;
             supplierInput.addEventListener('input', function (e) {
                 clearTimeout(supplierTimeout);
@@ -590,6 +599,24 @@
                 listEl.innerHTML = html;
             } catch (e) {
                 listEl.innerHTML = `<li class="p-3 text-danger small">Lỗi API SP</li>`;
+            }
+        }
+
+        // Thêm sản phẩm vào giỏ nhập bằng cách quét/nhập đúng mã SKU rồi Enter
+        async function addBySkuScan(code) {
+            try {
+                const res = await fetch('/api/v1/products/variants/search?keyword=' + encodeURIComponent(code));
+                const variants = await res.json();
+                let v = (variants || []).find(x => (x.sku || '').toLowerCase() === code.toLowerCase());
+                if (!v && variants && variants.length === 1) v = variants[0];
+                if (!v) {
+                    Toast.fire({icon: 'error', title: 'Không tìm thấy SKU: ' + code});
+                    return;
+                }
+                addToCart(encodeURIComponent(JSON.stringify(v)));
+                Toast.fire({icon: 'success', title: 'Đã thêm: ' + v.productName});
+            } catch (err) {
+                Toast.fire({icon: 'error', title: 'Lỗi khi quét SKU!'});
             }
         }
 

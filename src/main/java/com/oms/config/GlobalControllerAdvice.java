@@ -35,6 +35,15 @@ public class GlobalControllerAdvice {
         return null;
     }
 
+    // Cờ quyền ADMIN dùng chung cho mọi template (ẩn giá vốn/lãi lỗ/vốn với nhân viên)
+    @ModelAttribute("isAdmin")
+    public boolean isAdmin() {
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    }
+
     @ModelAttribute("storeName")
     public String getStoreName() {
         List<MasterData> dataList = masterDataRepository.findByDataTypeOrderBySortOrderAsc("STORE_NAME");

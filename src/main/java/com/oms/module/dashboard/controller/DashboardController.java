@@ -4,7 +4,10 @@ import com.oms.module.cashbook.repository.CashTransactionRepository;
 import com.oms.module.order.entity.Order;
 import com.oms.module.order.repository.OrderRepository;
 import com.oms.module.order.service.OrderService;
+import com.oms.module.inventory.service.InventoryService;
+import com.oms.module.receipt.repository.ReceiptRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,6 +33,11 @@ public class DashboardController {
     private final OrderRepository orderRepo;
     private final OrderService orderService;
     private final CashTransactionRepository cashRepo;
+    private final ReceiptRepository receiptRepo;
+    private final InventoryService inventoryService;
+
+    @Value("${app.inventory.low-stock-threshold:5}")
+    private int lowStockThreshold;
 
     @GetMapping({"/", "/ui/dashboard", "/dashboard"})
     public String dashboard(
@@ -139,6 +147,21 @@ public class DashboardController {
         model.addAttribute("shippingOrders", shippingOrders != null ? shippingOrders : 0);
         model.addAttribute("canceledOrders", canceledOrders != null ? canceledOrders : 0);
         model.addAttribute("confirmedOrders", confirmedOrders != null ? confirmedOrders : 0);
+
+        // CÔNG NỢ (toàn thời gian, không phụ thuộc bộ lọc ngày)
+        BigDecimal customerReceivables = orderRepo.sumCustomerReceivables();
+        if (customerReceivables == null) customerReceivables = BigDecimal.ZERO;
+        BigDecimal supplierPayables = receiptRepo.sumSupplierPayables();
+        if (supplierPayables == null) supplierPayables = BigDecimal.ZERO;
+        model.addAttribute("customerReceivables", customerReceivables);
+        model.addAttribute("supplierPayables", supplierPayables);
+
+        // CẢNH BÁO TỒN KHO THẤP
+        List<Object[]> lowStockItems = inventoryService.getLowStockItems(lowStockThreshold);
+        if (lowStockItems == null) lowStockItems = new ArrayList<>();
+        model.addAttribute("lowStockThreshold", lowStockThreshold);
+        model.addAttribute("lowStockCount", lowStockItems.size());
+        model.addAttribute("lowStockItems", lowStockItems.size() > 8 ? lowStockItems.subList(0, 8) : lowStockItems);
         // ==========================================
         // 3. VẼ BIỂU ĐỒ (BÁM SÁT VÀO BỘ LỌC THỜI GIAN)
         // ==========================================
@@ -205,6 +228,12 @@ public class DashboardController {
             }
         }
 
+        // Nhân viên (STAFF) không xem lãi lỗ & chi phí -> chỉ giữ doanh thu trên biểu đồ
+        if (!isAdmin()) {
+            chartExpenses = new ArrayList<>();
+            chartProfit = new ArrayList<>();
+        }
+
         model.addAttribute("chartLabels", chartLabels);
         model.addAttribute("chartRevenue", chartRevenue);
         model.addAttribute("chartExpenses", chartExpenses);
@@ -240,5 +269,12 @@ public class DashboardController {
         model.addAttribute("recentOrders", recentOrders != null ? recentOrders : new ArrayList<>());
 
         return "dashboard";
+    }
+
+    private boolean isAdmin() {
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 }

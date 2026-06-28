@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::div.oms-container})}">
+<head></head>
+<body>
+<div class="oms-container pb-5">
+    <style>
+        .stat-card {
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            padding: 16px 18px;
+            height: 100%;
+        }
+
+        .stat-card .lbl {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .stat-card .val {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .table-custom thead th {
+            background: #f8f9fb;
+            color: #4b566b;
+            font-weight: 600;
+            font-size: 13px;
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px;
+            white-space: nowrap;
+        }
+
+        .table-custom td {
+            vertical-align: middle;
+            font-size: 13px;
+            color: #2b3445;
+            padding: 9px 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .pill {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .pill-MATCHED {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .pill-MISSING_OMS {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .pill-MISSING_FILE {
+            background: #ffedd5;
+            color: #9a3412;
+        }
+
+        .filter-tab {
+            border: 1px solid #dce0e4;
+            background: #fff;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .filter-tab.active {
+            background: #0d6efd;
+            color: #fff;
+            border-color: #0d6efd;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-2">
+        <div>
+            <h4 class="fw-bold mb-0 text-dark">Đối soát sàn TMĐT</h4>
+            <div class="text-muted small mt-1">Tải file đơn hàng của Shopee/Lazada/TikTok lên để dò đơn bị thiếu /
+                chưa tạo trên OMS và tạo bù (ghép theo mã đơn sàn & mã vận đơn)</div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 8px;">
+        <div class="card-body p-4">
+            <form id="reconcileForm" onsubmit="return false;">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold small">File đối soát (.xlsx hoặc .csv)*</label>
+                        <input type="file" id="reconcileFile" class="form-control" accept=".xlsx,.xls,.csv" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold small">Kênh bán (tùy chọn)</label>
+                        <select id="channelSelect" class="form-select">
+                            <option value="ALL">Tất cả kênh</option>
+                            <option th:each="c : ${channels}" th:value="${c.code}" th:text="${c.name}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold small">Từ ngày</label>
+                        <input type="date" id="fromDate" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold small">Đến ngày</label>
+                        <input type="date" id="toDate" class="form-control">
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-primary w-100 fw-bold" id="runBtn" onclick="runReconcile()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-muted small mt-2">
+                    <i class="bi bi-info-circle me-1"></i>Hệ thống tự nhận diện cột <b>Mã đơn hàng</b> và <b>Mã vận
+                    đơn</b>, tự loại đơn <b>đã hủy</b>. Khoảng ngày dùng để dò các đơn OMS chưa có trong file (mặc định
+                    60 ngày gần nhất). <i>Không đối chiếu tiền (file sàn không có số thực nhận).</i>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="resultArea" class="d-none">
+        <div class="alert alert-light border small d-flex align-items-center gap-2 mb-3" id="reconInfo">
+            <i class="bi bi-info-circle text-primary"></i><span></span>
+        </div>
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="lbl"><i class="bi bi-check-circle text-success me-1"></i>Khớp (có trên cả 2)</div>
+                    <div class="val text-success" id="cMatched">0</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="lbl"><i class="bi bi-exclamation-triangle text-danger me-1"></i>Sàn có, OMS chưa tạo</div>
+                    <div class="val text-danger" id="cMissingOms">0</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-card">
+                    <div class="lbl"><i class="bi bi-hourglass text-warning me-1"></i>OMS có, chưa đối soát</div>
+                    <div class="val text-warning" id="cMissingFile">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 8px;">
+            <div class="card-body p-0">
+                <div class="p-3 d-flex gap-2 flex-wrap border-bottom">
+                    <span class="filter-tab active" data-cat="ALL" onclick="filterRows(this)">Tất cả</span>
+                    <span class="filter-tab" data-cat="MATCHED" onclick="filterRows(this)">Khớp</span>
+                    <span class="filter-tab" data-cat="MISSING_OMS" onclick="filterRows(this)">Sàn có, OMS chưa tạo</span>
+                    <span class="filter-tab" data-cat="MISSING_FILE" onclick="filterRows(this)">OMS có, chưa đối soát</span>
+                </div>
+
+                <div class="px-3 py-2 d-flex justify-content-between align-items-center flex-wrap gap-3"
+                     style="background:#f0f8ff;border-bottom:1px solid #e2e8f0;">
+                    <div class="d-flex align-items-center flex-wrap gap-3">
+                        <span class="small fw-medium" style="color:#0369a1;">Đã chọn <b id="selCount">0</b> đơn</span>
+                        <span class="text-muted small">| Đồng bộ:</span>
+                        <label class="small mb-0"><input type="checkbox" id="actCreate" checked class="me-1">Tạo đơn bù
+                            (Nháp)</label>
+                        <label class="small mb-0"><input type="checkbox" id="actFill" checked class="me-1">Điền mã
+                            sàn/vận đơn</label>
+                        <label class="small mb-0"><input type="checkbox" id="actPaid" checked class="me-1">Đánh dấu đã
+                            thanh toán</label>
+                    </div>
+                    <button class="btn btn-success btn-sm fw-bold px-3" onclick="syncSelected()">
+                        <i class="bi bi-arrow-repeat me-1"></i>Đồng bộ đã chọn
+                    </button>
+                </div>
+                <div class="table-responsive" style="min-height: 300px;">
+                    <table class="table table-custom table-hover mb-0">
+                        <thead>
+                        <tr>
+                            <th class="ps-3" style="width:36px;"><input type="checkbox" id="rcbAll"
+                                                                        onclick="toggleAllRows(this)"></th>
+                            <th>Trạng thái</th>
+                            <th>Mã đơn sàn</th>
+                            <th>Mã vận chuyển</th>
+                            <th>TT sàn</th>
+                            <th>Người mua</th>
+                            <th>Mã đơn OMS</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                        </thead>
+                        <tbody id="reconcileBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="emptyHint" class="text-center text-muted py-5">
+        <i class="bi bi-cloud-arrow-up fs-1 d-block mb-3 opacity-50"></i>
+        Chọn file đối soát của sàn và bấm nút tìm để bắt đầu.
+    </div>
+
+    <script th:inline="none">
+        let allRows = [];
+
+        function fmtMoney(v) {
+            if (v === null || v === undefined) return '—';
+            return new Intl.NumberFormat('en-US').format(Math.round(v)) + '₫';
+        }
+
+        async function runReconcile() {
+            const fileInput = document.getElementById('reconcileFile');
+            if (!fileInput.files.length) {
+                Toast.fire({icon: 'warning', title: 'Vui lòng chọn file đối soát!'});
+                return;
+            }
+            const fd = new FormData();
+            fd.append('file', fileInput.files[0]);
+            fd.append('channel', document.getElementById('channelSelect').value);
+            fd.append('fromDate', document.getElementById('fromDate').value);
+            fd.append('toDate', document.getElementById('toDate').value);
+
+            const btn = document.getElementById('runBtn');
+            const orig = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            try {
+                const res = await fetch('/api/v1/reconciliation/upload', {method: 'POST', body: fd});
+                const data = await res.json();
+                if (!data.success) {
+                    Swal.fire({title: 'Không đối soát được', text: data.message, icon: 'error'});
+                    return;
+                }
+                renderResult(data);
+            } catch (e) {
+                Swal.fire({title: 'Lỗi', text: 'Không kết nối được máy chủ.', icon: 'error'});
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = orig;
+            }
+        }
+
+        function renderResult(data) {
+            document.getElementById('emptyHint').classList.add('d-none');
+            document.getElementById('resultArea').classList.remove('d-none');
+
+            const info = document.querySelector('#reconInfo span');
+            if (info) info.innerHTML = `Đối soát theo <b>mã đơn sàn / mã vận đơn</b> (không đối chiếu tiền)`
+                + (data.excludedCancelled > 0 ? ` · Đã <b>loại ${data.excludedCancelled} đơn hủy</b> trên sàn` : '');
+
+            document.getElementById('cMatched').innerText = data.matchedCount;
+            document.getElementById('cMissingOms').innerText = data.missingOmsCount;
+            document.getElementById('cMissingFile').innerText = data.missingFileCount;
+
+            allRows = data.rows || [];
+            renderRows('ALL');
+        }
+
+        function renderRows(cat) {
+            const tbody = document.getElementById('reconcileBody');
+            // Giữ index gốc trong allRows để đồng bộ đúng dòng
+            const indexed = allRows.map((r, i) => ({r, i})).filter(x => cat === 'ALL' || x.r.status === cat);
+            if (!indexed.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted">Không có dòng nào.</td></tr>';
+                updateSelCount();
+                return;
+            }
+            tbody.innerHTML = indexed.map(({r, i}) => {
+                const omsLink = r.omsOrderCode ? `<a href="/ui/orders/detail/${r.omsOrderCode}" class="text-decoration-none fw-semibold">${r.omsOrderCode}</a>` : '—';
+                // MISSING_FILE: không có hành động đồng bộ -> khóa checkbox
+                const cbDisabled = (r.status === 'MISSING_FILE') ? 'disabled title="Đơn OMS không có trong file - không cần đồng bộ"' : '';
+                return `<tr>
+                    <td class="ps-3"><input type="checkbox" class="rcb" data-idx="${i}" onchange="updateSelCount()" ${cbDisabled}></td>
+                    <td><span class="pill pill-${r.status}">${r.statusLabel}</span></td>
+                    <td class="fw-bold text-dark">${r.sanOrderCode || '—'}</td>
+                    <td class="text-muted small">${r.tracking || '—'}</td>
+                    <td class="text-muted small text-truncate" style="max-width:160px;" title="${(r.sanStatus || '').replace(/"/g,'&quot;')}">${r.sanStatus || '—'}</td>
+                    <td class="text-muted">${r.buyerId || '—'}</td>
+                    <td>${omsLink}</td>
+                    <td class="text-muted small">${r.note || ''}</td>
+                </tr>`;
+            }).join('');
+            const all = document.getElementById('rcbAll');
+            if (all) all.checked = false;
+            updateSelCount();
+        }
+
+        function filterRows(el) {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            renderRows(el.getAttribute('data-cat'));
+        }
+
+        function toggleAllRows(src) {
+            document.querySelectorAll('.rcb:not([disabled])').forEach(cb => cb.checked = src.checked);
+            updateSelCount();
+        }
+
+        function updateSelCount() {
+            const n = document.querySelectorAll('.rcb:checked').length;
+            const el = document.getElementById('selCount');
+            if (el) el.innerText = n;
+        }
+
+        async function syncSelected() {
+            const checked = Array.from(document.querySelectorAll('.rcb:checked'));
+            if (!checked.length) {
+                Toast.fire({icon: 'warning', title: 'Chưa chọn đơn nào để đồng bộ!'});
+                return;
+            }
+            const doCreate = document.getElementById('actCreate').checked;
+            const doFill = document.getElementById('actFill').checked;
+            const doPaid = document.getElementById('actPaid').checked;
+            if (!doCreate && !doFill && !doPaid) {
+                Toast.fire({icon: 'warning', title: 'Chưa chọn hành động đồng bộ nào!'});
+                return;
+            }
+
+            const createOrders = [], fillCodes = [], markPaidOrderCodes = [];
+            checked.forEach(cb => {
+                const r = allRows[parseInt(cb.getAttribute('data-idx'))];
+                if (!r) return;
+                if (r.status === 'MISSING_OMS') {
+                    if (doCreate) createOrders.push({
+                        customerName: r.customerName, customerPhone: r.customerPhone,
+                        shippingAddress: r.shippingAddress, referenceCode: r.sanOrderCode,
+                        trackingCode: r.tracking, items: r.items || []
+                    });
+                } else if (r.status === 'MATCHED') {
+                    if (doFill) fillCodes.push({omsOrderCode: r.omsOrderCode, referenceCode: r.sanOrderCode, trackingCode: r.tracking});
+                    if (doPaid) markPaidOrderCodes.push(r.omsOrderCode);
+                }
+            });
+
+            if (!createOrders.length && !fillCodes.length && !markPaidOrderCodes.length) {
+                Toast.fire({icon: 'warning', title: 'Các đơn đã chọn không khớp hành động đồng bộ nào!'});
+                return;
+            }
+
+            const confirm = await Swal.fire({
+                title: 'Xác nhận đồng bộ',
+                html: `• Tạo bù: <b>${createOrders.length}</b> đơn (Nháp)<br>• Điền mã sàn/vận đơn: <b>${fillCodes.length}</b> đơn<br>• Đánh dấu đã thanh toán: <b>${markPaidOrderCodes.length}</b> đơn<br><span class="text-muted small">Đơn bù tạo ở trạng thái Nháp để bạn duyệt, không trừ kho.</span>`,
+                icon: 'question', showCancelButton: true,
+                confirmButtonColor: '#198754', confirmButtonText: 'Đồng bộ', cancelButtonText: 'Hủy'
+            });
+            if (!confirm.isConfirmed) return;
+
+            const payload = {
+                channel: document.getElementById('channelSelect').value,
+                createStatus: 'DRAFT',
+                createOrders, fillCodes, markPaidOrderCodes
+            };
+            try {
+                const res = await fetch('/api/v1/reconciliation/sync', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    Swal.fire({title: 'Lỗi', text: (data && data.errors ? data.errors.join('; ') : 'Không đồng bộ được'), icon: 'error'});
+                    return;
+                }
+                let html = `Đã tạo bù <b>${data.createdCount}</b> đơn, điền mã <b>${data.filledCount}</b> đơn, đánh dấu thanh toán <b>${data.paidCount}</b> đơn.`;
+                if (data.errors && data.errors.length) {
+                    html += `<hr><div class="text-danger small text-start" style="max-height:160px;overflow:auto;">` + data.errors.map(e => '• ' + e).join('<br>') + `</div>`;
+                }
+                await Swal.fire({title: 'Đồng bộ xong', html: html, icon: data.errors && data.errors.length ? 'warning' : 'success'});
+                Toast.fire({icon: 'info', title: 'Tải lại file để đối soát lại trạng thái mới nhất'});
+            } catch (e) {
+                Swal.fire({title: 'Lỗi', text: 'Không kết nối được máy chủ.', icon: 'error'});
+            }
+        }
+    </script>
+</div>
+</body>
+</html>

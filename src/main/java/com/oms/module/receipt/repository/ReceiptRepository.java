@@ -36,4 +36,8 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     @Query("SELECT SUM(r.totalAmount - COALESCE(r.amountPaid, 0)) FROM Receipt r " + "WHERE r.supplier.code = :code " + "AND r.paymentStatus IN ('UNPAID', 'PARTIAL') " + "AND r.status != 'CANCELLED' " + "AND r.createdAt BETWEEN :start AND :end")
     BigDecimal getTotalDebt(@Param("code") String code, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // CÔNG NỢ PHẢI TRẢ NCC: tổng (tiền nhập - đã trả) toàn bộ phiếu nhập còn hiệu lực
+    @Query("SELECT COALESCE(SUM(r.totalAmount - COALESCE(r.amountPaid, 0)), 0) FROM Receipt r WHERE r.status != 'CANCELLED'")
+    BigDecimal sumSupplierPayables();
 }

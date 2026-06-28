@@ -163,9 +163,17 @@
                             <select id="reason" class="form-select form-select-custom">
                                 <option value="Thanh toán đơn nhập hàng">Thanh toán đơn nhập hàng</option>
                                 <option value="Trả nợ nhà cung cấp">Trả nợ nhà cung cấp</option>
-                                <option value="Chi phí vận hành">Chi phí vận hành (Tính vào LN)</option>
-                                <option value="Chi lương nhân viên">Chi lương nhân viên</option>
+                                <optgroup label="Chi phí (tính vào lợi nhuận)">
+                                    <option value="Chi phí Quảng cáo">Chi phí Quảng cáo</option>
+                                    <option value="Chi phí Bao bì/Đóng gói">Chi phí Bao bì/Đóng gói</option>
+                                    <option value="Chi phí Vận chuyển">Chi phí Vận chuyển</option>
+                                    <option value="Chi phí Mặt bằng">Chi phí Mặt bằng</option>
+                                    <option value="Chi phí Công cụ/Phần mềm">Chi phí Công cụ/Phần mềm</option>
+                                    <option value="Chi phí vận hành">Chi phí vận hành (khác)</option>
+                                    <option value="Chi lương nhân viên">Chi lương nhân viên</option>
+                                </optgroup>
                                 <option value="Hoàn tiền cho khách">Hoàn tiền cho khách</option>
+                                <option value="Rút vốn">Rút vốn / Rút lợi nhuận</option>
                                 <option value="Nộp tiền vào Ngân hàng">Nộp tiền vào Ngân hàng</option>
                                 <option value="Chi khác">Chi khác</option>
                             </select>
@@ -224,6 +232,17 @@
     <script th:inline="javascript">
         let uploadedImages = [];
         let searchTimeout;
+
+        // Tự chọn sẵn Lý do khi mở từ trang Quản lý vốn (vd: ?reason=Rút vốn)
+        document.addEventListener('DOMContentLoaded', function () {
+            const presetReason = new URLSearchParams(window.location.search).get('reason');
+            if (presetReason) {
+                const sel = document.getElementById('reason');
+                if (sel && [...sel.options].some(o => o.value === presetReason)) {
+                    sel.value = presetReason;
+                }
+            }
+        });
 
         async function handleFileUpload(files) {
             for (let file of files) {

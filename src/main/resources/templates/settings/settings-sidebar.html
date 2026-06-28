@@ -17,6 +17,10 @@
                th:classappend="${activeMenu == 'channels' ? 'active' : ''}">
                 <i class="bi bi-megaphone me-2"></i> Kênh bán hàng
             </a>
+            <a th:href="@{/ui/settings/backup}" class="list-group-item list-group-item-action py-3"
+               th:classappend="${activeMenu == 'backup' ? 'active' : ''}">
+                <i class="bi bi-database-down me-2"></i> Sao lưu dữ liệu
+            </a>
         </div>
     </div>
 </div>

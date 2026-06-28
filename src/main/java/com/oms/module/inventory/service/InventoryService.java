@@ -97,4 +97,10 @@ public class InventoryService {
 
         return result;
     }
+
+    // Danh sách sản phẩm tồn kho thấp (sku, tên, tên biến thể, tổng tồn, ảnh)
+    @Transactional(readOnly = true)
+    public List<Object[]> getLowStockItems(int threshold) {
+        return inventoryRepository.findLowStockItems(threshold);
+    }
 }

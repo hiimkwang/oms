@@ -26,8 +26,11 @@ public class OrderDetail {
     @JsonIgnore
     private Order order;
 
+    // Không serialize ra JSON: tránh lộ giá vốn qua product.variants[].costPrice
+    // (OrderDetail đã lưu cứng sku + productName nên giao diện không cần object product).
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = true)
+    @JsonIgnore
     private Product product;
 
     @Column(name = "sku")

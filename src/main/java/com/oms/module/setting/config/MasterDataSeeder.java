@@ -55,6 +55,7 @@ public class MasterDataSeeder implements CommandLineRunner {
         // 4. Trạng thái Đơn hàng (Order Status)
         if (masterDataService.getValuesByType("ORDER_STATUS").isEmpty()) {
             Map<String, String> orderStatuses = new LinkedHashMap<>();
+            orderStatuses.put("DRAFT", "Đơn nháp");
             orderStatuses.put("CREATED", "Khởi tạo");
             orderStatuses.put("CONFIRMED", "Đã xác nhận");
             orderStatuses.put("PROCESSING", "Đang xử lý");
@@ -66,6 +67,8 @@ public class MasterDataSeeder implements CommandLineRunner {
             orderStatuses.forEach((value, label) -> masterDataService.createIfNotExist("ORDER_STATUS", value, label));
             log.info("✅ Đã tự động nạp dữ liệu Trạng thái Đơn hàng vào DB!");
         }
+        // Đảm bảo có trạng thái "Đơn nháp" kể cả với DB đã có sẵn ORDER_STATUS (chạy idempotent)
+        masterDataService.createIfNotExist("ORDER_STATUS", "DRAFT", "Đơn nháp");
 
         // 5. Trạng thái Thanh toán (Payment Status)
         if (masterDataService.getValuesByType("PAYMENT_STATUS").isEmpty()) {

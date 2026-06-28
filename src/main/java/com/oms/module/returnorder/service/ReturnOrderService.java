@@ -161,6 +161,9 @@ public class ReturnOrderService {
     public void processRefund(Long returnOrderId, String method) {
         ReturnOrder returnOrder = returnRepo.findByIdForUpdate(returnOrderId).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
 
+        if (REJECTED.equals(returnOrder.getStatus())) {
+            throw new RuntimeException("Phiếu trả hàng đã bị từ chối, không thể hoàn tiền!");
+        }
         if (REFUNDED.equals(returnOrder.getRefundStatus())) {
             throw new RuntimeException("Phiếu này đã được hoàn tiền!");
         }
@@ -204,6 +207,9 @@ public class ReturnOrderService {
     public void processRestock(Long returnOrderId, Long branchId) {
         ReturnOrder returnOrder = returnRepo.findByIdForUpdate(returnOrderId).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
 
+        if (REJECTED.equals(returnOrder.getStatus())) {
+            throw new RuntimeException("Phiếu trả hàng đã bị từ chối, không thể nhập kho!");
+        }
         if (RESTOCK_RESTOCKED.equals(returnOrder.getRestockStatus())) {
             throw new RuntimeException("Phiếu này đã được nhập kho!");
         }
@@ -250,7 +256,16 @@ public class ReturnOrderService {
 
     @Transactional
     public void deleteBulk(List<Long> ids) {
-        returnRepo.deleteAllById(ids);
+        if (ids == null || ids.isEmpty()) return;
+        for (Long id : ids) {
+            ReturnOrder ro = returnRepo.findById(id).orElse(null);
+            if (ro == null) continue;
+            // Không cho xóa phiếu đã hoàn tiền hoặc đã nhập kho (đã tác động quỹ/tồn) -> tránh mất dấu vết, lệch số
+            if (REFUNDED.equals(ro.getRefundStatus()) || RESTOCK_RESTOCKED.equals(ro.getRestockStatus())) {
+                throw new RuntimeException("Phiếu trả hàng " + ro.getReturnCode() + " đã hoàn tiền/nhập kho nên không thể xóa.");
+            }
+            returnRepo.delete(ro);
+        }
     }
 
     private void logActivity(ReturnOrder returnOrder, String action, String description) {
