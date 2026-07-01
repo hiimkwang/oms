@@ -5,6 +5,8 @@ import com.oms.module.cashbook.dto.CashTransactionRequest;
 import com.oms.module.cashbook.service.CashbookService;
 import com.oms.module.customer.repository.CustomerRepository;
 import com.oms.module.supplier.repository.SupplierRepository;
+import com.oms.module.setting.entity.SalesChannel;
+import com.oms.module.setting.repository.SalesChannelRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +24,7 @@ public class CashTransactionController {
     private final CustomerRepository customerRepository;
     private final SupplierRepository supplierRepository;
     private final UserRepository userRepository;
+    private final SalesChannelRepository salesChannelRepository;
 
     @PostMapping
     public ResponseEntity<?> create(@jakarta.validation.Valid @RequestBody CashTransactionRequest request) {
@@ -41,6 +44,18 @@ public class CashTransactionController {
     @GetMapping("/search-supplier")
     public List<?> searchSupplier(@RequestParam String query) {
         return supplierRepository.findByNameContainingIgnoreCaseOrCodeContaining(query, query);
+    }
+
+    // Nhóm Sàn TMĐT: đối tượng là các Kênh bán (Shopee, Lazada, TikTok...)
+    @GetMapping("/search-ecommerce")
+    public List<?> searchEcommerce(@RequestParam String query) {
+        String q = query == null ? "" : query.trim().toLowerCase();
+        return salesChannelRepository.findAll().stream()
+                .filter(SalesChannel::isActive)
+                .filter(ch -> q.isEmpty()
+                        || (ch.getName() != null && ch.getName().toLowerCase().contains(q))
+                        || (ch.getCode() != null && ch.getCode().toLowerCase().contains(q)))
+                .toList();
     }
 
     @PutMapping("/{id}")

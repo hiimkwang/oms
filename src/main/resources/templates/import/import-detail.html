@@ -226,6 +226,34 @@
                                 <i class="bi bi-box-arrow-in-down me-1"></i> Nhập kho ngay
                             </button>
                         </div>
+                        <div th:if="${order.importStatus == 'COMPLETED' && order.status != 'CANCELLED'}">
+                            <button class="btn btn-outline-danger fw-bold px-3 shadow-sm"
+                                    th:onclick="'revertImport(' + ${order.id} + ')'">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Hoàn tác nhập kho
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PANEL KIỂM HÀNG KHI NHẬN (chỉ hiện khi đang chờ nhập kho) -->
+                    <div th:if="${order.importStatus == 'PENDING' && order.status != 'CANCELLED'}"
+                         class="border rounded p-3 mb-3" style="background:#f3f8ff">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="fw-bold text-primary"><i class="bi bi-upc-scan me-1"></i> Kiểm hàng khi nhận (quét mã để đối chiếu)</div>
+                            <span class="badge bg-secondary" id="chkProgressText">0/0</span>
+                        </div>
+                        <div class="input-group input-group-sm mb-2">
+                            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                            <input type="text" id="chkScanInput" class="form-control" placeholder="Quét barcode / SKU sản phẩm rồi Enter…" autocomplete="off">
+                            <button class="btn btn-outline-secondary" type="button" id="chkResetBtn"><i class="bi bi-arrow-counterclockwise"></i> Đặt lại</button>
+                        </div>
+                        <div id="chkList" class="small mb-2"></div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">Quét đủ số lượng tất cả sản phẩm → nút Nhập kho bật lên.</span>
+                            <button class="btn btn-success btn-sm fw-bold" id="chkConfirmBtn" disabled
+                                    th:onclick="'confirmReceive(' + ${order.id} + ')'">
+                                <i class="bi bi-check2-circle me-1"></i> Đã đủ hàng — Nhập kho
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-responsive border rounded">
@@ -960,6 +988,18 @@
             }
         }
 
+        async function revertImport(id) {
+            const c = await Swal.fire({
+                title: 'Hoàn tác nhập kho?',
+                html: 'Đưa đơn về <b>"Chờ nhập kho"</b> và <b>TRỪ LẠI</b> tồn đã cộng.<br>Chỉ dùng khi hàng <b>chưa thực sự về</b>. Nếu hàng đã bán bớt, hệ thống sẽ chặn.',
+                icon: 'warning', showCancelButton: true,
+                confirmButtonText: 'Hoàn tác', cancelButtonText: 'Đóng', confirmButtonColor: '#dc3545'
+            });
+            if (c.isConfirmed) {
+                await postAction(`/api/v1/receipt/${id}/revert-import`, null, "Đã hoàn tác — đơn về Chờ nhập kho.");
+            }
+        }
+
         async function cancelOrder(id) {
             const confirmation = await Swal.fire({
                 title: 'Hủy đơn',
@@ -1013,6 +1053,74 @@
                 Toast.fire({icon: 'error', title: 'Lỗi kết nối đến máy chủ!'});
             }
         }
+    </script>
+
+    <!-- Kiểm hàng khi nhận bằng quét mã (chỉ hoạt động khi có panel = đơn đang chờ nhập kho) -->
+    <script>
+        (function () {
+            const inp = document.getElementById('chkScanInput');
+            if (!inp || typeof editCart === 'undefined') return;
+
+            // Gộp số lượng kỳ vọng theo SKU
+            const state = {};
+            editCart.forEach(it => {
+                if (!it.sku) return;
+                if (!state[it.sku]) state[it.sku] = {name: it.name || it.sku, expected: 0, count: 0};
+                state[it.sku].expected += (parseInt(it.quantity) || 0);
+            });
+
+            let ac = null;
+            function tone(f, d) { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(ac.destination); g.gain.setValueAtTime(.25, ac.currentTime); g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d); o.start(); o.stop(ac.currentTime + d); } catch (e) {} }
+            const okBeep = () => tone(1800, .1), errBeep = () => tone(380, .22);
+            const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+
+            function render() {
+                let totalExp = 0, totalCnt = 0, html = '';
+                Object.keys(state).forEach(sku => {
+                    const s = state[sku]; totalExp += s.expected; totalCnt += s.count;
+                    const done = s.count >= s.expected;
+                    html += `<div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                        <span>${done ? '<i class="bi bi-check-circle-fill text-success me-1"></i>' : '<i class="bi bi-circle text-muted me-1"></i>'}${esc(s.name)}</span>
+                        <span class="fw-bold ${done ? 'text-success' : 'text-muted'}">${s.count}/${s.expected}</span></div>`;
+                });
+                document.getElementById('chkList').innerHTML = html;
+                const allDone = totalExp > 0 && Object.values(state).every(s => s.count >= s.expected);
+                const pt = document.getElementById('chkProgressText');
+                pt.textContent = totalCnt + '/' + totalExp;
+                pt.className = 'badge ' + (allDone ? 'bg-success' : 'bg-secondary');
+                document.getElementById('chkConfirmBtn').disabled = !allDone;
+            }
+
+            async function onScan(code) {
+                code = (code || '').trim(); if (!code) return;
+                let sku = state[code] ? code : null;
+                if (!sku) {
+                    try { const r = await fetch('/api/v1/packing/lookup/' + encodeURIComponent(code)); if (r.ok) { const d = await r.json(); sku = d.sku; } } catch (e) {}
+                }
+                if (!sku || !state[sku]) { errBeep(); Toast.fire({icon: 'error', title: 'Mã không thuộc đơn này: ' + code}); return; }
+                const s = state[sku];
+                if (s.count >= s.expected) { errBeep(); Toast.fire({icon: 'warning', title: 'Đã đủ số lượng: ' + s.name}); return; }
+                s.count++; okBeep(); render();
+                if (!document.getElementById('chkConfirmBtn').disabled) Toast.fire({icon: 'success', title: '✓ Đã đủ hàng — có thể Nhập kho!'});
+            }
+
+            // Đọc phím vật lý -> chống bộ gõ tiếng Việt biến đổi ký tự máy quét
+            function scanChar(e) {
+                const c = e.code; let m = /^Key([A-Z])$/.exec(c); if (m) return e.shiftKey ? m[1] : m[1].toLowerCase();
+                m = /^Digit([0-9])$/.exec(c); if (m) return e.shiftKey ? ')!@#$%^&*('[+m[1]] : m[1];
+                m = /^Numpad([0-9])$/.exec(c); if (m) return m[1];
+                const map = {Minus: ['-', '_'], Period: ['.', '>'], Slash: ['/', '?'], Space: [' ', ' ']};
+                if (map[c]) return e.shiftKey ? map[c][1] : map[c][0];
+                return null;
+            }
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); const v = inp.value; inp.value = ''; onScan(v); return; }
+                if (e.ctrlKey || e.altKey || e.metaKey) return;
+                const ch = scanChar(e); if (ch != null) { e.preventDefault(); inp.value += ch; }
+            });
+            document.getElementById('chkResetBtn').addEventListener('click', () => { Object.values(state).forEach(s => s.count = 0); render(); inp.focus(); });
+            render();
+        })();
     </script>
 </div>
 </body>

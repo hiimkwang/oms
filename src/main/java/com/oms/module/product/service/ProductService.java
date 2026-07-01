@@ -81,7 +81,7 @@ public class ProductService {
 
                 int vStock = vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0;
 
-                ProductVariant variant = ProductVariant.builder().product(product).variantName(vReq.getVariantName()).sku(varSku).imageUrl(vReq.getImageUrl()).price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice()).costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO).stockQuantity(vStock).build();
+                ProductVariant variant = ProductVariant.builder().product(product).variantName(vReq.getVariantName()).sku(varSku).imageUrl(vReq.getImageUrl()).price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice()).costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO).stockQuantity(vStock).barcodes(cleanBarcodes(vReq.getBarcodes())).build();
 
                 variant = productVariantRepository.save(variant);
                 variantList.add(variant);
@@ -186,9 +186,10 @@ public class ProductService {
                     variant.setPrice(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice());
                     variant.setCostPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO);
                     variant.setStockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : variant.getStockQuantity());
+                    if (vReq.getBarcodes() != null) variant.setBarcodes(cleanBarcodes(vReq.getBarcodes()));
                 } else {
                     // BIẾN THỂ MỚI -> Thêm trực tiếp vào danh sách hiện tại (Không xóa biến thể cũ)
-                    ProductVariant newVariant = ProductVariant.builder().product(existingProduct).variantName(vReq.getVariantName()).sku(varSku).imageUrl(vReq.getImageUrl()).price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice()).costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO).stockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0).build();
+                    ProductVariant newVariant = ProductVariant.builder().product(existingProduct).variantName(vReq.getVariantName()).sku(varSku).imageUrl(vReq.getImageUrl()).price(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice()).costPrice(vReq.getCostPrice() != null ? vReq.getCostPrice() : BigDecimal.ZERO).stockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : 0).barcodes(cleanBarcodes(vReq.getBarcodes())).build();
                     existingProduct.getVariants().add(newVariant);
                 }
             }
@@ -223,6 +224,18 @@ public class ProductService {
             existingProduct.getAttributes().addAll(updatedAttributes);
         }
         return productRepository.save(existingProduct);
+    }
+
+    // Chuẩn hoá danh sách barcode: bỏ khoảng trắng thừa, bỏ rỗng, bỏ trùng
+    private List<String> cleanBarcodes(List<String> in) {
+        List<String> out = new ArrayList<>();
+        if (in == null) return out;
+        for (String b : in) {
+            if (b == null) continue;
+            String t = b.trim();
+            if (!t.isEmpty() && !out.contains(t)) out.add(t);
+        }
+        return out;
     }
 
     // ================= 5. XÓA SẢN PHẨM =================

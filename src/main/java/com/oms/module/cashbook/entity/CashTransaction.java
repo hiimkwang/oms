@@ -64,5 +64,5 @@ public class CashTransaction {
     public enum PaymentMethod {CASH, BANK} // Tiền mặt, Ngân hàng
 
     // Nhóm đối tượng
-    public enum TargetGroup {CUSTOMER, SUPPLIER, EMPLOYEE, OTHER}
+    public enum TargetGroup {CUSTOMER, SUPPLIER, EMPLOYEE, ECOMMERCE, OTHER} // ECOMMERCE = Sàn TMĐT
 }

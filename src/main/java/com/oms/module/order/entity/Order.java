@@ -113,6 +113,10 @@ public class Order {
     @Column(name = "reference_code", length = 100)
     private String referenceCode;
 
+    // Đường dẫn video đóng gói lưu trên MÁY CLIENT (không lưu file lên server, chỉ ghi lại vị trí để tham chiếu)
+    @Column(name = "packing_video_path", length = 500)
+    private String packingVideoPath;
+
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {

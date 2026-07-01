@@ -246,6 +246,71 @@ public class ReceiptService {
         return receiptRepository.save(receipt);
     }
 
+    /**
+     * HOÀN TÁC NHẬP KHO: đưa đơn từ ĐÃ NHẬP KHO (COMPLETED) về CHỜ NHẬP KHO (PENDING).
+     * Dùng khi lỡ bấm "Nhập kho" nhưng hàng chưa thực về. Đảo ngược đúng phần confirmImport đã làm:
+     * trừ tồn thực + tồn bán được, trả lại tồn "đang về", đảo giá vốn bình quân (MAC).
+     * CHẶN nếu hàng đã bị xuất/bán bớt (tồn không đủ để trừ) -> tránh âm kho.
+     */
+    @Transactional
+    public Receipt revertImport(Long id) {
+        Receipt receipt = receiptRepository.findByIdForUpdate(id).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập"));
+        if (!COMPLETED.equals(receipt.getImportStatus())) {
+            throw new RuntimeException("Đơn chưa ở trạng thái đã nhập kho, không cần hoàn tác.");
+        }
+        if (CANCELLED.equals(receipt.getStatus())) {
+            throw new RuntimeException("Đơn đã hủy, không thể hoàn tác nhập kho.");
+        }
+
+        BigDecimal ratio = calculateExtraCostRatio(receipt);
+        List<ReceiptDetail> lockOrder = new java.util.ArrayList<>(receipt.getDetails());
+        lockOrder.sort(java.util.Comparator.comparing(d -> d.getSku() == null ? "" : d.getSku()));
+
+        for (ReceiptDetail detail : lockOrder) {
+            int qty = detail.getQuantity() != null ? detail.getQuantity() : 0;
+            ProductVariant variant = variantRepository.findBySkuForUpdate(detail.getSku()).orElseThrow(() -> new RuntimeException("Không thấy SP mã: " + detail.getSku()));
+
+            // Chặn hoàn tác nếu tồn không đủ (đã phát sinh xuất/bán sau khi nhập)
+            int curVariantStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
+            Inventory inv = inventoryRepository.findByVariantIdAndBranchIdForUpdate(variant.getId(), receipt.getBranchId()).orElse(null);
+            int invStock = (inv != null && inv.getStock() != null) ? inv.getStock() : 0;
+            int invAvail = (inv != null && inv.getAvailableStock() != null) ? inv.getAvailableStock() : 0;
+            if (curVariantStock < qty || inv == null || invStock < qty || invAvail < qty) {
+                throw new RuntimeException("Sản phẩm [" + detail.getProductName() + "] đã phát sinh xuất/bán sau khi nhập, không thể hoàn tác. Hãy điều chỉnh kho thủ công.");
+            }
+
+            // Đảo giá vốn bình quân (MAC): gỡ đúng phần đã cộng lúc nhập
+            BigDecimal actualImportPrice = detail.getImportPrice().add(detail.getImportPrice().multiply(ratio));
+            BigDecimal curCost = variant.getCostPrice() != null ? variant.getCostPrice() : BigDecimal.ZERO;
+            int remain = curVariantStock - qty;
+            if (remain > 0) {
+                BigDecimal reversed = curCost.multiply(new BigDecimal(curVariantStock))
+                        .subtract(actualImportPrice.multiply(new BigDecimal(qty)))
+                        .divide(new BigDecimal(remain), 2, RoundingMode.HALF_UP);
+                if (reversed.signum() < 0) reversed = BigDecimal.ZERO;
+                variant.setCostPrice(reversed);
+            } // remain == 0 -> giữ nguyên giá vốn cũ (không còn tồn để tính bình quân)
+            variant.setStockQuantity(remain);
+            variantRepository.save(variant);
+
+            // Đảo tồn kho chi nhánh: trả lại "đang về", trừ tồn thực + tồn bán được
+            inv.setStock(invStock - qty);
+            inv.setAvailableStock(invAvail - qty);
+            inv.setInboundStock((inv.getInboundStock() != null ? inv.getInboundStock() : 0) + qty);
+            inventoryRepository.save(inv);
+
+            if (variant.getProduct() != null) {
+                productService.syncProductTotalStock(variant.getProduct().getId());
+            }
+        }
+
+        receipt.setImportStatus(PENDING);
+        receipt.setStatus(TRADING);
+        logActivity(receipt, "Hoàn tác nhập kho (đưa về Chờ nhập kho)", getCurrentUserName());
+        pushNotification("Hoàn tác nhập kho", "Phiếu nhập " + receipt.getCode() + " đã được đưa về trạng thái Chờ nhập kho.", "/ui/imports/" + receipt.getCode());
+        return receiptRepository.save(receipt);
+    }
+
     @Transactional
     public void cancelReceipt(Long id) {
         Receipt receipt = receiptRepository.findById(id).orElseThrow();

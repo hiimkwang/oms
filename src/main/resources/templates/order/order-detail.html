@@ -522,8 +522,18 @@
                 <div class="card-title-custom">Khách hàng & Giao vận</div>
                 <a href="#" class="text-decoration-none fw-bold text-primary hover-primary view-element"
                    id="rightCusName">...</a>
-                <div class="text-muted small mb-3 view-element"><i class="bi bi-telephone me-1"></i><span
-                        id="rightCusPhone">---</span></div>
+                <div class="text-muted small mb-3 view-element">
+                    <i class="bi bi-telephone me-1"></i><span id="rightCusPhone">---</span>
+                </div>
+                <!-- Khối sửa khách (hiện ở chế độ SỬA đơn) -->
+                <div class="edit-element mb-3">
+                    <div class="fw-bold text-dark small mb-1">Khách hàng</div>
+                    <div class="d-flex align-items-center justify-content-between border rounded p-2 bg-light">
+                        <span class="fw-medium text-primary" id="editCusName">—</span>
+                        <a href="javascript:void(0)" class="small text-primary text-decoration-none fw-medium"
+                           onclick="openEditCustomerModal()" style="white-space:nowrap"><i class="bi bi-pencil-square"></i> Sửa thông tin</a>
+                    </div>
+                </div>
                 <div class="fw-bold text-dark small mb-1">Địa chỉ nhận hàng</div>
                 <div class="text-dark small lh-base view-element" id="rightShippingAddress">Khách mua tại quầy</div>
                 <textarea id="editShippingAddress" class="form-control form-control-custom edit-element"
@@ -550,6 +560,81 @@
                 <input type="date" id="editExpectedDeliveryDate"
                        class="form-control form-control-custom text-muted edit-element">
             </div>
+
+            <!-- Modal sửa thông tin khách hàng của đơn -->
+            <div class="modal fade" id="editCustomerModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header bg-light py-3 border-bottom">
+                            <h5 class="modal-title fw-bold fs-6">Sửa thông tin khách hàng</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="row g-3">
+                                <div class="col-md-6"><label class="small fw-bold mb-1">Họ</label>
+                                    <input type="text" id="ecLastName" class="form-control"></div>
+                                <div class="col-md-6"><label class="small fw-bold mb-1 text-danger">Tên *</label>
+                                    <input type="text" id="ecFirstName" class="form-control"></div>
+                                <div class="col-md-12"><label class="small fw-bold mb-1">Số điện thoại</label>
+                                    <input type="text" id="ecPhone" class="form-control" placeholder="Có thể để trống"></div>
+                                <div class="col-md-12"><label class="small fw-bold mb-1">Địa chỉ nhận hàng</label>
+                                    <textarea id="ecAddress" class="form-control" rows="2"></textarea></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light py-2">
+                            <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Hủy</button>
+                            <button type="button" class="btn btn-primary px-4 fw-bold" onclick="saveEditedCustomer(this)">Lưu</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+                function _pkToast(icon, title) {
+                    if (window.Toast && Toast.fire) Toast.fire({icon: icon, title: title});
+                    else if (window.Swal) Swal.fire({icon: icon, title: title});
+                    else alert(title);
+                }
+                function openEditCustomerModal() {
+                    const cus = (typeof currentOrder !== 'undefined' && currentOrder) ? currentOrder.customer : null;
+                    if (!cus || !cus.code) { _pkToast('error', 'Đơn chưa có khách hàng để sửa!'); return; }
+                    document.getElementById('ecFirstName').value = cus.firstName || '';
+                    document.getElementById('ecLastName').value = cus.lastName || '';
+                    document.getElementById('ecPhone').value = cus.phone || cus.phoneNumber || '';
+                    document.getElementById('ecAddress').value = cus.shipAddressDetail || '';
+                    new bootstrap.Modal(document.getElementById('editCustomerModal')).show();
+                }
+                async function saveEditedCustomer(btn) {
+                    const cus = currentOrder.customer;
+                    const firstName = document.getElementById('ecFirstName').value.trim();
+                    if (!firstName) { _pkToast('error', 'Vui lòng nhập Tên khách hàng!'); return; }
+                    const lastName = document.getElementById('ecLastName').value.trim();
+                    const payload = {
+                        firstName: firstName, lastName: lastName,
+                        fullName: (lastName ? lastName + ' ' : '') + firstName,
+                        phone: document.getElementById('ecPhone').value.trim(),
+                        phoneNumber: document.getElementById('ecPhone').value.trim(),
+                        shipAddressDetail: document.getElementById('ecAddress').value.trim()
+                    };
+                    const orig = btn.innerHTML; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; btn.disabled = true;
+                    try {
+                        const res = await fetch('/api/v1/customers/' + encodeURIComponent(cus.code), {
+                            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                        });
+                        if (res.ok) {
+                            const updated = await res.json();
+                            currentOrder.customer = Object.assign({}, cus, updated);
+                            document.getElementById('rightCusName').innerText = payload.fullName;
+                            document.getElementById('rightCusPhone').innerText = payload.phone || '---';
+                            if (typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(document.getElementById('editCustomerModal')).hide();
+                            _pkToast('success', 'Đã cập nhật khách hàng!');
+                        } else {
+                            const j = await res.json().catch(() => ({}));
+                            _pkToast('error', j.message || 'Cập nhật thất bại!');
+                        }
+                    } catch (e) { _pkToast('error', 'Lỗi kết nối máy chủ!'); }
+                    btn.innerHTML = orig; btn.disabled = false;
+                }
+            </script>
 
             <div class="card-custom p-3">
                 <div class="card-title-custom mb-2">Ghi chú đơn hàng</div>
@@ -942,6 +1027,7 @@
                 document.getElementById('rightCusName').innerText = cus.fullName || cus.name || 'Khách lẻ';
                 document.getElementById('rightCusPhone').innerText = cus.phone || cus.phoneNumber || '---';
                 document.getElementById('rightCusName').href = `/ui/customers/${cus.code}`;
+                const _ecn = document.getElementById('editCusName'); if (_ecn) _ecn.innerText = cus.fullName || cus.name || 'Khách lẻ';
             }
 
             if (st === 'COMPLETED') {

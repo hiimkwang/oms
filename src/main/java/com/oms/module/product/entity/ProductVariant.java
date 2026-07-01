@@ -6,6 +6,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal; // Thêm dòng import này
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "product_variants")
@@ -53,4 +55,11 @@ public class ProductVariant {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    // Mã vạch của biến thể: mỗi biến thể có thể có 1-nhiều barcode (tùy lô/nước) để quét khi đóng gói.
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "variant_barcodes", joinColumns = @JoinColumn(name = "variant_id"))
+    @Column(name = "barcode", length = 100)
+    @Builder.Default
+    private List<String> barcodes = new ArrayList<>();
 }

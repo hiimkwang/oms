@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout(~{::content})}">
+<head>
+    <title>Đóng gói & Quay video</title>
+</head>
+<body>
+<div th:fragment="content">
+    <link rel="stylesheet" href="/css/packing.css">
+
+    <div class="pk-shell">
+        <!-- TOPBAR -->
+        <div class="pk-topbar">
+            <div class="pk-title">
+                <div class="ic"><i class="bi bi-camera-reels-fill"></i></div>
+                <div>
+                    <h4>Đóng gói &amp; Quay video</h4>
+                    <div class="sub">Quét vận đơn → tự tạo đơn nháp → quét sản phẩm/serial → lưu video về máy</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span id="sysStatus" class="pk-state is-idle"><span class="d"></span>CHƯA KẾT NỐI</span>
+                <button class="btn-cfg" type="button" data-bs-toggle="offcanvas" data-bs-target="#pkSettings">
+                    <i class="bi bi-sliders me-1"></i>Cấu hình</button>
+            </div>
+        </div>
+
+        <div class="pk-grid">
+            <!-- CỘT TRÁI: CAMERA -->
+            <div>
+                <div class="pk-video" id="pkVideo">
+                    <span class="pk-badge" id="overlayBadge"><span class="d"></span><span id="overlayStatus">Chưa bật camera</span></span>
+                    <span class="pk-rec"><span class="d"></span>REC</span>
+                    <canvas id="panoCanvas"></canvas>
+                    <div class="pk-qr" id="qrFloat" style="display:none"><canvas id="qrCanvas"></canvas></div>
+                </div>
+
+                <div class="pk-underbar">
+                    <div class="pk-stats">
+                        <span class="pk-stat"><span class="eye" id="scanDot"></span>
+                            <span><span class="lbl d-block">Trạng thái quét</span><span id="scanText" class="small">đang tắt</span></span></span>
+                        <span class="pk-stat"><span><span class="lbl d-block">FPS</span><span class="val" id="fps">0</span></span></span>
+                        <span class="pk-stat"><span><span class="lbl d-block">Thời lượng</span><span class="val" id="recTime">00:00</span></span></span>
+                        <span class="pk-stat"><span><span class="lbl d-block">Định dạng</span><span class="val" id="codecName" style="font-size:.9rem">—</span></span></span>
+                    </div>
+                </div>
+
+                <div class="pk-cta">
+                    <button id="startBtn" class="btn btn-lg-primary"><i class="bi bi-play-circle-fill me-1"></i> Bắt đầu hệ thống</button>
+                    <button id="finishBtn" class="btn btn-lg-success" disabled><i class="bi bi-check2-circle me-1"></i> Hoàn tất đơn</button>
+                    <button id="stopSysBtn" class="btn btn-ghost" disabled><i class="bi bi-stop-circle me-1"></i> Tắt camera</button>
+                </div>
+
+                <details class="pk-diag-wrap">
+                    <summary><i class="bi bi-terminal"></i> Nhật ký kỹ thuật (chẩn đoán camera)</summary>
+                    <div id="diag">Bấm "Bắt đầu hệ thống" để cấp quyền camera.</div>
+                </details>
+            </div>
+
+            <!-- CỘT PHẢI -->
+            <div class="pk-rail">
+                <!-- Đơn -->
+                <div class="pk-panel">
+                    <div class="hd">
+                        <span class="t"><i class="bi bi-upc"></i> Đơn đang đóng gói</span>
+                        <a id="openOrderLink" class="btn btn-sm btn-outline-primary d-none" target="_blank">
+                            <i class="bi bi-box-arrow-up-right"></i> Mở đơn</a>
+                    </div>
+                    <div class="bd">
+                        <label class="pk-lbl">Mã vận đơn <span class="text-muted fw-normal" style="text-transform:none">(camera tự quét, hoặc gõ tay + Enter)</span></label>
+                        <div class="pk-field mb-3">
+                            <i class="bi bi-upc-scan"></i>
+                            <input type="text" id="trackingInput" class="pk-scan" placeholder="Quét hoặc nhập mã vận đơn rồi Enter…">
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <label class="pk-lbl mb-0">Mã đơn OMS</label>
+                            <span class="pk-code" id="orderCodeBox">chưa có</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Khách hàng -->
+                <div class="pk-panel">
+                    <div class="hd"><span class="t"><i class="bi bi-person-vcard"></i> Khách hàng / Người nhận</span>
+                        <span class="pk-tag">không bắt buộc</span></div>
+                    <div class="bd">
+                        <label class="pk-lbl">Tên khách / Người nhận</label>
+                        <input type="text" id="recipientName" class="pk-input mb-2" placeholder="VD: Nguyễn Văn A">
+                        <label class="pk-lbl">Số điện thoại</label>
+                        <input type="text" id="recipientPhone" class="pk-input mb-2" placeholder="Để trống cũng được, điền sau khi soát đơn">
+                        <label class="pk-lbl">Địa chỉ giao</label>
+                        <textarea id="recipientAddr" class="pk-input" rows="2" placeholder="Địa chỉ giao (tùy chọn)"></textarea>
+                        <button class="btn btn-outline-secondary btn-sm mt-2 w-100" id="saveRecipientBtn" type="button" disabled>
+                            <i class="bi bi-save me-1"></i>Lưu thông tin khách</button>
+                    </div>
+                </div>
+
+                <!-- Sản phẩm -->
+                <div class="pk-panel">
+                    <div class="hd"><span class="t"><i class="bi bi-box-seam"></i> Quét sản phẩm</span>
+                        <label class="pk-switch mb-0"><span class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" id="requireSerial" checked></span>Có serial</label>
+                    </div>
+                    <div class="bd">
+                        <label class="pk-lbl">Quét mã sản phẩm (SKU)</label>
+                        <div class="pk-field mb-2"><i class="bi bi-upc-scan"></i>
+                            <input type="text" id="skuInput" class="pk-scan" placeholder="Quét barcode sản phẩm…" disabled autocomplete="off"></div>
+                        <div id="pendingBox" class="pk-pending mb-2" style="display:none"></div>
+                        <label class="pk-lbl">Quét serial / IMEI</label>
+                        <div class="pk-field"><i class="bi bi-123"></i>
+                            <input type="text" id="serialInput" class="pk-scan" placeholder="Quét serial rồi Enter…" disabled autocomplete="off"></div>
+
+                        <div class="pk-items">
+                            <div class="row-h"><span>Sản phẩm</span><span class="text-center">SL</span><span>Serial</span><span class="text-end">Đơn giá</span><span></span></div>
+                            <div class="list" id="itemsBody">
+                                <div class="pk-empty"><i class="bi bi-inbox"></i>Chưa có sản phẩm — quét mã để thêm</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pk-total">
+                        <span class="k">Tổng tiền</span>
+                        <span class="v" id="totalBox">0₫</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OFFCANVAS CẤU HÌNH -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="pkSettings">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title"><i class="bi bi-sliders me-2"></i>Cấu hình trạm đóng gói</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="alert alert-light border small py-2"><i class="bi bi-info-circle me-1"></i>Cấu hình được lưu tự động cho lần sau.</div>
+            <label class="pk-lbl">Cam Toàn Cảnh</label>
+            <select id="camPano" class="form-select form-select-sm mb-2"></select>
+            <label class="pk-lbl">Cam Quét Mã (tùy chọn)</label>
+            <select id="camQr" class="form-select form-select-sm mb-2"></select>
+            <button id="grantBtn" class="btn btn-sm btn-outline-primary w-100 mb-3">
+                <i class="bi bi-camera"></i> Cấp quyền &amp; tải danh sách camera</button>
+
+            <div class="row g-2 mb-2">
+                <div class="col-6"><label class="pk-lbl">Phân giải pano</label>
+                    <select id="resPano" class="form-select form-select-sm">
+                        <option>1920x1080</option><option selected>1280x720</option><option>640x480</option></select></div>
+                <div class="col-6"><label class="pk-lbl">Phân giải QR</label>
+                    <select id="resQr" class="form-select form-select-sm">
+                        <option>1920x1080</option><option selected>1280x720</option><option>640x480</option></select></div>
+            </div>
+            <label class="pk-lbl">Tự dừng quay sau</label>
+            <select id="autoStop" class="form-select form-select-sm mb-3">
+                <option value="60">60 giây</option><option value="90" selected>90 giây</option>
+                <option value="120">120 giây</option><option value="0">Không tự dừng</option></select>
+
+            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="autoCreate" checked>
+                <label class="form-check-label small" for="autoCreate">Tự tạo đơn khi quét vận đơn</label></div>
+            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rotateQr" checked>
+                <label class="form-check-label small" for="rotateQr">Xoay cam quét 90° (nhãn dọc)</label></div>
+            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="mergePip" checked>
+                <label class="form-check-label small" for="mergePip">Ghép PiP camera quét vào video</label></div>
+            <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="beepOn" checked>
+                <label class="form-check-label small" for="beepOn">Kêu "bíp" khi quét được mã</label></div>
+
+            <label class="pk-lbl">Thư mục lưu video (trên máy này)</label>
+            <div class="input-group input-group-sm mb-1">
+                <input type="text" id="folderName" class="form-control" placeholder="Chưa chọn" readonly>
+                <button class="btn btn-outline-secondary" id="pickFolderBtn" type="button">Chọn…</button>
+            </div>
+            <div class="small text-muted">Chọn thư mục thường (vd <b>Documents\VideoDongGoi</b>), không chọn ổ đĩa gốc/thư mục hệ thống. Video không tải lên máy chủ.</div>
+        </div>
+    </div>
+
+    <!-- video nguồn camera (ẩn) -->
+    <video id="vPano" autoplay muted playsinline style="position:fixed;left:-9999px;top:0;width:4px;height:4px;opacity:0"></video>
+    <video id="vQr" autoplay muted playsinline style="position:fixed;left:-9999px;top:0;width:4px;height:4px;opacity:0"></video>
+
+    <!-- toast -->
+    <div class="pk-toasts" id="pkToasts"></div>
+
+    <script src="/js/zxing.min.js"></script>
+    <script src="/js/packing.js"></script>
+</div>
+</body>
+</html>

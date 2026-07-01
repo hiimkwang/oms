@@ -37,6 +37,16 @@ public class ReceiptController {
         }
     }
 
+    // Hoàn tác nhập kho: đưa đơn ĐÃ NHẬP KHO về CHỜ NHẬP KHO (khi lỡ bấm nhập nhưng hàng chưa về)
+    @PostMapping("/{id}/revert-import")
+    public ResponseEntity<?> revertImport(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(receiptService.revertImport(id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : "Lỗi hoàn tác nhập kho"));
+        }
+    }
+
     @PostMapping("/{id}/payment")
     public ResponseEntity<?> makePayment(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
         try {

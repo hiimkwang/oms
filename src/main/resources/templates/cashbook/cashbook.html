@@ -312,7 +312,9 @@
                         <td class="ps-4"><input type="checkbox" class="form-check-input tx-checkbox" th:value="${t.id}"
                                                 onchange="checkSelection()"></td>
                         <td><a th:href="@{/ui/cashbook/detail/{id}(id=${t.id})}"
-                               class="text-primary fw-bold text-decoration-none hover-primary" th:text="${t.code}"></a>
+                               class="fw-bold text-decoration-none hover-primary"
+                               th:classappend="${t.type.name() == 'PAYMENT' ? 'text-danger' : 'text-success'}"
+                               th:text="${t.code}"></a>
                         </td>
 
                         <td class="text-muted"

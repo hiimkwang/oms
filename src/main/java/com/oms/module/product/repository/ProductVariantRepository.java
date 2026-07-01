@@ -20,6 +20,10 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     Optional<ProductVariant> findBySku(String sku);
 
+    // Tra biến thể theo mã vạch (barcode) — dùng khi quét đóng gói. Có thể trả nhiều nếu mã bị trùng.
+    @Query("SELECT v FROM ProductVariant v JOIN v.barcodes b WHERE b = :code")
+    List<ProductVariant> findAllByBarcode(@Param("code") String code);
+
     // Phiên bản KHÓA GHI: dùng khi cập nhật stockQuantity/costPrice (MAC) trong giao dịch nhập/xuất kho
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT v FROM ProductVariant v WHERE v.sku = :sku")

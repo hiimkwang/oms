@@ -14,6 +14,7 @@ import com.oms.module.notification.service.NotificationService;
 import com.oms.module.order.repository.OrderRepository;
 import com.oms.module.receipt.repository.ReceiptRepository;
 import com.oms.module.supplier.repository.SupplierRepository;
+import com.oms.module.setting.repository.SalesChannelRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,6 +37,7 @@ public class CashbookService {
     private final InventoryRepository inventoryRepository;
     private final OrderRepository orderRepository;
     private final ReceiptRepository receiptRepository;
+    private final SalesChannelRepository salesChannelRepo;
 
     // Lý do (reason) chuẩn cho các giao dịch vốn — phải khớp với option trong form phiếu thu/chi
     public static final String REASON_CAPITAL_IN = "Nhận vốn góp";
@@ -74,6 +76,8 @@ public class CashbookService {
                 targetName = supplierRepo.findById(request.getTargetId()).map(s -> s.getName()).orElse(targetName);
             } else if (request.getTargetGroup() == CashTransaction.TargetGroup.EMPLOYEE) {
                 targetName = userRepo.findById(request.getTargetId()).map(u -> u.getFullName()).orElse(targetName);
+            } else if (request.getTargetGroup() == CashTransaction.TargetGroup.ECOMMERCE) {
+                targetName = salesChannelRepo.findById(request.getTargetId()).map(ch -> ch.getName()).orElse(targetName);
             }
         }
 

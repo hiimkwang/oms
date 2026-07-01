@@ -466,6 +466,7 @@
                 <th width="130">Giá nhập (Vốn)</th>
                 <th width="100">Tồn kho ban đầu</th>
                 <th width="160">Mã SKU</th>
+                <th width="170">Mã vạch (barcode)</th>
             </tr>`;
             thead.innerHTML = headerHtml;
 
@@ -524,6 +525,7 @@
                     <td><input type="number" class="form-control form-control-sm text-end oms-input var-cost" value="0" placeholder="Giá nhập"></td>
                     <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock" value="0" ${!isManaged ? 'disabled' : ''}></td>
                     <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium" value="${variantSku}" readonly></td>
+                    <td><input type="text" class="form-control form-control-sm oms-input var-barcode" placeholder="Quét/nhập, nhiều mã cách nhau dấu phẩy"></td>
                 </tr>`;
                 bodyHtml += rowHtml;
             });
@@ -603,7 +605,8 @@
                     imageUrl: row.querySelector('.var-image').value.trim(),
                     price: parseFloat(row.querySelector('.var-price').value) || 0,
                     costPrice: parseFloat(row.querySelector('.var-cost').value) || 0,
-                    stockQuantity: parseInt(row.querySelector('.var-stock').value) || 0
+                    stockQuantity: parseInt(row.querySelector('.var-stock').value) || 0,
+                    barcodes: ((row.querySelector('.var-barcode') || {}).value || '').split(',').map(s => s.trim()).filter(Boolean)
                 });
             });
 

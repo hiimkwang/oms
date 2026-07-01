@@ -34,6 +34,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     boolean existsByOrderCode(String orderCode);
 
+    // Tìm đơn gần nhất theo mã vận đơn (chống tạo trùng đơn khi quét lại cùng vận đơn ở trạm đóng gói)
+    Optional<Order> findFirstByTrackingCodeOrderByCreatedAtDesc(String trackingCode);
+
     @Query("SELECT o FROM Order o WHERE LOWER(o.orderCode) LIKE LOWER(CONCAT('%', :keyword, '%')) ORDER BY o.createdAt DESC")
     List<Order> searchByKeyword(@Param("keyword") String keyword);
 

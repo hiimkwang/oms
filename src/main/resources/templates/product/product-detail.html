@@ -246,6 +246,7 @@
                                 <th width="130">Giá nhập (Vốn)</th>
                                 <th width="100">Tồn kho <i class="bi bi-lock text-muted ms-1" title="Không sửa được tồn kho"></i></th>
                                 <th width="160">Mã SKU</th>
+                                <th width="170">Mã vạch (barcode)</th>
                             </tr>
                             </thead>
                             <tbody id="variantTableBody">
@@ -296,6 +297,10 @@
                                 <td><input type="text"
                                            class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light"
                                            th:value="${v.sku}" readonly></td>
+                                <td><input type="text"
+                                           class="form-control form-control-sm oms-input var-barcode"
+                                           placeholder="Quét/nhập, cách nhau dấu phẩy"
+                                           th:value="${v.barcodes != null ? #strings.listJoin(v.barcodes, ', ') : ''}"></td>
                             </tr>
                             </tbody>
                         </table>
@@ -515,7 +520,8 @@
                         price: row.querySelector('.var-price') ? row.querySelector('.var-price').value : '',
                         cost: row.querySelector('.var-cost') ? row.querySelector('.var-cost').value : '',
                         stock: row.querySelector('.var-stock') ? row.querySelector('.var-stock').value : '0',
-                        sku: row.querySelector('.var-sku') ? row.querySelector('.var-sku').value : ''
+                        sku: row.querySelector('.var-sku') ? row.querySelector('.var-sku').value : '',
+                        barcode: row.querySelector('.var-barcode') ? row.querySelector('.var-barcode').value : ''
                     };
                 }
             });
@@ -545,6 +551,7 @@
         <th width="130">Giá nhập</th>
         <th width="100">Tồn kho <i class="bi bi-lock text-muted ms-1"></i></th>
         <th width="160">Mã SKU</th>
+        <th width="170">Mã vạch (barcode)</th>
     </tr>`;
             thead.innerHTML = headerHtml;
 
@@ -617,6 +624,7 @@
             <td><input type="text" class="form-control form-control-sm text-end oms-input var-cost" value="${finalCostFmt}" oninput="formatNumberInput(this)"></td>
             <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock bg-light" value="${finalStock}" ${isManaged ? 'disabled' : ''} title="Sửa bằng tính năng Kiểm kho"></td>
             <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light" value="${finalSku}" readonly></td>
+            <td><input type="text" class="form-control form-control-sm oms-input var-barcode" placeholder="Quét/nhập, cách nhau dấu phẩy" value="${data && data.barcode ? data.barcode : ''}"></td>
         </tr>`;
                 bodyHtml += rowHtml;
             });
@@ -647,6 +655,7 @@
             <td><input type="text" class="form-control form-control-sm text-end oms-input var-cost" value="${vCostFmt}" oninput="formatNumberInput(this)"></td>
             <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock bg-light" value="${vData.stock}" ${isManaged ? 'disabled' : ''}></td>
             <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light" value="${vData.sku}" readonly></td>
+            <td><input type="text" class="form-control form-control-sm oms-input var-barcode" placeholder="Quét/nhập, cách nhau dấu phẩy" value="${vData.barcode || ''}"></td>
         </tr>`;
                 bodyHtml += rowHtml;
             }
@@ -712,7 +721,8 @@
                     sku: row.querySelector('.var-sku').value,
                     price: getRawNumber(row.querySelector('.var-price').value),
                     costPrice: getRawNumber(row.querySelector('.var-cost').value),
-                    stockQuantity: parseInt(row.querySelector('.var-stock').value) || 0
+                    stockQuantity: parseInt(row.querySelector('.var-stock').value) || 0,
+                    barcodes: ((row.querySelector('.var-barcode') || {}).value || '').split(',').map(s => s.trim()).filter(Boolean)
                 });
             });
 

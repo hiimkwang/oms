@@ -431,10 +431,14 @@
                          class="d-none mt-2 p-3 border border-primary rounded bg-primary bg-opacity-10 position-relative">
                         <i class="bi bi-x position-absolute top-0 end-0 m-2 cursor-pointer text-muted fs-5"
                            onclick="clearCustomer()"></i>
+                        <i class="bi bi-pencil-square position-absolute top-0 end-0 mt-2 me-4 cursor-pointer text-primary fs-6"
+                           title="Sửa thông tin khách hàng" onclick="editSelectedCustomer()"></i>
                         <input type="hidden" id="selectedCustomerId">
                         <div class="fw-bold text-primary" id="selectedCusName"></div>
                         <div class="small text-dark mt-1"><i class="bi bi-telephone text-muted me-1"></i><span
                                 id="selectedCusPhone"></span></div>
+                        <div class="small text-dark mt-1" id="selectedCusAddrRow" style="display:none"><i class="bi bi-geo-alt text-muted me-1"></i><span
+                                id="selectedCusAddr"></span></div>
                     </div>
                 </div>
             </div>
@@ -582,7 +586,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-light py-3 border-bottom">
-                    <h5 class="modal-title fw-bold fs-6">Thêm mới khách hàng nhanh</h5>
+                    <h5 class="modal-title fw-bold fs-6" id="custModalTitle">Thêm mới khách hàng nhanh</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
@@ -1093,7 +1097,7 @@
                 const res = await fetch('/api/v1/customers?keyword=' + encodeURIComponent(keyword));
                 currentSearchedCustomers = await res.json();
 
-                let html = '<li class="border-bottom p-2 dropdown-item-hover text-primary fw-medium" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-plus-circle me-2"></i>Thêm mới khách hàng nhanh</li>';
+                let html = '<li class="border-bottom p-2 dropdown-item-hover text-primary fw-medium" onclick="prepareAddCustomer()" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-plus-circle me-2"></i>Thêm mới khách hàng nhanh</li>';
 
                 currentSearchedCustomers.forEach((c, index) => {
                     const name = c.fullName || c.name || 'Chưa có tên';
@@ -1134,6 +1138,8 @@
             document.getElementById('selectedCustomerId').value = code;
             document.getElementById('selectedCusName').innerText = name;
             document.getElementById('selectedCusPhone').innerText = phone;
+            const _addrEl = document.getElementById('selectedCusAddr');
+            if (_addrEl) { _addrEl.innerText = address || ''; document.getElementById('selectedCusAddrRow').style.display = address ? 'block' : 'none'; }
 
             document.getElementById('displayShippingAddress').value = address;
 
@@ -1153,6 +1159,40 @@
             clearInvoiceData();
         }
 
+        // Mã khách đang sửa (null = đang thêm mới)
+        let editingCustomerCode = null;
+
+        // Chuẩn bị modal cho chế độ THÊM MỚI (reset sạch)
+        function prepareAddCustomer() {
+            editingCustomerCode = null;
+            document.getElementById('custModalTitle').innerText = 'Thêm mới khách hàng nhanh';
+            ['newCusFirstName', 'newCusLastName', 'newCusPhone', 'newCusDob', 'newCusFullAddress'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('newCusGender').value = 'MALE';
+        }
+
+        // Mở modal ở chế độ SỬA khách đang chọn
+        async function editSelectedCustomer() {
+            const code = document.getElementById('selectedCustomerId').value;
+            if (!code) return;
+            try {
+                const res = await fetch('/api/v1/customers/' + encodeURIComponent(code));
+                if (!res.ok) throw new Error();
+                const c = await res.json();
+                editingCustomerCode = code;
+                document.getElementById('custModalTitle').innerText = 'Sửa thông tin khách hàng';
+                document.getElementById('newCusFirstName').value = c.firstName || '';
+                document.getElementById('newCusLastName').value = c.lastName || '';
+                document.getElementById('newCusPhone').value = c.phone || '';
+                document.getElementById('newCusFullAddress').value = c.shipAddressDetail || '';
+                if (typeof c.dob === 'string') document.getElementById('newCusDob').value = c.dob.substring(0, 10);
+                else document.getElementById('newCusDob').value = '';
+                if (c.gender) document.getElementById('newCusGender').value = c.gender;
+                new bootstrap.Modal(document.getElementById('addCustomerModal')).show();
+            } catch (e) {
+                Toast.fire({icon: 'error', title: 'Không tải được thông tin khách!'});
+            }
+        }
+
         async function submitNewCustomer(btn) {
             const payload = {
                 firstName: document.getElementById('newCusFirstName').value,
@@ -1165,9 +1205,9 @@
             };
             payload.fullName = (payload.lastName ? payload.lastName + ' ' : '') + payload.firstName;
 
-            if (!payload.firstName || !payload.phone) return Toast.fire({
+            if (!payload.firstName) return Toast.fire({
                 icon: 'error',
-                title: 'Vui lòng nhập Tên và Số điện thoại!'
+                title: 'Vui lòng nhập Tên khách hàng!'
             });
 
             const originalText = btn.innerHTML;
@@ -1175,19 +1215,25 @@
             btn.disabled = true;
 
             try {
-                const res = await fetch('/api/v1/customers', {
-                    method: 'POST',
+                const editing = editingCustomerCode;
+                const url = editing ? '/api/v1/customers/' + encodeURIComponent(editing) : '/api/v1/customers';
+                const res = await fetch(url, {
+                    method: editing ? 'PUT' : 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
                 });
 
                 if (res.ok) {
-                    const newCus = await res.json();
+                    const cus = await res.json();
                     hideModalSafe('addCustomerModal');
-                    currentSearchedCustomers = [newCus];
+                    editingCustomerCode = null;
+                    document.getElementById('custModalTitle').innerText = 'Thêm mới khách hàng nhanh';
+                    currentSearchedCustomers = [cus];
                     selectCustomerByIndex(0);
+                    Toast.fire({icon: 'success', title: editing ? 'Đã cập nhật khách hàng!' : 'Đã thêm khách hàng!'});
                 } else {
-                    Toast.fire({icon: 'error', title: 'Tạo thất bại: Số điện thoại này đã tồn tại!'});
+                    const j = await res.json().catch(() => ({}));
+                    Toast.fire({icon: 'error', title: j.message || 'Lưu khách hàng thất bại!'});
                 }
             } catch (e) {
                 Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ!'});

@@ -71,7 +71,10 @@ public class CustomerService {
 
     @Transactional
     public Customer createCustomer(CustomerRequest req) {
-        if (customerRepository.existsByPhone(req.getPhoneNumber())) {
+        // SĐT không bắt buộc. Chỉ kiểm tra trùng khi khách CÓ nhập SĐT
+        // (cho phép tạo khách chưa có SĐT, điền/khớp sau khi soát đơn).
+        if (req.getPhoneNumber() != null && !req.getPhoneNumber().isBlank()
+                && customerRepository.existsByPhone(req.getPhoneNumber())) {
             throw new RuntimeException("Số điện thoại này đã tồn tại!");
         }
 
