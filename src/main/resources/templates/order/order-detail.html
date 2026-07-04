@@ -625,6 +625,10 @@
                             currentOrder.customer = Object.assign({}, cus, updated);
                             document.getElementById('rightCusName').innerText = payload.fullName;
                             document.getElementById('rightCusPhone').innerText = payload.phone || '---';
+                            // Cập nhật luôn ô hiển thị ở CHẾ ĐỘ SỬA đơn (trước đây bị bỏ sót -> vẫn hiện tên cũ)
+                            const _ecn = document.getElementById('editCusName'); if (_ecn) _ecn.innerText = payload.fullName;
+                            const _addr = document.getElementById('rightShippingAddress');
+                            if (_addr && payload.shipAddressDetail) _addr.innerText = payload.shipAddressDetail;
                             if (typeof bootstrap !== 'undefined') bootstrap.Modal.getInstance(document.getElementById('editCustomerModal')).hide();
                             _pkToast('success', 'Đã cập nhật khách hàng!');
                         } else {

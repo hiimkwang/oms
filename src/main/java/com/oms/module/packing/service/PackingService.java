@@ -64,16 +64,30 @@ public class PackingService {
     /** Tạo đơn nháp mới từ vận đơn quét được. */
     @Transactional
     public Order createDraftFromPacking(PackingOrderRequest req) {
-        Customer walkIn = getOrCreateWalkInCustomer();
+        // Mỗi đơn đóng gói tạo 1 khách RIÊNG theo rule chung KH{timestamp} (giống tạo khách nhanh),
+        // thay vì dùng chung 1 khách "KHACHLE". Thông tin người nhận (nếu có) điền luôn.
+        Customer customer = new Customer();
+        customer.setCode("KH" + System.currentTimeMillis());
+        String rName = emptyToNull(req.getRecipientName());
+        customer.setFullName(rName != null ? rName : "Khách lẻ");
+        customer.setPhone(emptyToNull(req.getRecipientPhone()));
+        customer.setShipAddressDetail(emptyToNull(req.getShippingAddress()));
+        customer.setCustomerGroup("Khách lẻ");
+        customer.setNote("Khách tạo tự động từ trạm đóng gói");
+        customer = customerRepository.save(customer);
+
         String code = "DH" + System.currentTimeMillis() + "-"
                 + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
 
         Order order = Order.builder()
                 .orderCode(code)
-                .customer(walkIn)
+                .customer(customer)
                 .status(OrderStatusConstant.DRAFT)
                 .paymentStatus(PaymentStatusConstant.UNPAID)
                 .trackingCode(emptyToNull(req.getTrackingCode()))
+                .referenceCode(emptyToNull(req.getReferenceCode()))
+                .salesChannelCode(emptyToNull(req.getSalesChannelCode()))
+                .branchId(req.getBranchId())
                 .shippingAddress(composeRecipient(req.getRecipientName(), req.getRecipientPhone(), req.getShippingAddress()))
                 .note(emptyToNull(req.getNote()))
                 .totalAmount(BigDecimal.ZERO)
@@ -188,6 +202,21 @@ public class PackingService {
     @Transactional
     public Order updateRecipient(String orderCode, PackingRecipientRequest req) {
         Order order = getDraftOrder(orderCode);
+        // Đồng bộ thông tin người nhận vào KHÁCH RIÊNG của đơn (bỏ qua khách chung KHACHLE cũ nếu có)
+        Customer c = order.getCustomer();
+        if (c != null && !WALK_IN_CODE.equals(c.getCode())) {
+            String rName = emptyToNull(req.getRecipientName());
+            if (rName != null) c.setFullName(rName);
+            String rPhone = emptyToNull(req.getRecipientPhone());
+            if (rPhone != null) c.setPhone(rPhone);
+            String rAddr = emptyToNull(req.getShippingAddress());
+            if (rAddr != null) c.setShipAddressDetail(rAddr);
+            customerRepository.save(c);
+        }
+        // Cập nhật mã đơn sàn / nguồn đơn / chi nhánh nếu người dùng nhập/sửa ở trạm đóng gói
+        if (emptyToNull(req.getReferenceCode()) != null) order.setReferenceCode(req.getReferenceCode().trim());
+        if (emptyToNull(req.getSalesChannelCode()) != null) order.setSalesChannelCode(req.getSalesChannelCode().trim());
+        if (req.getBranchId() != null) order.setBranchId(req.getBranchId());
         order.setShippingAddress(composeRecipient(req.getRecipientName(), req.getRecipientPhone(), req.getShippingAddress()));
         if (req.getNote() != null) order.setNote(emptyToNull(req.getNote()));
         order.getDetails().size(); // nạp details trong transaction để tránh LazyInitializationException khi build response

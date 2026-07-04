@@ -382,9 +382,17 @@
     await createDraft(code);
   }
 
+  // Thông tin đơn nhập ở trạm đóng gói: mã đơn sàn / nguồn đơn / chi nhánh
+  function orderInfoPayload(){
+    const ref=($('pkReference')&&$('pkReference').value||'').trim();
+    const ch=$('pkChannel')?$('pkChannel').value:'';
+    const br=$('pkBranch')?$('pkBranch').value:'';
+    return { referenceCode: ref||null, salesChannelCode: ch||null, branchId: br?Number(br):null };
+  }
+
   async function createDraft(trackingCode){
     try{
-      const data=await apiJSON(API+'/orders',{method:'POST',body:JSON.stringify({trackingCode})});
+      const data=await apiJSON(API+'/orders',{method:'POST',body:JSON.stringify(Object.assign({trackingCode}, orderInfoPayload()))});
       state.order={orderCode:data.orderCode, trackingCode:trackingCode};
       state.lastTracking=trackingCode;
       $('orderCodeBox').textContent=data.orderCode;
@@ -405,8 +413,9 @@
     if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     // Tự lưu thông tin khách nếu người dùng đã nhập mà chưa bấm Lưu
     const nm=$('recipientName').value.trim(), ph=$('recipientPhone').value.trim(), ad=$('recipientAddr').value.trim();
-    if(nm||ph||ad){ try{ await apiJSON(API+'/orders/'+state.order.orderCode+'/recipient',
-      {method:'PUT',body:JSON.stringify({recipientName:nm,recipientPhone:ph,shippingAddress:ad})}); }catch(e){} }
+    // Luôn lưu (kèm mã đơn sàn/nguồn/chi nhánh) để không sót thông tin đơn dù chưa nhập người nhận
+    try{ await apiJSON(API+'/orders/'+state.order.orderCode+'/recipient',
+      {method:'PUT',body:JSON.stringify(Object.assign({recipientName:nm,recipientPhone:ph,shippingAddress:ad}, orderInfoPayload()))}); }catch(e){}
     const order=state.order; state.order=null; state.pending=null; $('pendingBox').style.display='none';
     const {pano, qr}=await stopRecording();
     const base=(order.trackingCode||order.orderCode).replace(/[^\w.-]/g,'_')+'_'+order.orderCode;
@@ -492,15 +501,15 @@
   async function saveRecipient(){
     if(!state.order) return;
     try{
-      const data=await apiJSON(API+'/orders/'+state.order.orderCode+'/recipient',{method:'PUT',body:JSON.stringify({
+      const data=await apiJSON(API+'/orders/'+state.order.orderCode+'/recipient',{method:'PUT',body:JSON.stringify(Object.assign({
         recipientName:$('recipientName').value, recipientPhone:$('recipientPhone').value,
-        shippingAddress:$('recipientAddr').value })});
+        shippingAddress:$('recipientAddr').value }, orderInfoPayload()))});
       toast('Đã lưu thông tin khách.','ok'); renderItems(data);
     }catch(e){ toast('Lỗi lưu người nhận: '+e.message,'err'); }
   }
 
   /* ---------- Lưu/khôi phục cấu hình (localStorage) ---------- */
-  const PK_KEYS=['camPano','camQr','resPano','resQr','autoStop','rotateQr','mergePip','beepOn','autoCreate','requireSerial'];
+  const PK_KEYS=['camPano','camQr','resPano','resQr','autoStop','rotateQr','mergePip','beepOn','autoCreate','requireSerial','pkChannel','pkBranch'];
   function saveSettings(){
     const o={};
     PK_KEYS.forEach(id=>{ const el=$(id); if(!el) return; o[id]=(el.type==='checkbox')?el.checked:el.value; });
@@ -566,6 +575,7 @@
   function resetOrderPanel(){
     $('trackingInput').value=''; $('orderCodeBox').textContent='chưa có';
     $('recipientName').value=''; $('recipientPhone').value=''; $('recipientAddr').value='';
+    if($('pkReference')) $('pkReference').value=''; // mã đơn sàn theo từng đơn -> xóa; nguồn/chi nhánh giữ nguyên
     $('pendingBox').style.display='none'; state.pending=null;
     renderItems({items:[],totalAmount:0});
     $('openOrderLink').classList.add('d-none');

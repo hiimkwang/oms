@@ -9,4 +9,7 @@ public class PackingRecipientRequest {
     private String recipientPhone;
     private String shippingAddress;
     private String note;
+    private String salesChannelCode; // Nguồn đơn / kênh bán
+    private Long branchId;           // Chi nhánh bán
+    private String referenceCode;    // Mã đơn sàn (reference)
 }

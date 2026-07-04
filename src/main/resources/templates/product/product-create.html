@@ -125,12 +125,19 @@
                         <input type="text" class="form-control oms-input py-2" placeholder="Nhập mã vạch/ Barcode">
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Đơn vị tính <span class="text-danger">*</span></label>
-                    <select id="unit" class="form-control" placeholder="Chọn hoặc nhập để thêm mới...">
-                        <option value="">Chọn đơn vị tính</option>
-                        <option th:each="u : ${units}" th:value="${u}" th:text="${u}"></option>
-                    </select>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Đơn vị tính <span class="text-danger">*</span></label>
+                        <select id="unit" class="form-control" placeholder="Chọn hoặc nhập để thêm mới...">
+                            <option value="">Chọn đơn vị tính</option>
+                            <option th:each="u : ${units}" th:value="${u}" th:text="${u}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Thời hạn bảo hành (tháng)</label>
+                        <input type="number" id="warrantyMonths" min="0" class="form-control oms-input py-2"
+                               placeholder="VD: 12 — mặc định cho cả sản phẩm">
+                    </div>
                 </div>
                 <div class="mb-2">
                     <label class="form-label">Mô tả</label>
@@ -576,6 +583,7 @@
                 branchId: parseInt(branchIdVal), // Truyền ID Kho xuống Backend
                 minStockLevel: 0,
                 description: document.getElementById("description").value,
+                warrantyPeriod: (document.getElementById("warrantyMonths").value || '').trim(),
                 attributes: [], // MỚI THÊM: Hứng dữ liệu thuộc tính
                 variants: []
             };

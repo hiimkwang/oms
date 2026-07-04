@@ -13,4 +13,7 @@ public class PackingOrderRequest {
     private String recipientPhone;   // SĐT người nhận - tùy chọn
     private String shippingAddress;  // Địa chỉ giao - tùy chọn
     private String note;             // Ghi chú
+    private String salesChannelCode; // Nguồn đơn / kênh bán
+    private Long branchId;           // Chi nhánh bán
+    private String referenceCode;    // Mã đơn sàn (reference)
 }

@@ -78,6 +78,24 @@
                     </div>
                 </div>
 
+                <!-- Thông tin đơn: mã đơn sàn / nguồn đơn / chi nhánh (mặc định lấy giá trị đầu từ DB) -->
+                <div class="pk-panel">
+                    <div class="hd"><span class="t"><i class="bi bi-shop"></i> Thông tin đơn</span>
+                        <span class="pk-tag">không bắt buộc</span></div>
+                    <div class="bd">
+                        <label class="pk-lbl">Mã đơn sàn</label>
+                        <input type="text" id="pkReference" class="pk-input mb-2 js-scan" placeholder="VD: 2504XXXXXXXX (tùy chọn)">
+                        <label class="pk-lbl">Nguồn đơn</label>
+                        <select id="pkChannel" class="pk-input mb-2">
+                            <option th:each="c : ${channels}" th:value="${c.code}" th:text="${c.name}"></option>
+                        </select>
+                        <label class="pk-lbl">Chi nhánh bán</label>
+                        <select id="pkBranch" class="pk-input">
+                            <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Khách hàng -->
                 <div class="pk-panel">
                     <div class="hd"><span class="t"><i class="bi bi-person-vcard"></i> Khách hàng / Người nhận</span>
