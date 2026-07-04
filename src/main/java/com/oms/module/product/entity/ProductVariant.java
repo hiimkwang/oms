@@ -22,6 +22,12 @@ public class ProductVariant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Optimistic lock chống lost-update tồn kho (bổ trợ khóa bi quan). Default 0 -> an toàn với dòng cũ.
+    @Version
+    @Column(name = "version", columnDefinition = "bigint not null default 0")
+    @Builder.Default
+    private Long version = 0L;
+
     @Column(name = "variant_name", nullable = false)
     private String variantName;
 

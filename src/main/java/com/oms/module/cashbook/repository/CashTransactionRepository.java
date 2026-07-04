@@ -27,6 +27,13 @@ public interface CashTransactionRepository extends JpaRepository<CashTransaction
 
     boolean existsByCode(String code);
 
+    // Tổng tiền bán hàng ĐÃ ghi nhận (ròng) cho một đơn theo mã tham chiếu = THU 'Thu tiền bán hàng' - CHI 'Điều chỉnh tiền bán hàng'.
+    // Dùng để đối soát idempotent: chỉ ghi thêm phần CÒN THIẾU, tránh ghi trùng phiếu thu khi upload lại file.
+    @Query("SELECT COALESCE(SUM(CASE WHEN t.type = 'RECEIPT' THEN t.amount ELSE -t.amount END), 0) " +
+            "FROM CashTransaction t WHERE t.referenceCode = :ref " +
+            "AND t.reason IN ('Thu tiền bán hàng', 'Điều chỉnh tiền bán hàng')")
+    BigDecimal sumNetSaleCashByReference(@Param("ref") String ref);
+
     @Query("SELECT COALESCE(SUM(CASE WHEN t.type = 'RECEIPT' THEN t.amount ELSE 0 END), 0) - " +
             "       COALESCE(SUM(CASE WHEN t.type = 'PAYMENT' THEN t.amount ELSE 0 END), 0) " +
             "FROM CashTransaction t " +

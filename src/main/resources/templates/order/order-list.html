@@ -53,7 +53,7 @@
         }
 
         .nav-tabs-custom .nav-link.active {
-            color: #0d6efd;
+            color: #3b82f6;
             background: transparent;
             font-weight: 600;
         }
@@ -65,7 +65,7 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: #0d6efd;
+            background: #3b82f6;
         }
 
         .nav-tabs-custom .nav-link:hover:not(.active) {
@@ -81,8 +81,8 @@
         }
 
         .search-box:focus-within {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, .25);
         }
 
         .search-box .input-group-text {
@@ -146,7 +146,7 @@
         }
 
         .hover-primary:hover {
-            color: #0d6efd !important;
+            color: #3b82f6 !important;
             text-decoration: underline !important;
         }
     </style>
@@ -212,11 +212,11 @@
             <div id="bulkActionBar" class="d-none align-items-center justify-content-between p-2 px-3"
                  style="background-color: #f0f8ff; border-top: 1px solid #dce0e4; border-bottom: 1px solid #dce0e4;">
                 <div class="d-flex align-items-center gap-3">
-                    <span class="fw-medium" style="color: #0369a1; font-size: 13px;">Đã chọn <span id="selectedCount"
+                    <span class="fw-medium" style="color: #2563eb; font-size: 13px;">Đã chọn <span id="selectedCount"
                                                                                                    class="fw-bold fs-6">0</span> đơn hàng</span>
                     <span class="text-muted small">|</span>
                     <a href="javascript:void(0)" class="text-decoration-none fw-medium"
-                       style="color: #0369a1; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
+                       style="color: #2563eb; font-size: 13px;" onclick="clearSelection()">Bỏ chọn</a>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <select id="bulkStatusSelect" class="form-select form-select-sm w-auto"
@@ -522,7 +522,9 @@
                 if (!details.length) {
                     productsHtml = '<span class="text-muted">---</span>';
                 } else {
-                    productsHtml = details.map(d => {
+                    // Tối đa 2 hàng: 1 dòng sản phẩm đầu + "+N sản phẩm khác" (tooltip liệt kê đầy đủ)
+                    const MAX_LINES = 1;
+                    const shown = details.slice(0, MAX_LINES).map(d => {
                         const pname = d.productName || d.sku || 'Sản phẩm';
                         const qty = new Intl.NumberFormat('en-US').format(d.quantity || 0);
                         return `<div class="text-truncate" style="max-width: 280px;" title="${escAttr(pname)}">
@@ -530,6 +532,13 @@
                                     <span class="text-muted ms-1">× ${qty}</span>
                                 </div>`;
                     }).join('');
+                    let moreHtml = '';
+                    if (details.length > MAX_LINES) {
+                        const restCount = details.length - MAX_LINES;
+                        const fullList = details.map(d => `${d.productName || d.sku || 'Sản phẩm'} × ${d.quantity || 0}`).join('\n');
+                        moreHtml = `<div class="text-muted small" style="cursor:default" title="${escAttr(fullList)}">+${restCount} sản phẩm khác</div>`;
+                    }
+                    productsHtml = shown + moreHtml;
                 }
 
                 // --- MÃ ĐƠN SÀN (để đối chiếu với đơn của sàn TMĐT) ---
@@ -676,7 +685,7 @@
                 html: `Chuyển <b>${orderCodes.length}</b> đơn hàng đã chọn sang trạng thái <b>"${statusLabel}"</b>?<br><span class="text-muted small">Đơn nào không hợp lệ (vd: đã hủy/đã hoàn thành, thiếu tồn kho) sẽ được báo riêng.</span>`,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#0d6efd',
+                confirmButtonColor: '#3b82f6',
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Xác nhận cập nhật',
                 cancelButtonText: 'Hủy bỏ'

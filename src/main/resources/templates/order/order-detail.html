@@ -34,12 +34,12 @@
         }
 
         .form-control-custom:focus, .form-select-custom:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, .1);
         }
 
         .text-link {
-            color: #0d6efd;
+            color: #3b82f6;
             cursor: pointer;
             text-decoration: none;
             font-size: 13px;
@@ -88,7 +88,7 @@
 
         .badge-processing {
             background-color: #e8f0fe;
-            color: #1a73e8;
+            color: #3b82f6;
             border-color: #d2e3fc;
         }
 
@@ -138,7 +138,7 @@
         }
 
         .timeline-step.active {
-            color: #0d6efd;
+            color: #3b82f6;
         }
 
         .step-icon {
@@ -157,8 +157,8 @@
         }
 
         .timeline-step.active .step-icon {
-            border-color: #0d6efd;
-            background-color: #0d6efd;
+            border-color: #3b82f6;
+            background-color: #3b82f6;
         }
 
         .step-title {
@@ -275,7 +275,7 @@
             height: 10px;
             border-radius: 50%;
             background-color: #fff;
-            border: 2px solid #0d6efd;
+            border: 2px solid #3b82f6;
         }
 
         .swal2-textarea-custom {
@@ -506,7 +506,7 @@
 
         <div class="col-md-4">
             <div class="card-custom p-3 edit-element sticky-top"
-                 style="top: 20px; border-color: #0d6efd; z-index: 100;">
+                 style="top: 20px; border-color: #3b82f6; z-index: 100;">
                 <div class="card-title-custom text-primary mb-2"><i class="bi bi-info-circle me-2"></i>Đang sửa thông
                     tin
                 </div>
@@ -550,7 +550,7 @@
                         <div class="col-12">
                             <div class="fw-bold text-dark small mb-1">Mã vận đơn (Tracking)</div>
                             <input type="text" id="editTrackingCode"
-                                   class="form-control form-control-custom text-success font-monospace">
+                                   class="form-control form-control-custom text-success font-monospace js-scan">
                         </div>
                     </div>
                 </div>
@@ -663,6 +663,12 @@
                         <option th:each="b : ${branches}" th:value="${b.id}" th:text="${b.name}"></option>
                     </select>
                 </div>
+            </div>
+
+            <!-- VIDEO ĐÓNG GÓI (đọc từ thư mục trên máy local) -->
+            <div class="card-custom p-3" id="packingVideoCard" style="display:none;">
+                <div class="card-title-custom mb-2"><i class="bi bi-camera-reels me-1"></i>Video đóng gói</div>
+                <div id="packingVideoBox"></div>
             </div>
         </div>
     </div>
@@ -824,6 +830,9 @@
         /*]]>*/
     </script>
 
+    <!-- Xem & ghép video đóng gói (đọc file trên máy local) -->
+    <script th:src="@{/js/packing-video.js}"></script>
+
     <script th:inline="none">
         // --- HÀM FORMAT SỐ ---
         window.formatNumberInput = function (input) {
@@ -885,6 +894,8 @@
                 if (!res.ok) throw new Error("API_ERROR");
                 currentOrder = await res.json();
                 renderViewMode();
+                // Hiển thị khu vực video đóng gói (đọc file trên máy local)
+                if (window.OMSPackingVideo) window.OMSPackingVideo.render(orderCode, currentOrder.packingVideoPath);
                 return true;
             } catch (e) {
                 document.getElementById('orderContainer').innerHTML = `<div class="alert alert-danger w-100 text-center py-4 fw-bold">Không tìm thấy dữ liệu đơn hàng. Vui lòng kiểm tra lại Backend!</div>`;

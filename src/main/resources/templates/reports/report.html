@@ -463,7 +463,7 @@
                 plugins: {legend: {display: false}},
                 scales: {x: {beginAtZero: true}, y: {grid: {display: false}}}
             };
-            const pieColors = ['#0d6efd', '#0dcaf0', '#198754', '#ffc107', '#fd7e14', '#6c757d'];
+            const pieColors = ['#3b82f6', '#0dcaf0', '#198754', '#ffc107', '#fd7e14', '#6c757d'];
             const pieOptions = {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -492,10 +492,10 @@
                 });
             };
 
-            initChart('ov_revChart', 'line', dateLabels, revData, '#0d6efd', commonOptions);
+            initChart('ov_revChart', 'line', dateLabels, revData, '#3b82f6', commonOptions);
             initChart('ov_orderChart', 'line', dateLabels, orderData, '#198754', commonOptions);
             initChart('ov_aovChart', 'bar', dateLabels, aovData, '#0dcaf0', commonOptions);
-            initChart('ov_topProdChart', 'bar', topProdLabels, topProdData, '#0d6efd', horizOptions);
+            initChart('ov_topProdChart', 'bar', topProdLabels, topProdData, '#3b82f6', horizOptions);
             initChart('ov_channelChart', 'doughnut', channelLabels, channelData, pieColors, pieOptions);
             initChart('ov_branchChart', 'doughnut', branchLabels, branchData, pieColors, pieOptions);
 
@@ -505,8 +505,8 @@
             initChart('rev_branchChart', 'doughnut', branchLabels, branchData, pieColors, pieOptions);
             initChart('rev_profitChannelChart', 'doughnut', channelLabels, channelProfitData, pieColors, pieOptions);
             initChart('rev_profitBranchChart', 'doughnut', branchLabels, branchProfitData, pieColors, pieOptions);
-            initChart('rev_topProdChart', 'bar', topProdLabels, topProdData, '#0d6efd', horizOptions);
-            initChart('rev_revChart', 'line', dateLabels, revData, '#0d6efd', commonOptions);
+            initChart('rev_topProdChart', 'bar', topProdLabels, topProdData, '#3b82f6', horizOptions);
+            initChart('rev_revChart', 'line', dateLabels, revData, '#3b82f6', commonOptions);
 
             initChart('cus_topCusChart', 'bar', topCusLabels, topCusData, '#0dcaf0', horizOptions);
             initChart('cus_regionChart', 'doughnut', regionLabels, regionData, pieColors, pieOptions);
@@ -514,7 +514,7 @@
 
             initChart('chan_channelChart', 'doughnut', chanChannelLabels, chanChannelData, pieColors, pieOptions);
             initChart('chan_branchChart', 'doughnut', chanBranchLabels, chanBranchData, pieColors, pieOptions);
-            initChart('chan_topProdChart', 'bar', chanTopProdLabels, chanTopProdData, '#0d6efd', horizOptions);
+            initChart('chan_topProdChart', 'bar', chanTopProdLabels, chanTopProdData, '#3b82f6', horizOptions);
             initChart('chan_returnProdChart', 'bar', chanReturnProdLabels, chanReturnProdData, '#dc3545', horizOptions);
         });
     </script>

@@ -1,5 +1,6 @@
 package com.oms.module.order.service;
 
+import com.oms.config.exception.BusinessException;
 import com.oms.module.cashbook.dto.CashTransactionRequest;
 import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.service.CashbookService;
@@ -52,6 +53,9 @@ public class OrderService {
     private final CashbookService cashbookService;
 
     // LẤY DANH SÁCH ĐƠN HÀNG
+    // readOnly: chặn Hibernate auto-flush -> khi Controller ẩn giá vốn (set costPrice=0 cho STAFF)
+    // KHÔNG bị ghi nhầm giá trị 0 xuống DB.
+    @Transactional(readOnly = true)
     public List<Order> getAllOrders() {
         return orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
@@ -63,6 +67,20 @@ public class OrderService {
         Customer customer = customerService.getCustomerByCode(request.getCustomerCode());
 
         String requestedStatus = request.getStatus() != null ? request.getStatus() : DRAFT;
+
+        // CHỐNG MASS-ASSIGNMENT: chỉ cho phép đặt trực tiếp các trạng thái được phép khi TẠO đơn.
+        // Không cho tạo thẳng đơn ở COMPLETED/CANCELLED/RETURNED hay trạng thái rác -> mọi chuyển tiếp
+        // nhạy cảm phải đi qua updateOrder/changeStatus (có kiểm tra transition + trừ/nhả kho đúng).
+        if (!CREATABLE_STATUSES.contains(requestedStatus)) {
+            throw new BusinessException("Trạng thái tạo đơn không hợp lệ: " + requestedStatus);
+        }
+
+        // IDEMPOTENCY: nếu client gửi mã tham chiếu (đơn sàn / đồng bộ) và đã tồn tại đơn mang mã đó
+        // -> coi như tạo trùng (double-submit / retry mạng) và chặn để không trừ kho + ghi thu 2 lần.
+        String refCode = request.getReferenceCode();
+        if (refCode != null && !refCode.isBlank() && orderRepository.existsByReferenceCode(refCode.trim())) {
+            throw new BusinessException("Đơn hàng với mã tham chiếu [" + refCode + "] đã tồn tại, không tạo trùng.");
+        }
 
         Order order = Order.builder().orderCode(generatedCode).customer(customer).salesChannelCode(request.getSalesChannelCode()).branchId(request.getBranchId()).status(requestedStatus).note(request.getNote()).shippingType(request.getShippingType()).shipFromBranchId(request.getShipFromBranchId()).shippingPartner(request.getShippingPartner()).trackingCode(request.getTrackingCode()).referenceCode(request.getReferenceCode()).shippingAddress(request.getShippingAddress()).expectedDeliveryDate(request.getExpectedDeliveryDate()).shippingFee(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO).codAmount(request.getCodAmount() != null ? request.getCodAmount() : BigDecimal.ZERO).shipWeight(request.getShipWeight()).paymentStatus(request.getPaymentStatus()).paymentMethod(request.getPaymentMethod()).amountPaid(request.getAmountPaid() != null ? request.getAmountPaid() : BigDecimal.ZERO).invoiceTaxCode(request.getInvoiceTaxCode()).invoiceCompanyName(request.getInvoiceCompanyName()).invoiceCompanyAddress(request.getInvoiceCompanyAddress()).discountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO).details(new ArrayList<>()).createdAt(request.getCreatedAt() != null ? request.getCreatedAt() : LocalDateTime.now()).build();
 
@@ -109,11 +127,19 @@ public class OrderService {
             newStatus = CONFIRMED;
         }
 
+        // CHỐNG MASS-ASSIGNMENT: chỉ nhận trạng thái hợp lệ; không cho đặt RETURNED thủ công (đi qua module Trả hàng).
+        if (newStatus == null || !ALL_STATUSES.contains(newStatus) || RETURNED.equals(newStatus)) {
+            throw new BusinessException("Trạng thái không hợp lệ: " + newStatus);
+        }
+
         if (CANCELLED.equals(oldStatus)) {
-            throw new RuntimeException("Không thể sửa đơn hàng đã bị hủy!");
+            throw new BusinessException("Không thể sửa đơn hàng đã bị hủy!");
+        }
+        if (RETURNED.equals(oldStatus)) {
+            throw new BusinessException("Không thể sửa đơn hàng đã trả hàng! Hãy thao tác trên phiếu trả hàng.");
         }
         if (COMPLETED.equals(oldStatus) && !CANCELLED.equals(newStatus)) {
-            throw new RuntimeException("Đơn hàng đã hoàn thành chỉ có thể chuyển sang trạng thái Hủy!");
+            throw new BusinessException("Đơn hàng đã hoàn thành chỉ có thể chuyển sang trạng thái Hủy!");
         }
 
         revertInventory(order, oldStatus);
@@ -209,7 +235,12 @@ public class OrderService {
     @Transactional
     public Order changeStatus(String orderCode, String newStatus) {
         if (newStatus == null || newStatus.trim().isEmpty()) {
-            throw new RuntimeException("Trạng thái mới không hợp lệ!");
+            throw new BusinessException("Trạng thái mới không hợp lệ!");
+        }
+        // CHỐNG MASS-ASSIGNMENT: chỉ nhận trạng thái nằm trong tập hợp lệ.
+        // Không cho chuyển sang RETURNED qua đây (trả hàng đi qua module Trả hàng để nhả kho/hoàn tiền đúng).
+        if (!ALL_STATUSES.contains(newStatus) || RETURNED.equals(newStatus)) {
+            throw new BusinessException("Trạng thái không hợp lệ: " + newStatus);
         }
         Order order = getOrderByCode(orderCode);
         String oldStatus = order.getStatus();
@@ -220,13 +251,13 @@ public class OrderService {
         }
 
         if (oldStatus != null && oldStatus.equals(newStatus)) {
-            throw new RuntimeException("Đơn " + orderCode + " đã ở trạng thái [" + translateStatus(newStatus) + "]");
+            throw new BusinessException("Đơn " + orderCode + " đã ở trạng thái [" + translateStatus(newStatus) + "]");
         }
         if (CANCELLED.equals(oldStatus)) {
-            throw new RuntimeException("Đơn " + orderCode + " đã bị hủy, không thể đổi trạng thái!");
+            throw new BusinessException("Đơn " + orderCode + " đã bị hủy, không thể đổi trạng thái!");
         }
         if (COMPLETED.equals(oldStatus) && !CANCELLED.equals(newStatus)) {
-            throw new RuntimeException("Đơn " + orderCode + " đã hoàn thành, chỉ có thể chuyển sang Hủy!");
+            throw new BusinessException("Đơn " + orderCode + " đã hoàn thành, chỉ có thể chuyển sang Hủy!");
         }
 
         // Nhả kho theo trạng thái cũ rồi áp lại theo trạng thái mới
@@ -264,14 +295,19 @@ public class OrderService {
     @Transactional
     public void deleteOrder(String orderCode) {
         Order order = getOrderByCode(orderCode);
+        // Không cho xóa đơn đã có phiếu trả hàng (FK nullable=false tham chiếu đơn gốc + tránh mất dấu vết/lệch số).
+        if (RETURNED.equals(order.getStatus())) {
+            throw new BusinessException("Đơn hàng đã trả hàng, không thể xóa. Hãy xử lý phiếu trả hàng trước.");
+        }
         // Đảo ngược phần tiền đã ghi nhận vào Sổ quỹ trước khi xóa (coi như chuyển về trạng thái Hủy)
         syncSalesCashFlow(order, order.getAmountPaid(), order.getStatus(), order.getAmountPaid(), CANCELLED);
         revertInventory(order, order.getStatus());
         orderRepository.delete(order);
     }
 
+    @Transactional(readOnly = true)
     public Order getOrderByCode(String orderCode) {
-        return orderRepository.findByOrderCode(orderCode).orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode));
+        return orderRepository.findByOrderCode(orderCode).orElseThrow(() -> new BusinessException("Không tìm thấy đơn hàng: " + orderCode));
     }
 
     // ============================================================
@@ -347,24 +383,24 @@ public class OrderService {
                 } catch (Exception e) {
                     // Không nuốt lỗi: nếu không lấy được biến thể sẽ làm sai giá vốn (COGS) -> dừng giao dịch
                     log.error("Lỗi khi lấy thông tin biến thể SKU {}", detailReq.getSku(), e);
-                    throw new RuntimeException("Không thể lấy thông tin sản phẩm SKU: " + detailReq.getSku());
+                    throw new BusinessException("Không thể lấy thông tin sản phẩm SKU: " + detailReq.getSku());
                 }
             } else {
                 // Nếu là sản phẩm tùy chỉnh, lấy giá vốn gửi từ Request (thường là 0)
                 costPrice = detailReq.getCostPrice() != null ? detailReq.getCostPrice() : BigDecimal.ZERO;
                 // Chặn giá vốn âm gửi từ client (tránh COGS âm -> lợi nhuận khống)
                 if (costPrice.compareTo(BigDecimal.ZERO) < 0) {
-                    throw new RuntimeException("Giá vốn sản phẩm tùy chỉnh không được âm!");
+                    throw new BusinessException("Giá vốn sản phẩm tùy chỉnh không được âm!");
                 }
             }
 
             BigDecimal unitPrice = detailReq.getUnitPrice() != null ? detailReq.getUnitPrice() : BigDecimal.ZERO;
             // Chống dữ liệu tiền âm gửi từ client
             if (unitPrice.compareTo(BigDecimal.ZERO) < 0) {
-                throw new RuntimeException("Đơn giá sản phẩm [" + productName + "] không được âm!");
+                throw new BusinessException("Đơn giá sản phẩm [" + productName + "] không được âm!");
             }
             if (detailReq.getQuantity() <= 0) {
-                throw new RuntimeException("Số lượng sản phẩm [" + productName + "] phải lớn hơn 0!");
+                throw new BusinessException("Số lượng sản phẩm [" + productName + "] phải lớn hơn 0!");
             }
             BigDecimal quantity = BigDecimal.valueOf(detailReq.getQuantity());
             BigDecimal lineTotal = unitPrice.multiply(quantity);
@@ -390,14 +426,14 @@ public class OrderService {
 
         BigDecimal discount = order.getDiscountAmount() != null ? order.getDiscountAmount() : BigDecimal.ZERO;
         if (discount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("Chiết khấu không được âm!");
+            throw new BusinessException("Chiết khấu không được âm!");
         }
         // Chặn chiết khấu vượt quá tiền hàng + phí ship (tránh tổng đơn = 0 mà vẫn xuất hàng).
         // Bỏ qua kiểm tra này với đơn NHÁP để người dùng còn lưu nháp khi đang nhập dở.
         BigDecimal shippingFee = order.getShippingFee() != null ? order.getShippingFee() : BigDecimal.ZERO;
         BigDecimal maxDiscount = totalItemsAmount.add(shippingFee);
         if (!DRAFT.equals(order.getStatus()) && discount.compareTo(maxDiscount) > 0) {
-            throw new RuntimeException("Chiết khấu (" + discount + "đ) không được lớn hơn tổng tiền hàng + phí ship (" + maxDiscount + "đ)!");
+            throw new BusinessException("Chiết khấu (" + discount + "đ) không được lớn hơn tổng tiền hàng + phí ship (" + maxDiscount + "đ)!");
         }
         order.setDiscountAmount(discount);
 
@@ -426,17 +462,17 @@ public class OrderService {
         Long branchId = order.getShipFromBranchId() != null ? order.getShipFromBranchId() : order.getBranchId();
 
         if (branchId == null) {
-            throw new RuntimeException("Không xác định được chi nhánh xuất hàng!");
+            throw new BusinessException("Không xác định được chi nhánh xuất hàng!");
         }
 
         // Khóa các dòng theo thứ tự SKU cố định để tránh deadlock giữa các giao dịch đồng thời
         for (OrderDetail detail : sortedBySku(order.getDetails())) {
             if (detail.getIsCustom() != null && detail.getIsCustom()) continue;
 
-            ProductVariant variant = variantRepository.findBySkuForUpdate(detail.getSku()).orElseThrow(() -> new RuntimeException("Không tìm thấy biến thể có mã SKU: " + detail.getSku()));
+            ProductVariant variant = variantRepository.findBySkuForUpdate(detail.getSku()).orElseThrow(() -> new BusinessException("Không tìm thấy biến thể có mã SKU: " + detail.getSku()));
 
             // Ép văng lỗi nếu không có hàng tại chi nhánh này. Dùng khóa ghi để chống bán âm khi nhiều đơn cùng lúc.
-            Inventory inv = inventoryRepository.findByVariantIdAndBranchIdForUpdate(variant.getId(), branchId).orElseThrow(() -> new RuntimeException("Sản phẩm [" + detail.getProductName() + "] chưa từng được nhập vào chi nhánh này!"));
+            Inventory inv = inventoryRepository.findByVariantIdAndBranchIdForUpdate(variant.getId(), branchId).orElseThrow(() -> new BusinessException("Sản phẩm [" + detail.getProductName() + "] chưa từng được nhập vào chi nhánh này!"));
 
             if (inv.getAvailableStock() > inv.getStock()) {
                 inv.setAvailableStock(inv.getStock());
@@ -445,7 +481,7 @@ public class OrderService {
             // Kiểm tra xem có đủ hàng để bán không (luôn kiểm tra, kể cả khi hoàn thành đơn,
             // để không cho phép xuất quá tồn kho thực tế).
             if (inv.getAvailableStock() < detail.getQuantity()) {
-                throw new RuntimeException("Sản phẩm [" + detail.getProductName() + "] chỉ còn " + inv.getAvailableStock() + " chiếc có thể bán tại kho này!");
+                throw new BusinessException("Sản phẩm [" + detail.getProductName() + "] chỉ còn " + inv.getAvailableStock() + " chiếc có thể bán tại kho này!");
             }
 
             // Trừ Có thể bán (Ở chi nhánh)

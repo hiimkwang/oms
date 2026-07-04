@@ -293,6 +293,11 @@ public class CashbookService {
      * Ghi phiếu THU tiền bán hàng cho một đơn (dùng khi đánh dấu đã thanh toán ngoài luồng OrderService,
      * ví dụ đối soát sàn). Không rung chuông. amount là phần tiền MỚI thu thêm (delta).
      */
+    /** Tổng tiền bán hàng đã ghi nhận (ròng) cho một đơn — dùng cho đối soát idempotent. */
+    public BigDecimal getRecordedSaleCash(String orderCode) {
+        return nz(cashRepo.sumNetSaleCashByReference(orderCode));
+    }
+
     @Transactional
     public void recordSaleReceipt(Long customerId, String orderCode, Long branchId, String orderPaymentMethod, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return;

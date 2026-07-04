@@ -15,7 +15,9 @@
     panoStream:null, qrStream:null, sameDevice:false,
     order:null,                 // {orderCode, trackingCode}
     pending:null,               // {sku,name,price} đang chờ serial
-    recorder:null, chunks:[], recStartTs:0, autoStopTimer:null,
+    // Ghi 2 luồng RIÊNG: toàn cảnh (pano) + cam QR. Merge thành video thứ 3 làm ở trang chi tiết đơn.
+    recorderPano:null, chunksPano:[], recorderQr:null, chunksQr:[],
+    recStartTs:0, autoStopTimer:null,
     rafId:null, frames:0, fpsTs:0,
     scanBusy:false, frameCounter:0, lastBox:null, lastBoxTs:0,
     lastTracking:"", mime:"", ext:"webm", audioCtx:null, dirHandle:null
@@ -122,23 +124,60 @@
   const recCanvas=document.createElement('canvas'); const rctx=recCanvas.getContext('2d');
   let vPano, vQr;
 
+  // Mở 1 camera theo deviceId
+  function openStream(deviceId, res){
+    return navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:deviceId},width:{ideal:res.w},height:{ideal:res.h},frameRate:{ideal:30}},audio:false});
+  }
+  // Đợi tới khi <video> thực sự ra hình (videoWidth>0) hoặc hết thời gian
+  function waitVideoReady(v, ms){
+    return new Promise(resolve=>{
+      if(v.videoWidth>0){ resolve(true); return; }
+      let done=false;
+      const finish=ok=>{ if(done) return; done=true;
+        v.removeEventListener('loadedmetadata',onEvt); v.removeEventListener('playing',onEvt);
+        clearInterval(t); clearTimeout(to); resolve(ok); };
+      const onEvt=()=>{ if(v.videoWidth>0) finish(true); };
+      v.addEventListener('loadedmetadata',onEvt); v.addEventListener('playing',onEvt);
+      const t=setInterval(()=>{ if(v.videoWidth>0) finish(true); }, 50);
+      const to=setTimeout(()=>finish(v.videoWidth>0), ms);
+    });
+  }
+  // Gắn stream vào <video>, play (thử lại 1 lần nếu play lỗi), rồi đợi ra hình
+  async function attachReady(v, stream, ms){
+    v.srcObject=stream;
+    try{ await v.play(); }catch(e){ try{ await v.play(); }catch(_){} }
+    return waitVideoReady(v, ms);
+  }
+
   async function startSystem(){
     vPano=vPano||$('vPano'); vQr=vQr||$('vQr');
     const panoId=$('camPano').value, qrId=$('camQr').value;
     if(!panoId){ await listDevices(); if(!$('camPano').value){ diag("<span class='bad'>Chưa có camera để bắt đầu.</span>"); return; } }
+    // Đọc lại id sau listDevices (phòng khi vừa auto-chọn thiết bị)
+    const finalPanoId=$('camPano').value, finalQrId=$('camQr').value;
     const rp=parseRes($('resPano').value), rq=parseRes($('resQr').value);
-    state.sameDevice = qrId && qrId===$('camPano').value;
+    state.sameDevice = finalQrId && finalQrId===finalPanoId;
     try{
-      state.panoStream=await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:$('camPano').value},width:{ideal:rp.w},height:{ideal:rp.h},frameRate:{ideal:30}},audio:false});
-      vPano.srcObject=state.panoStream; await vPano.play().catch(()=>{});
-      if(qrId && !state.sameDevice){
-        state.qrStream=await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:qrId},width:{ideal:rq.w},height:{ideal:rq.h},frameRate:{ideal:30}},audio:false});
-        vQr.srcObject=state.qrStream; await vQr.play().catch(()=>{});
+      // 1) Cam TOÀN CẢNH
+      state.panoStream=await openStream(finalPanoId, rp);
+      await attachReady(vPano, state.panoStream, 4000);
+
+      // 2) Cam QR (nếu có, và khác thiết bị): đợi ra hình, THỬ LẠI 1 LẦN nếu chưa lên
+      if(finalQrId && !state.sameDevice){
+        state.qrStream=await openStream(finalQrId, rq);
+        let ok=await attachReady(vQr, state.qrStream, 3000);
+        if(!ok){
+          // Warm-up chưa kịp -> đóng và mở lại 1 lần
+          try{ state.qrStream.getTracks().forEach(t=>t.stop()); }catch(e){}
+          await new Promise(r=>setTimeout(r,350));
+          state.qrStream=await openStream(finalQrId, rq);
+          ok=await attachReady(vQr, state.qrStream, 4000);
+        }
+        if(!ok){ diag("<span class='bad'>Cam QR chưa lên hình. Thử bấm 'Tắt camera' rồi 'Bắt đầu' lại.</span>"); }
       }
-      await new Promise(res=>{let n=0;const t=setInterval(()=>{if(vPano.videoWidth>0||++n>60){clearInterval(t);res();}},50);});
     }catch(e){ diag("<span class='bad'>Không mở được camera: "+e.message+"</span>"); return; }
 
-    $('qrFloat').style.display=(qrId && !state.sameDevice)?'block':'none';
+    $('qrFloat').style.display=(finalQrId && !state.sameDevice)?'block':'none';
     const {mime,ext}=pickMime(); state.mime=mime; state.ext=ext;
     $('codecName').textContent=mime?mime.split(';')[0].replace('video/',''):'mặc định';
 
@@ -214,15 +253,8 @@
         qctx.strokeRect(rx,ry,rw,rh);
       }
     }
-    if(state.recording){
-      rctx.drawImage(vPano,0,0,pw,ph); drawOverlay(rctx,pw,ph);
-      if(useQr && $('mergePip').checked){
-        const sW=Math.round(pw/5), sH=Math.round(sW*qrCanvas.height/qrCanvas.width);
-        const x=pw-sW-20, y=ph-sH-20;
-        rctx.drawImage(qrCanvas,x,y,sW,sH);
-        rctx.strokeStyle='#22c55e'; rctx.lineWidth=3; rctx.strokeRect(x,y,sW,sH);
-      }
-    }
+    // (Không còn ghi canvas ghép PiP tại đây: ta ghi thẳng 2 luồng panoCanvas + qrCanvas,
+    //  và merge thành video thứ 3 ở trang chi tiết đơn khi cần.)
     state.frames++; const now=performance.now();
     if(now-state.fpsTs>=1000){ $('fps').textContent=state.frames; state.frames=0; state.fpsTs=now; }
     if(state.recording){ const s=Math.floor((Date.now()-state.recStartTs)/1000);
@@ -238,26 +270,45 @@
     }
   }
 
-  /* ---------- Quay video ---------- */
+  /* ---------- Quay video (2 luồng riêng: toàn cảnh + cam QR) ---------- */
+  const VIDEO_BITRATE = 6_000_000; // ~6 Mbps: nét hơn hẳn mức 4 Mbps cũ
+  function newRecorder(canvasEl, chunksArr){
+    const stream=canvasEl.captureStream(30);
+    let rec;
+    try{ rec=new MediaRecorder(stream, state.mime?{mimeType:state.mime,videoBitsPerSecond:VIDEO_BITRATE}:{videoBitsPerSecond:VIDEO_BITRATE}); }
+    catch(e){ rec=new MediaRecorder(stream); }
+    rec.ondataavailable=e=>{ if(e.data.size>0) chunksArr.push(e.data); };
+    rec.start(1000);
+    return rec;
+  }
   function startRecording(){
-    state.chunks=[];
-    const stream=recCanvas.captureStream(30);
-    try{ state.recorder=new MediaRecorder(stream, state.mime?{mimeType:state.mime,videoBitsPerSecond:4_000_000}:undefined); }
-    catch(e){ state.recorder=new MediaRecorder(stream); }
-    state.recorder.ondataavailable=e=>{ if(e.data.size>0) state.chunks.push(e.data); };
-    state.recorder.start(1000);
+    state.chunksPano=[]; state.chunksQr=[];
+    state.recorderPano=newRecorder(panoCanvas, state.chunksPano);
+    // Chỉ ghi cam QR riêng khi có camera QR thực sự đang chạy
+    const useQr = state.qrStream && vQr && vQr.videoWidth>0;
+    state.recorderQr = useQr ? newRecorder(qrCanvas, state.chunksQr) : null;
     state.recording=true; state.recStartTs=Date.now();
     const sec=parseInt($('autoStop').value,10);
     if(sec>0){ clearTimeout(state.autoStopTimer);
       state.autoStopTimer=setTimeout(()=>{ if(state.recording) finishOrder(); }, sec*1000); }
   }
-  function stopRecording(){
+  function stopOne(rec, chunksArr){
     return new Promise(resolve=>{
-      if(!state.recording || !state.recorder){ resolve(null); return; }
-      state.recording=false; clearTimeout(state.autoStopTimer);
-      state.recorder.onstop=()=>resolve(new Blob(state.chunks,{type:state.mime||'video/webm'}));
-      try{ state.recorder.stop(); }catch(e){ resolve(null); }
+      if(!rec){ resolve(null); return; }
+      rec.onstop=()=>resolve(chunksArr.length ? new Blob(chunksArr,{type:state.mime||'video/webm'}) : null);
+      try{ rec.stop(); }catch(e){ resolve(null); }
     });
+  }
+  // Trả về {pano:Blob|null, qr:Blob|null}
+  async function stopRecording(){
+    if(!state.recording){ return {pano:null, qr:null}; }
+    state.recording=false; clearTimeout(state.autoStopTimer);
+    const [pano, qr] = await Promise.all([
+      stopOne(state.recorderPano, state.chunksPano),
+      stopOne(state.recorderQr, state.chunksQr)
+    ]);
+    state.recorderPano=state.recorderQr=null;
+    return {pano, qr};
   }
 
   /* ---------- Lưu video vào thư mục máy ---------- */
@@ -357,15 +408,22 @@
     if(nm||ph||ad){ try{ await apiJSON(API+'/orders/'+state.order.orderCode+'/recipient',
       {method:'PUT',body:JSON.stringify({recipientName:nm,recipientPhone:ph,shippingAddress:ad})}); }catch(e){} }
     const order=state.order; state.order=null; state.pending=null; $('pendingBox').style.display='none';
-    const blob=await stopRecording();
-    const fname=(order.trackingCode||order.orderCode).replace(/[^\w.-]/g,'_')+'_'+order.orderCode+'.'+state.ext;
-    const path=await saveVideoToFolder(blob, fname);
-    if(path){ try{ await apiJSON(API+'/orders/'+order.orderCode+'/video',{method:'POST',body:JSON.stringify({videoPath:path})}); }catch(e){} }
+    const {pano, qr}=await stopRecording();
+    const base=(order.trackingCode||order.orderCode).replace(/[^\w.-]/g,'_')+'_'+order.orderCode;
+    let panoName=null, qrName=null;
+    if(pano){ panoName=base+'_pano.'+state.ext; await saveVideoToFolder(pano, panoName); }
+    if(qr){ qrName=base+'_qr.'+state.ext; await saveVideoToFolder(qr, qrName); }
+    // Lưu đường dẫn dạng JSON (v2): tên 2 file + thư mục, để trang chi tiết đọc lại & merge.
+    if(panoName || qrName){
+      const meta={ v:2, dir:(state.dirHandle && state.dirHandle.name) || 'Downloads', pano:panoName, qr:qrName, ext:state.ext };
+      try{ await apiJSON(API+'/orders/'+order.orderCode+'/video',{method:'POST',body:JSON.stringify({videoPath:JSON.stringify(meta)})}); }catch(e){}
+    }
     if(state.running){ setState('ready','SẴN SÀNG QUÉT VẬN ĐƠN'); }
     $('skuInput').disabled=true; $('serialInput').disabled=true; $('finishBtn').disabled=true; $('saveRecipientBtn').disabled=true;
     $('recTime').textContent='00:00';
     resetOrderPanel();
-    toast('Đã lưu đơn '+order.orderCode+(path?' • video: '+path:''),'ok');
+    const savedInfo=[panoName&&'toàn cảnh', qrName&&'cam QR'].filter(Boolean).join(' + ');
+    toast('Đã lưu đơn '+order.orderCode+(savedInfo?' • video: '+savedInfo:''),'ok');
   }
 
   /* ---------- Quét sản phẩm + serial ---------- */
@@ -533,14 +591,39 @@
     if(map[c]) return e.shiftKey?map[c][1]:map[c][0];
     return null;
   }
+  // Giải-Telex: đưa ký tự tiếng Việt do bộ gõ tạo về ASCII gốc (W->Ư biến ngược Ư->W, aa->â biến ngược â->aa...).
+  function reverseTelexChar(ch){
+    if(ch==='đ') return 'dd';
+    if(ch==='Đ') return 'DD';
+    const nfd=ch.normalize('NFD'); const base=nfd[0]; const marks=nfd.slice(1);
+    if(!/[a-zA-Z]/.test(base) || marks.length===0) return ch;
+    const has=m=>marks.indexOf(m)!==-1;
+    let tone='';
+    if(has('́')) tone='s'; else if(has('̀')) tone='f'; else if(has('̉')) tone='r';
+    else if(has('̃')) tone='x'; else if(has('̣')) tone='j';
+    const lower=base.toLowerCase(); let keys;
+    if(has('̛')){ keys = lower==='o' ? 'ow' : (lower==='u' ? 'w' : base); }
+    else if(has('̂')){ keys=base+base; }
+    else if(has('̆')){ keys=base+'w'; }
+    else keys=base;
+    if(base===base.toUpperCase()){ keys=keys.toUpperCase(); tone=tone.toUpperCase(); }
+    return keys+tone;
+  }
+  function deTelex(s){ if(!s) return s; let out=''; for(const ch of s){ out += ch.charCodeAt(0)<128 ? ch : reverseTelexChar(ch); } return out; }
+
   function attachScan(el, onEnter){
+    el.setAttribute('autocomplete','off'); el.setAttribute('spellcheck','false');
+    function sanitize(){
+      const v=el.value, c=deTelex(v);
+      if(c!==v){ const atEnd=el.selectionStart===v.length && el.selectionEnd===v.length;
+        el.value=c; if(atEnd){ try{ el.selectionStart=el.selectionEnd=c.length; }catch(e){} } }
+    }
+    el.addEventListener('input', e=>{ if(!e.isComposing) sanitize(); });
+    el.addEventListener('compositionend', sanitize);
     el.addEventListener('keydown', e=>{
-      if(e.key==='Enter'){ e.preventDefault(); onEnter(el.value); return; }
-      if(e.ctrlKey||e.altKey||e.metaKey) return;
-      const ch=scanChar(e);
-      if(ch!=null){ e.preventDefault(); el.value += ch; }   // tự chèn ký tự thô, bỏ qua bộ gõ
-      // Backspace/Delete/mũi tên -> để mặc định
+      if(e.key==='Enter'){ sanitize(); e.preventDefault(); onEnter(el.value); }
     });
+    el.addEventListener('blur', sanitize);
   }
 
   /* ---------- Sự kiện ---------- */

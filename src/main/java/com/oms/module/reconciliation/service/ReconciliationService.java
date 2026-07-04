@@ -24,7 +24,7 @@ import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -58,6 +58,7 @@ public class ReconciliationService {
     private final ProductVariantRepository variantRepository;
     private final SalesChannelService salesChannelService;
     private final com.oms.module.cashbook.service.CashbookService cashbookService;
+    private final org.springframework.transaction.PlatformTransactionManager txManager;
 
     private static final String[] TRACKING_KEYS = {"ma van don", "van don", "tracking", "waybill", "awb", "spx"};
     private static final String[] ORDERCODE_KEYS = {"ma don hang", "ma don", "order sn", "ordersn", "order id", "order no", "order number"};
@@ -137,9 +138,11 @@ public class ReconciliationService {
                 if (cancelledKeys.contains(key)) continue;
 
                 BigDecimal amount = idxAmount >= 0 ? parseAmount(cell(r, idxAmount)) : null;
-                BigDecimal rowFee = nz(parseAmount(cell(r, idxFeeFixed)))
-                        .add(nz(parseAmount(cell(r, idxFeeService))))
-                        .add(nz(parseAmount(cell(r, idxFeeTxn))));
+                // Phí sàn là khoản TRỪ: chuẩn hóa về trị tuyệt đối để net = amount - fee luôn đúng,
+                // bất kể file xuất phí dương hay âm (Shopee/Lazada khác nhau về dấu).
+                BigDecimal rowFee = nz(parseAmount(cell(r, idxFeeFixed))).abs()
+                        .add(nz(parseAmount(cell(r, idxFeeService))).abs())
+                        .add(nz(parseAmount(cell(r, idxFeeTxn))).abs());
 
                 FileEntry e = grouped.computeIfAbsent(key, k -> new FileEntry());
                 if (e.sanStatus.isBlank() && !sanStatus.isBlank()) e.sanStatus = sanStatus;
@@ -295,25 +298,14 @@ public class ReconciliationService {
             }
         }
 
-        // 3. Đánh dấu đã thanh toán
+        // 3. Đánh dấu đã thanh toán — MỖI ĐƠN 1 TRANSACTION RIÊNG (set paid + ghi phiếu thu là nguyên tử):
+        //    nếu ghi phiếu thu lỗi thì việc set PAID cũng bị rollback -> sổ quỹ luôn khớp công nợ.
         if (req.getMarkPaidOrderCodes() != null) {
+            org.springframework.transaction.support.TransactionTemplate tx =
+                    new org.springframework.transaction.support.TransactionTemplate(txManager);
             for (String code : req.getMarkPaidOrderCodes()) {
                 try {
-                    Order o = orderRepository.findByOrderCode(code).orElse(null);
-                    if (o == null) { errors.add("Không thấy đơn " + code); continue; }
-                    BigDecimal oldPaid = o.getAmountPaid() != null ? o.getAmountPaid() : BigDecimal.ZERO;
-                    BigDecimal total = o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO;
-                    o.setPaymentStatus("PAID");
-                    o.setAmountPaid(total);
-                    orderRepository.save(o);
-
-                    // Ghi phiếu THU vào sổ quỹ cho phần tiền mới thu (đối xứng với đơn bán thường)
-                    BigDecimal delta = total.subtract(oldPaid);
-                    if (delta.compareTo(BigDecimal.ZERO) > 0) {
-                        cashbookService.recordSaleReceipt(
-                                o.getCustomer() != null ? o.getCustomer().getId() : null,
-                                o.getOrderCode(), o.getBranchId(), o.getPaymentMethod(), delta);
-                    }
+                    tx.executeWithoutResult(st -> markOrderPaid(code));
                     paid++;
                 } catch (Exception e) {
                     errors.add("Thanh toán đơn " + code + ": " + e.getMessage());
@@ -323,6 +315,29 @@ public class ReconciliationService {
 
         return ReconcileSyncResult.builder()
                 .success(true).createdCount(created).filledCount(filled).paidCount(paid).errors(errors).build();
+    }
+
+    /**
+     * Đánh dấu 1 đơn đã thu đủ + ghi phiếu THU phần CÒN THIẾU (idempotent).
+     * Idempotent: chỉ ghi thêm (total - tiền bán hàng đã ghi nhận ròng cho đơn) -> upload lại cùng file không ghi trùng.
+     * Chạy trong transaction của TransactionTemplate ngoài -> lỗi ở đây rollback cả set PAID.
+     */
+    void markOrderPaid(String code) {
+        Order o = orderRepository.findByOrderCode(code)
+                .orElseThrow(() -> new com.oms.config.exception.BusinessException("Không thấy đơn " + code));
+        BigDecimal total = o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO;
+        o.setPaymentStatus("PAID");
+        o.setAmountPaid(total);
+        orderRepository.save(o);
+
+        // Phần tiền bán hàng đã ghi nhận (ròng) cho đơn này qua MỌI luồng (bán thường + đối soát trước đó)
+        BigDecimal alreadyRecorded = nz(cashbookService.getRecordedSaleCash(o.getOrderCode()));
+        BigDecimal toRecord = total.subtract(alreadyRecorded);
+        if (toRecord.compareTo(BigDecimal.ZERO) > 0) {
+            cashbookService.recordSaleReceipt(
+                    o.getCustomer() != null ? o.getCustomer().getId() : null,
+                    o.getOrderCode(), o.getBranchId(), o.getPaymentMethod(), toRecord);
+        }
     }
 
     private boolean createMissingOrder(ReconcileSyncRequest.CreateOrder co, String channelCode, String status) {
@@ -431,14 +446,20 @@ public class ReconciliationService {
         return readCsv(file);
     }
 
+    private static final int MAX_EXCEL_ROWS = 100_000; // chặn file bất thường gây OOM
+
     private List<String[]> readExcel(MultipartFile file) throws Exception {
         List<String[]> rows = new ArrayList<>();
         DataFormatter fmt = new DataFormatter();
-        try (InputStream is = file.getInputStream(); Workbook wb = new XSSFWorkbook(is)) {
+        // WorkbookFactory tự nhận diện .xlsx (XSSF) và .xls (HSSF) -> đọc được cả 2 định dạng.
+        try (InputStream is = file.getInputStream(); Workbook wb = WorkbookFactory.create(is)) {
             Sheet sheet = wb.getSheetAt(0);
             int lastCol = 0;
             for (Row row : sheet) lastCol = Math.max(lastCol, row.getLastCellNum());
             for (Row row : sheet) {
+                if (rows.size() >= MAX_EXCEL_ROWS) {
+                    throw new IllegalArgumentException("File quá lớn (vượt " + MAX_EXCEL_ROWS + " dòng). Hãy tách file đối soát theo kỳ nhỏ hơn.");
+                }
                 String[] arr = new String[lastCol < 0 ? 0 : lastCol];
                 for (int c = 0; c < arr.length; c++) {
                     Cell cell = row.getCell(c);

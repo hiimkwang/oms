@@ -3,7 +3,7 @@ package com.oms.config;
 import com.oms.module.account.entity.User;
 import com.oms.module.account.repository.UserRepository;
 import com.oms.module.setting.entity.MasterData;
-import com.oms.module.setting.repository.MasterDataRepository;
+import com.oms.module.setting.service.MasterDataService;
 import org.springframework.boot.json.JsonParseException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -18,12 +18,12 @@ import java.util.Map;
 public class GlobalControllerAdvice {
 
     private final UserRepository userRepository;
-    private final MasterDataRepository masterDataRepository;
+    private final MasterDataService masterDataService;
     private final ObjectMapper objectMapper;
 
-    public GlobalControllerAdvice(UserRepository userRepository, MasterDataRepository masterDataRepository, ObjectMapper objectMapper) {
+    public GlobalControllerAdvice(UserRepository userRepository, MasterDataService masterDataService, ObjectMapper objectMapper) {
         this.userRepository = userRepository;
-        this.masterDataRepository = masterDataRepository;
+        this.masterDataService = masterDataService;
         this.objectMapper = objectMapper;
     }
 
@@ -46,7 +46,7 @@ public class GlobalControllerAdvice {
 
     @ModelAttribute("storeName")
     public String getStoreName() {
-        List<MasterData> dataList = masterDataRepository.findByDataTypeOrderBySortOrderAsc("STORE_NAME");
+        List<MasterData> dataList = masterDataService.getMasterDataByType("STORE_NAME");
         if (!dataList.isEmpty() && dataList.get(0).getDataValue() != null) {
             return dataList.get(0).getDataValue();
         }
@@ -55,7 +55,7 @@ public class GlobalControllerAdvice {
 
     @ModelAttribute("storeLogo")
     public String getStoreLogo() {
-        List<MasterData> dataList = masterDataRepository.findByDataTypeOrderBySortOrderAsc("STORE_LOGO");
+        List<MasterData> dataList = masterDataService.getMasterDataByType("STORE_LOGO");
         if (!dataList.isEmpty() && dataList.get(0).getDataValue() != null) {
             return dataList.get(0).getDataValue();
         }
@@ -63,7 +63,7 @@ public class GlobalControllerAdvice {
     }
     private Map<String, String> getMapByType(String dataType) {
         Map<String, String> map = new HashMap<>();
-        List<MasterData> dataList = masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType);
+        List<MasterData> dataList = masterDataService.getMasterDataByType(dataType);
         dataList.forEach(d -> map.put(d.getDataValue(), d.getDataLabel() != null ? d.getDataLabel() : d.getDataValue()));
         return map;
     }
@@ -79,7 +79,7 @@ public class GlobalControllerAdvice {
     // --- 1. DÀNH CHO ORDER (ĐƠN HÀNG) ---
     @ModelAttribute("orderStatuses")
     public List<MasterData> getOrderStatuses() {
-        return masterDataRepository.findByDataTypeOrderBySortOrderAsc("ORDER_STATUS");
+        return masterDataService.getMasterDataByType("ORDER_STATUS");
     }
 
     @ModelAttribute("orderStatusMap")

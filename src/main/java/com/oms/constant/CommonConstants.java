@@ -15,6 +15,20 @@ public class CommonConstants {
         public static final String COMPLETED = "COMPLETED";   // Hoàn thành
         public static final String CANCELLED = "CANCELLED";   // Đã hủy
         public static final String RETURNED = "RETURNED";     // Hoàn trả
+
+        // Trạng thái KHÔNG ghi nhận doanh thu / giá vốn (dùng cho báo cáo, lọc phía Java).
+        // LƯU Ý: các @Query trong OrderRepository dùng literal NOT IN ('CANCELLED','CREATED','DRAFT','RETURNED')
+        // -> phải giữ ĐỒNG BỘ với danh sách này khi thêm/bớt trạng thái.
+        public static final java.util.List<String> NON_REVENUE_STATUSES =
+                java.util.List.of(DRAFT, CREATED, CANCELLED, RETURNED);
+
+        // Tập hợp trạng thái hợp lệ (whitelist) để chống mass-assignment.
+        public static final java.util.Set<String> ALL_STATUSES = java.util.Set.of(
+                DRAFT, CREATED, CONFIRMED, PROCESSING, SHIPPING, COMPLETED, CANCELLED, RETURNED);
+
+        // Trạng thái được phép đặt trực tiếp khi TẠO đơn (mọi chuyển tiếp khác đi qua updateOrder/changeStatus)
+        public static final java.util.Set<String> CREATABLE_STATUSES = java.util.Set.of(
+                DRAFT, CREATED, CONFIRMED, PROCESSING, SHIPPING);
     }
 
     public static class PaymentStatusConstant {

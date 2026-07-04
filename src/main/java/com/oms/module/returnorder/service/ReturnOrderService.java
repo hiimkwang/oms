@@ -1,5 +1,6 @@
 package com.oms.module.returnorder.service;
 
+import com.oms.config.exception.BusinessException;
 import com.oms.module.account.entity.User;
 import com.oms.module.cashbook.entity.CashTransaction;
 import com.oms.module.cashbook.repository.CashTransactionRepository;
@@ -54,77 +55,135 @@ public class ReturnOrderService {
 
     @Transactional
     public ReturnOrder createReturnOrder(ReturnOrderRequest request) {
-        Order originalOrder = orderRepo.findByOrderCode(request.getOriginalOrderCode()).orElseThrow(() -> new RuntimeException("Không tìm thấy đơn gốc!"));
+        Order originalOrder = orderRepo.findByOrderCode(request.getOriginalOrderCode()).orElseThrow(() -> new BusinessException("Không tìm thấy đơn gốc!"));
 
         // GUARD 1: Chỉ cho phép trả hàng với đơn đã HOÀN THÀNH (đã giao/đã bán).
         if (!com.oms.constant.CommonConstants.OrderStatusConstant.COMPLETED.equals(originalOrder.getStatus())) {
-            throw new RuntimeException("Chỉ có thể tạo phiếu trả hàng cho đơn hàng đã hoàn thành!");
+            throw new BusinessException("Chỉ có thể tạo phiếu trả hàng cho đơn hàng đã hoàn thành!");
         }
 
-        // GUARD 2: Mỗi đơn chỉ có 1 phiếu trả còn hiệu lực (tránh trùng phiếu, hoàn tiền/nhập kho nhiều lần).
-        if (returnRepo.existsByOriginalOrder_OrderCodeAndStatusNot(originalOrder.getOrderCode(), REJECTED)) {
-            throw new RuntimeException("Đơn hàng này đã có phiếu trả hàng đang xử lý!");
-        }
-
-        // GUARD 3: Phải có chi tiết hàng trả hợp lệ.
+        // GUARD 2: Phải có chi tiết hàng trả hợp lệ.
         if (request.getDetails() == null || request.getDetails().isEmpty()) {
-            throw new RuntimeException("Phiếu trả hàng phải có ít nhất 1 sản phẩm!");
+            throw new BusinessException("Phiếu trả hàng phải có ít nhất 1 sản phẩm!");
         }
 
         String user = getCurrentUserName();
         String returnCode = "TH" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase();
 
-        originalOrder.setStatus(RETURNED);
-
-        OrderActivity orderLog = OrderActivity.builder().order(originalOrder).action("Chuyển trạng thái").description("Đơn hàng chuyển sang trạng thái TRẢ HÀNG do có phiếu yêu cầu: " + returnCode).createdBy(user).createdAt(java.time.LocalDateTime.now()).build();
-
-        if (originalOrder.getActivities() == null) {
-            originalOrder.setActivities(new java.util.ArrayList<>());
+        // ---------------------------------------------------------------------
+        // LẤY GIÁ & SỐ LƯỢNG TỪ ĐƠN GỐC (SERVER-SIDE) — KHÔNG tin đơn giá client gửi.
+        // Số tiền hoàn = đơn giá gốc TRỪ chiết khấu phân bổ theo tỷ lệ tiền hàng
+        // (phản ánh đúng số khách THỰC trả, tránh hoàn nhiều hơn số đã thu).
+        // ---------------------------------------------------------------------
+        java.util.Map<String, Integer> orderedQtyBySku = new java.util.HashMap<>();
+        java.util.Map<String, BigDecimal> unitPriceBySku = new java.util.HashMap<>();
+        java.util.Map<String, String> nameBySku = new java.util.HashMap<>();
+        BigDecimal itemsGross = BigDecimal.ZERO; // tổng tiền hàng trước chiết khấu
+        if (originalOrder.getDetails() != null) {
+            for (com.oms.module.order.entity.OrderDetail od : originalOrder.getDetails()) {
+                if (od.getSku() == null) continue;
+                int q = od.getQuantity() != null ? od.getQuantity() : 0;
+                BigDecimal up = od.getUnitPrice() != null ? od.getUnitPrice() : BigDecimal.ZERO;
+                orderedQtyBySku.merge(od.getSku(), q, Integer::sum);
+                unitPriceBySku.putIfAbsent(od.getSku(), up);
+                nameBySku.putIfAbsent(od.getSku(), od.getProductName());
+                itemsGross = itemsGross.add(up.multiply(BigDecimal.valueOf(q)));
+            }
         }
-        originalOrder.getActivities().add(orderLog);
-        orderRepo.save(originalOrder);
 
-        try {
-            notificationService.create("Đơn hàng bị trả lại: " + originalOrder.getOrderCode(), "Đơn hàng đã được chuyển sang trạng thái TRẢ HÀNG.", Notification.NotificationType.ORDER, "/ui/orders/detail/" + originalOrder.getOrderCode());
-        } catch (Exception e) {
-            log.error("Lỗi Noti đơn hàng: {}", e.getMessage());
+        // Số lượng đã trả trước đó (mọi phiếu CHƯA bị từ chối) theo SKU -> chặn trả vượt tổng đã mua khi cộng dồn.
+        java.util.Map<String, Integer> alreadyReturnedBySku = new java.util.HashMap<>();
+        for (ReturnOrder prev : returnRepo.findByOriginalOrder_OrderCode(originalOrder.getOrderCode())) {
+            if (REJECTED.equals(prev.getStatus()) || prev.getDetails() == null) continue;
+            for (ReturnOrderDetail pd : prev.getDetails()) {
+                if (pd.getSku() == null) continue;
+                alreadyReturnedBySku.merge(pd.getSku(), pd.getQuantity() != null ? pd.getQuantity() : 0, Integer::sum);
+            }
         }
+
+        BigDecimal orderDiscount = originalOrder.getDiscountAmount() != null ? originalOrder.getDiscountAmount() : BigDecimal.ZERO;
 
         ReturnOrder returnOrder = ReturnOrder.builder().returnCode(returnCode).originalOrder(originalOrder).reason(request.getReason()).note(request.getNote()).returnFee(request.getReturnFee() != null ? request.getReturnFee() : BigDecimal.ZERO) // Phí khách chịu
                 .shopReturnFee(request.getShopReturnFee() != null ? request.getShopReturnFee() : BigDecimal.ZERO).refundStatus(UNPAID).restockStatus(RESTOCK_PENDING).status(PENDING).createdBy(user).build();
 
-        // Tổng số lượng đã mua theo SKU trong đơn gốc -> chặn trả khống/trả quá số đã mua
-        java.util.Map<String, Integer> orderedQtyBySku = new java.util.HashMap<>();
-        if (originalOrder.getDetails() != null) {
-            for (com.oms.module.order.entity.OrderDetail od : originalOrder.getDetails()) {
-                if (od.getSku() == null) continue;
-                orderedQtyBySku.merge(od.getSku(), od.getQuantity() != null ? od.getQuantity() : 0, Integer::sum);
-            }
-        }
-
         BigDecimal totalRefund = BigDecimal.ZERO;
         List<ReturnOrderDetail> details = new ArrayList<>();
+        java.util.Map<String, Integer> thisReturnBySku = new java.util.HashMap<>();
 
         for (ReturnOrderRequest.ReturnItemRequest item : request.getDetails()) {
-            BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
+            String sku = item.getSku();
             int qty = item.getQuantity() != null ? item.getQuantity() : 0;
             if (qty <= 0) {
-                throw new RuntimeException("Số lượng trả của sản phẩm [" + item.getProductName() + "] phải lớn hơn 0!");
+                throw new BusinessException("Số lượng trả của sản phẩm [" + item.getProductName() + "] phải lớn hơn 0!");
             }
-            int orderedQty = orderedQtyBySku.getOrDefault(item.getSku(), 0);
-            if (qty > orderedQty) {
-                throw new RuntimeException("Số lượng trả của [" + item.getProductName() + "] (" + qty + ") vượt quá số đã mua trong đơn (" + orderedQty + ")!");
+            if (sku == null || !orderedQtyBySku.containsKey(sku)) {
+                throw new BusinessException("Sản phẩm [" + item.getProductName() + "] không có trong đơn gốc, không thể trả!");
             }
-            BigDecimal lineTotal = unitPrice.multiply(new BigDecimal(qty));
-            totalRefund = totalRefund.add(lineTotal);
+            int ordered = orderedQtyBySku.getOrDefault(sku, 0);
+            int already = alreadyReturnedBySku.getOrDefault(sku, 0);
+            if (already + qty > ordered) {
+                throw new BusinessException("Số lượng trả của [" + nameBySku.get(sku) + "] vượt quá số còn được trả (đã mua "
+                        + ordered + ", đã trả " + already + ")!");
+            }
+            thisReturnBySku.merge(sku, qty, Integer::sum);
 
-            details.add(ReturnOrderDetail.builder().returnOrder(returnOrder).sku(item.getSku()).productName(item.getProductName()).quantity(qty).unitPrice(unitPrice).refundAmount(lineTotal).build());
+            // Đơn giá gốc theo SKU (lấy từ đơn, KHÔNG lấy từ client)
+            BigDecimal unitPrice = unitPriceBySku.getOrDefault(sku, BigDecimal.ZERO);
+            // Giá hoàn thực / đơn vị = đơn giá gốc - chiết khấu phân bổ theo tỷ lệ (orderDiscount * unitPrice / itemsGross)
+            BigDecimal netUnit = unitPrice;
+            if (orderDiscount.signum() > 0 && itemsGross.signum() > 0) {
+                BigDecimal allocPerUnit = orderDiscount.multiply(unitPrice)
+                        .divide(itemsGross, 2, java.math.RoundingMode.HALF_UP);
+                netUnit = unitPrice.subtract(allocPerUnit);
+                if (netUnit.signum() < 0) netUnit = BigDecimal.ZERO;
+            }
+            BigDecimal lineRefund = netUnit.multiply(BigDecimal.valueOf(qty));
+            totalRefund = totalRefund.add(lineRefund);
+
+            details.add(ReturnOrderDetail.builder().returnOrder(returnOrder).sku(sku)
+                    .productName(nameBySku.getOrDefault(sku, item.getProductName()))
+                    .quantity(qty).unitPrice(unitPrice).refundAmount(lineRefund).build());
         }
 
         // Không cho số tiền hoàn về âm khi phí trả hàng lớn hơn giá trị hàng hoàn.
         BigDecimal refundAfterFee = totalRefund.subtract(returnOrder.getReturnFee());
         returnOrder.setTotalRefundAmount(refundAfterFee.compareTo(BigDecimal.ZERO) > 0 ? refundAfterFee : BigDecimal.ZERO);
         returnOrder.setDetails(details);
+
+        // --- TRẢ TOÀN PHẦN vs TRẢ MỘT PHẦN ---
+        // Chỉ chuyển đơn gốc sang RETURNED khi TẤT CẢ sản phẩm đã được trả hết (cộng dồn mọi phiếu),
+        // vì báo cáo doanh thu/COGS LOẠI trạng thái RETURNED. Trả một phần -> giữ nguyên trạng thái đơn gốc
+        // để phần hàng khách GIỮ LẠI vẫn được ghi nhận doanh thu/giá vốn.
+        boolean fullyReturned = true;
+        for (var e : orderedQtyBySku.entrySet()) {
+            int already = alreadyReturnedBySku.getOrDefault(e.getKey(), 0);
+            int now = thisReturnBySku.getOrDefault(e.getKey(), 0);
+            if (already + now < e.getValue()) {
+                fullyReturned = false;
+                break;
+            }
+        }
+
+        if (originalOrder.getActivities() == null) {
+            originalOrder.setActivities(new java.util.ArrayList<>());
+        }
+        if (fullyReturned) {
+            originalOrder.setStatus(RETURNED);
+            originalOrder.getActivities().add(OrderActivity.builder().order(originalOrder).action("Chuyển trạng thái")
+                    .description("Đơn hàng chuyển sang TRẢ HÀNG (trả toàn bộ) do phiếu: " + returnCode)
+                    .createdBy(user).createdAt(java.time.LocalDateTime.now()).build());
+            orderRepo.save(originalOrder);
+            try {
+                notificationService.create("Đơn hàng bị trả lại: " + originalOrder.getOrderCode(), "Đơn hàng đã được chuyển sang trạng thái TRẢ HÀNG.", Notification.NotificationType.ORDER, "/ui/orders/detail/" + originalOrder.getOrderCode());
+            } catch (Exception e) {
+                log.error("Lỗi Noti đơn hàng: {}", e.getMessage());
+            }
+        } else {
+            originalOrder.getActivities().add(OrderActivity.builder().order(originalOrder).action("Trả hàng một phần")
+                    .description("Phiếu trả hàng một phần: " + returnCode + " (đơn gốc giữ trạng thái để ghi nhận phần khách giữ lại)")
+                    .createdBy(user).createdAt(java.time.LocalDateTime.now()).build());
+            orderRepo.save(originalOrder);
+        }
 
         ReturnActivity act = ReturnActivity.builder().returnOrder(returnOrder).action("Tạo phiếu trả hàng").description("Lý do: " + request.getReason()).createdBy(user).build();
         returnOrder.getActivities().add(act);
@@ -148,24 +207,23 @@ public class ReturnOrderService {
     }
 
     public ReturnOrder getByCode(String code) {
-        return returnRepo.findByReturnCode(code).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng: " + code));
+        return returnRepo.findByReturnCode(code).orElseThrow(() -> new BusinessException("Không tìm thấy phiếu trả hàng: " + code));
     }
 
     public List<ReturnOrder> getAllReturns(String keyword, String status) {
-        List<ReturnOrder> all = returnRepo.findAll();
-
-        return all.stream().filter(r -> status == null || status.isEmpty() || status.equals(r.getStatus())).filter(r -> keyword == null || keyword.isEmpty() || r.getReturnCode().toLowerCase().contains(keyword.toLowerCase()) || r.getOriginalOrder().getOrderCode().toLowerCase().contains(keyword.toLowerCase())).sorted((r1, r2) -> r2.getCreatedAt().compareTo(r1.getCreatedAt())).toList();
+        // Lọc + sắp xếp + JOIN FETCH đơn gốc ở tầng DB (tránh tải toàn bộ bảng + N+1 truy vấn đơn gốc).
+        return returnRepo.search(status, keyword);
     }
 
     @Transactional
     public void processRefund(Long returnOrderId, String method) {
-        ReturnOrder returnOrder = returnRepo.findByIdForUpdate(returnOrderId).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
+        ReturnOrder returnOrder = returnRepo.findByIdForUpdate(returnOrderId).orElseThrow(() -> new BusinessException("Không tìm thấy phiếu trả hàng"));
 
         if (REJECTED.equals(returnOrder.getStatus())) {
-            throw new RuntimeException("Phiếu trả hàng đã bị từ chối, không thể hoàn tiền!");
+            throw new BusinessException("Phiếu trả hàng đã bị từ chối, không thể hoàn tiền!");
         }
         if (REFUNDED.equals(returnOrder.getRefundStatus())) {
-            throw new RuntimeException("Phiếu này đã được hoàn tiền!");
+            throw new BusinessException("Phiếu này đã được hoàn tiền!");
         }
 
         // Validate hình thức thanh toán hợp lệ trước khi tạo phiếu chi
@@ -173,7 +231,7 @@ public class ReturnOrderService {
         try {
             paymentMethod = CashTransaction.PaymentMethod.valueOf(method);
         } catch (IllegalArgumentException | NullPointerException e) {
-            throw new RuntimeException("Hình thức thanh toán không hợp lệ!");
+            throw new BusinessException("Hình thức thanh toán không hợp lệ!");
         }
 
         // 1. TẠO PHIẾU CHI: HOÀN TIỀN CHO KHÁCH (Như cũ)
@@ -205,21 +263,22 @@ public class ReturnOrderService {
 
     @Transactional
     public void processRestock(Long returnOrderId, Long branchId) {
-        ReturnOrder returnOrder = returnRepo.findByIdForUpdate(returnOrderId).orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu trả hàng"));
+        ReturnOrder returnOrder = returnRepo.findByIdForUpdate(returnOrderId).orElseThrow(() -> new BusinessException("Không tìm thấy phiếu trả hàng"));
 
         if (REJECTED.equals(returnOrder.getStatus())) {
-            throw new RuntimeException("Phiếu trả hàng đã bị từ chối, không thể nhập kho!");
+            throw new BusinessException("Phiếu trả hàng đã bị từ chối, không thể nhập kho!");
         }
         if (RESTOCK_RESTOCKED.equals(returnOrder.getRestockStatus())) {
-            throw new RuntimeException("Phiếu này đã được nhập kho!");
+            throw new BusinessException("Phiếu này đã được nhập kho!");
         }
         if (branchId == null) {
-            throw new RuntimeException("Vui lòng chọn chi nhánh nhập hàng trả về!");
+            throw new BusinessException("Vui lòng chọn chi nhánh nhập hàng trả về!");
         }
 
         // Khóa hàng theo thứ tự SKU cố định để tránh deadlock
         List<com.oms.module.returnorder.entity.ReturnOrderDetail> lockOrder = new ArrayList<>(returnOrder.getDetails());
         lockOrder.sort(java.util.Comparator.comparing(d -> d.getSku() == null ? "" : d.getSku()));
+        List<String> skippedSkus = new ArrayList<>();
         for (com.oms.module.returnorder.entity.ReturnOrderDetail detail : lockOrder) {
             com.oms.module.product.entity.ProductVariant variant = variantRepo.findBySkuForUpdate(detail.getSku()).orElse(null);
             if (variant != null) {
@@ -230,13 +289,22 @@ public class ReturnOrderService {
                 inv.setStock((inv.getStock() != null ? inv.getStock() : 0) + detail.getQuantity());
                 inv.setAvailableStock((inv.getAvailableStock() != null ? inv.getAvailableStock() : 0) + detail.getQuantity());
                 inventoryRepo.save(inv);
+            } else {
+                // Không tìm thấy biến thể (SKU đã bị xóa/đổi): KHÔNG im lặng bỏ qua -> ghi lại để cảnh báo.
+                log.warn("Restock: không tìm thấy biến thể SKU {} của phiếu {}, hàng KHÔNG được nhập lại kho.",
+                        detail.getSku(), returnOrder.getReturnCode());
+                skippedSkus.add(detail.getSku());
             }
         }
 
         returnOrder.setRestockStatus(RESTOCK_RESTOCKED);
         checkAndCompleteReturn(returnOrder);
 
-        logActivity(returnOrder, "Nhận hàng vào kho", "Đã cất lại hàng vào kho chi nhánh ID: " + branchId);
+        String restockDesc = "Đã cất lại hàng vào kho chi nhánh ID: " + branchId;
+        if (!skippedSkus.isEmpty()) {
+            restockDesc += " | CẢNH BÁO: không nhập lại được các SKU không còn tồn tại: " + String.join(", ", skippedSkus);
+        }
+        logActivity(returnOrder, "Nhận hàng vào kho", restockDesc);
         returnRepo.save(returnOrder);
     }
 
@@ -262,7 +330,7 @@ public class ReturnOrderService {
             if (ro == null) continue;
             // Không cho xóa phiếu đã hoàn tiền hoặc đã nhập kho (đã tác động quỹ/tồn) -> tránh mất dấu vết, lệch số
             if (REFUNDED.equals(ro.getRefundStatus()) || RESTOCK_RESTOCKED.equals(ro.getRestockStatus())) {
-                throw new RuntimeException("Phiếu trả hàng " + ro.getReturnCode() + " đã hoàn tiền/nhập kho nên không thể xóa.");
+                throw new BusinessException("Phiếu trả hàng " + ro.getReturnCode() + " đã hoàn tiền/nhập kho nên không thể xóa.");
             }
             returnRepo.delete(ro);
         }

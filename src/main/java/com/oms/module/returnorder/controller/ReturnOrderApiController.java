@@ -29,6 +29,7 @@ public class ReturnOrderApiController {
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/restock")
     public ResponseEntity<?> processRestock(@PathVariable Long id, @RequestParam Long branchId) {
         returnService.processRestock(id, branchId);

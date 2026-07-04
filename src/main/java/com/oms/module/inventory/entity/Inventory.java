@@ -23,6 +23,13 @@ public class Inventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Optimistic lock: bắt lost-update ở MỌI đường ghi (bổ trợ cho khóa bi quan hiện có).
+    // columnDefinition có default 0 -> khi ddl-auto=update thêm cột, các dòng cũ nhận giá trị 0 an toàn.
+    @Version
+    @Column(name = "version", columnDefinition = "bigint not null default 0")
+    @Builder.Default
+    private Long version = 0L;
+
     @Column(name = "variant_id", nullable = false)
     private Long variantId;
 

@@ -121,7 +121,7 @@
             height: 10px;
             border-radius: 50%;
             background-color: #fff;
-            border: 2px solid #0d6efd;
+            border: 2px solid #3b82f6;
         }
 
         .custom-dropdown-list {
@@ -150,7 +150,7 @@
 
         .search-box-focus-within:focus-within {
             border-color: #86b7fe;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
         }
 
         .search-box-focus-within .input-group-text {
@@ -236,25 +236,55 @@
 
                     <!-- PANEL KIỂM HÀNG KHI NHẬN (chỉ hiện khi đang chờ nhập kho) -->
                     <div th:if="${order.importStatus == 'PENDING' && order.status != 'CANCELLED'}"
-                         class="border rounded p-3 mb-3" style="background:#f3f8ff">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="fw-bold text-primary"><i class="bi bi-upc-scan me-1"></i> Kiểm hàng khi nhận (quét mã để đối chiếu)</div>
-                            <span class="badge bg-secondary" id="chkProgressText">0/0</span>
+                         class="chk-panel mb-3">
+                        <div class="chk-head">
+                            <div class="chk-title"><i class="bi bi-upc-scan"></i> Kiểm hàng khi nhận</div>
+                            <span class="chk-badge" id="chkProgressText">0/0</span>
                         </div>
-                        <div class="input-group input-group-sm mb-2">
-                            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
-                            <input type="text" id="chkScanInput" class="form-control" placeholder="Quét barcode / SKU sản phẩm rồi Enter…" autocomplete="off">
-                            <button class="btn btn-outline-secondary" type="button" id="chkResetBtn"><i class="bi bi-arrow-counterclockwise"></i> Đặt lại</button>
-                        </div>
-                        <div id="chkList" class="small mb-2"></div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="small text-muted">Quét đủ số lượng tất cả sản phẩm → nút Nhập kho bật lên.</span>
-                            <button class="btn btn-success btn-sm fw-bold" id="chkConfirmBtn" disabled
-                                    th:onclick="'confirmReceive(' + ${order.id} + ')'">
-                                <i class="bi bi-check2-circle me-1"></i> Đã đủ hàng — Nhập kho
+                        <div class="chk-scanbox">
+                            <i class="bi bi-upc-scan chk-scanicon"></i>
+                            <input type="text" id="chkScanInput" class="js-scan"
+                                   placeholder="Quét barcode / SKU sản phẩm rồi Enter…" autocomplete="off">
+                            <button type="button" id="chkResetBtn" class="chk-reset" title="Đặt lại tất cả">
+                                <i class="bi bi-arrow-counterclockwise"></i>
                             </button>
                         </div>
+                        <div id="chkList" class="chk-list"></div>
+                        <button class="chk-confirm" id="chkConfirmBtn" disabled
+                                th:onclick="'confirmReceive(' + ${order.id} + ')'">
+                            <i class="bi bi-check2-circle me-1"></i> Đã đủ hàng — Nhập kho
+                        </button>
                     </div>
+                    <style>
+                        .chk-panel { background:#fff; border:1px solid #e6eaf1; border-radius:14px; padding:16px; box-shadow:0 4px 14px rgba(15,23,42,.05); }
+                        .chk-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+                        .chk-title { font-weight:700; color:#0f172a; display:flex; align-items:center; gap:8px; }
+                        .chk-title .bi { color:#4f46e5; font-size:18px; }
+                        .chk-badge { font-weight:700; font-size:13px; padding:5px 12px; border-radius:99px; background:#eef2ff; color:#4f46e5; transition:.2s; }
+                        .chk-badge.done { background:#dcfce7; color:#16a34a; }
+                        .chk-scanbox { display:flex; align-items:center; gap:8px; background:#f6f8fb; border:1.5px solid #e6eaf1; border-radius:11px; padding:4px 6px 4px 14px; transition:.15s; }
+                        .chk-scanbox:focus-within { border-color:#4f46e5; background:#fff; box-shadow:0 0 0 3px rgba(79,70,229,.12); }
+                        .chk-scanicon { color:#94a3b8; font-size:18px; }
+                        .chk-scanbox input { flex:1; border:0; outline:0; background:transparent; padding:9px 6px; font-size:15px; font-weight:600; letter-spacing:.3px; }
+                        .chk-reset { border:0; background:#eef1f6; color:#64748b; width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; transition:.15s; cursor:pointer; }
+                        .chk-reset:hover { background:#e2e8f0; color:#0f172a; }
+                        .chk-list { margin:14px 0; display:flex; flex-direction:column; gap:10px; }
+                        .chk-row { border:1px solid #eef1f6; border-radius:10px; padding:10px 12px; transition:.2s; }
+                        .chk-row.done { border-color:#bbf7d0; background:#f6fef9; }
+                        .chk-row-top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:7px; }
+                        .chk-name { font-size:13px; font-weight:600; color:#334155; display:flex; align-items:center; gap:7px; min-width:0; }
+                        .chk-name .bi { font-size:15px; flex-shrink:0; }
+                        .chk-name.done .bi { color:#16a34a; } .chk-name .bi.pending { color:#cbd5e1; }
+                        .chk-name span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                        .chk-count { font-weight:700; font-size:13px; color:#64748b; flex-shrink:0; }
+                        .chk-count.done { color:#16a34a; }
+                        .chk-track { height:6px; border-radius:99px; background:#eef1f6; overflow:hidden; }
+                        .chk-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,#6366f1,#4f46e5); transition:width .25s; }
+                        .chk-fill.done { background:linear-gradient(90deg,#22c55e,#16a34a); }
+                        .chk-confirm { width:100%; border:0; border-radius:11px; padding:12px; font-weight:700; font-size:15px; color:#fff; background:#16a34a; box-shadow:0 2px 10px rgba(22,163,74,.28); transition:.15s; cursor:pointer; }
+                        .chk-confirm:hover:not(:disabled) { filter:brightness(1.05); }
+                        .chk-confirm:disabled { background:#cbd5e1; box-shadow:none; cursor:not-allowed; }
+                    </style>
 
                     <div class="table-responsive border rounded">
                         <table class="table table-hover align-middle mb-0">
@@ -959,7 +989,7 @@
                     icon: 'warning',
                     showCancelButton: true,
                     showDenyButton: true,
-                    confirmButtonColor: '#0d6efd',
+                    confirmButtonColor: '#3b82f6',
                     denyButtonColor: '#6c757d',
                     confirmButtonText: '<i class="bi bi-cash-coin me-1"></i> Thanh toán ngay',
                     denyButtonText: 'Chỉ nhập kho (Ghi nợ)',
@@ -1074,49 +1104,81 @@
             const okBeep = () => tone(1800, .1), errBeep = () => tone(380, .22);
             const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
+            const det = s => (window.OMSScan && OMSScan.deTelex) ? OMSScan.deTelex(s) : s;
+            const confirmBtn = document.getElementById('chkConfirmBtn');
+
             function render() {
                 let totalExp = 0, totalCnt = 0, html = '';
                 Object.keys(state).forEach(sku => {
                     const s = state[sku]; totalExp += s.expected; totalCnt += s.count;
-                    const done = s.count >= s.expected;
-                    html += `<div class="d-flex justify-content-between align-items-center py-1 border-bottom">
-                        <span>${done ? '<i class="bi bi-check-circle-fill text-success me-1"></i>' : '<i class="bi bi-circle text-muted me-1"></i>'}${esc(s.name)}</span>
-                        <span class="fw-bold ${done ? 'text-success' : 'text-muted'}">${s.count}/${s.expected}</span></div>`;
+                    const done = s.expected > 0 && s.count >= s.expected;
+                    const pct = s.expected > 0 ? Math.min(100, Math.round(s.count / s.expected * 100)) : 0;
+                    html += `<div class="chk-row ${done ? 'done' : ''}">
+                        <div class="chk-row-top">
+                            <span class="chk-name ${done ? 'done' : ''}"><i class="bi ${done ? 'bi-check-circle-fill' : 'bi-circle pending'}"></i><span title="${esc(s.name)}">${esc(s.name)}</span></span>
+                            <span class="chk-count ${done ? 'done' : ''}">${s.count}/${s.expected}</span>
+                        </div>
+                        <div class="chk-track"><div class="chk-fill ${done ? 'done' : ''}" style="width:${pct}%"></div></div>
+                    </div>`;
                 });
                 document.getElementById('chkList').innerHTML = html;
                 const allDone = totalExp > 0 && Object.values(state).every(s => s.count >= s.expected);
                 const pt = document.getElementById('chkProgressText');
                 pt.textContent = totalCnt + '/' + totalExp;
-                pt.className = 'badge ' + (allDone ? 'bg-success' : 'bg-secondary');
-                document.getElementById('chkConfirmBtn').disabled = !allDone;
+                pt.className = 'chk-badge' + (allDone ? ' done' : '');
+                confirmBtn.disabled = !allDone;
             }
 
-            async function onScan(code) {
-                code = (code || '').trim(); if (!code) return;
-                let sku = state[code] ? code : null;
-                if (!sku) {
-                    try { const r = await fetch('/api/v1/packing/lookup/' + encodeURIComponent(code)); if (r.ok) { const d = await r.json(); sku = d.sku; } } catch (e) {}
-                }
-                if (!sku || !state[sku]) { errBeep(); Toast.fire({icon: 'error', title: 'Mã không thuộc đơn này: ' + code}); return; }
+            function countOne(sku) {
                 const s = state[sku];
                 if (s.count >= s.expected) { errBeep(); Toast.fire({icon: 'warning', title: 'Đã đủ số lượng: ' + s.name}); return; }
                 s.count++; okBeep(); render();
-                if (!document.getElementById('chkConfirmBtn').disabled) Toast.fire({icon: 'success', title: '✓ Đã đủ hàng — có thể Nhập kho!'});
+                if (!confirmBtn.disabled) Toast.fire({icon: 'success', title: '✓ Đã đủ hàng — có thể Nhập kho!'});
             }
 
-            // Đọc phím vật lý -> chống bộ gõ tiếng Việt biến đổi ký tự máy quét
-            function scanChar(e) {
-                const c = e.code; let m = /^Key([A-Z])$/.exec(c); if (m) return e.shiftKey ? m[1] : m[1].toLowerCase();
-                m = /^Digit([0-9])$/.exec(c); if (m) return e.shiftKey ? ')!@#$%^&*('[+m[1]] : m[1];
-                m = /^Numpad([0-9])$/.exec(c); if (m) return m[1];
-                const map = {Minus: ['-', '_'], Period: ['.', '>'], Slash: ['/', '?'], Space: [' ', ' ']};
-                if (map[c]) return e.shiftKey ? map[c][1] : map[c][0];
-                return null;
+            // Mã lạ (chưa gắn sản phẩm nào) -> cho phép GÁN vào 1 sản phẩm trong đơn (barcode CN/VN/JP, hàng nhập lần đầu…)
+            async function offerAssign(code) {
+                const options = {};
+                Object.keys(state).forEach(sku => { options[sku] = state[sku].name + ' (' + sku + ')'; });
+                if (Object.keys(options).length === 0) { Toast.fire({icon: 'error', title: 'Đơn không có sản phẩm để gán'}); return; }
+                const res = await Swal.fire({
+                    icon: 'question',
+                    title: 'Mã chưa gắn sản phẩm',
+                    html: 'Mã <b>' + esc(code) + '</b> chưa có trong hệ thống.<br>Gán mã này cho sản phẩm nào trong đơn?',
+                    input: 'select', inputOptions: options, inputPlaceholder: '— Chọn sản phẩm —',
+                    showCancelButton: true, confirmButtonText: 'Gán & đếm', cancelButtonText: 'Bỏ qua',
+                    confirmButtonColor: '#4f46e5',
+                    inputValidator: v => (!v ? 'Hãy chọn sản phẩm' : undefined)
+                });
+                if (!res.isConfirmed || !res.value) return;
+                const sku = res.value;
+                try {
+                    const r = await fetch('/api/v1/products/variants/' + encodeURIComponent(sku) + '/barcodes',
+                        {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({barcode: code})});
+                    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.message || 'Không gán được mã'); }
+                    Toast.fire({icon: 'success', title: 'Đã gán mã cho: ' + state[sku].name});
+                    countOne(sku);
+                } catch (e) { errBeep(); Toast.fire({icon: 'error', title: e.message}); }
             }
+
+            async function onScan(code) {
+                code = det(code || '').trim(); if (!code) return;
+                // 1. Chính là SKU trong đơn
+                if (state[code]) { countOne(code); return; }
+                // 2. Tra theo SKU / barcode đã biết
+                let found = null;
+                try { const r = await fetch('/api/v1/packing/lookup/' + encodeURIComponent(code)); if (r.ok) found = await r.json(); } catch (e) {}
+                if (found && found.sku) {
+                    if (state[found.sku]) { countOne(found.sku); return; }
+                    errBeep(); Toast.fire({icon: 'error', title: 'Mã thuộc sản phẩm khác, không có trong đơn này'}); return;
+                }
+                // 3. Mã lạ -> gợi ý gán vào sản phẩm trong đơn
+                errBeep();
+                offerAssign(code);
+            }
+
             inp.addEventListener('keydown', e => {
-                if (e.key === 'Enter') { e.preventDefault(); const v = inp.value; inp.value = ''; onScan(v); return; }
-                if (e.ctrlKey || e.altKey || e.metaKey) return;
-                const ch = scanChar(e); if (ch != null) { e.preventDefault(); inp.value += ch; }
+                if (e.key === 'Enter') { e.preventDefault(); const v = inp.value; inp.value = ''; onScan(v); }
             });
             document.getElementById('chkResetBtn').addEventListener('click', () => { Object.values(state).forEach(s => s.count = 0); render(); inp.focus(); });
             render();

@@ -3,6 +3,8 @@ package com.oms.module.setting.service;
 import com.oms.module.setting.entity.MasterData;
 import com.oms.module.setting.repository.MasterDataRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +26,7 @@ public class MasterDataService {
      * Lấy danh sách giá trị (String) để đổ vào các ô Dropdown (Select)
      */
     public List<String> getValuesByType(String dataType) {
-        return masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType).stream().map(MasterData::getDataValue).collect(Collectors.toList());
+        return getMasterDataByType(dataType).stream().map(MasterData::getDataValue).collect(Collectors.toList());
     }
 
     /**
@@ -32,6 +34,7 @@ public class MasterDataService {
      */
     // 1. Cập nhật hàm tạo mới
     @Transactional
+    @CacheEvict(value = "masterDataByType", allEntries = true)
     public MasterData createIfNotExist(String dataType, String dataValue, String dataLabel) {
         if (masterDataRepository.existsByDataTypeAndDataValueIgnoreCase(dataType, dataValue)) {
             return masterDataRepository.findByDataTypeAndDataValueIgnoreCase(dataType, dataValue).get();
@@ -46,7 +49,8 @@ public class MasterDataService {
         return masterDataRepository.save(newData);
     }
 
-    // 2. Thêm hàm lấy dữ liệu cho Dropdown ngoài Frontend
+    // 2. Thêm hàm lấy dữ liệu cho Dropdown ngoài Frontend (được CACHE — master data ít đổi, đọc mỗi lần render trang)
+    @Cacheable("masterDataByType")
     public List<MasterData> getMasterDataByType(String dataType) {
         return masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType);
     }
@@ -59,7 +63,7 @@ public class MasterDataService {
      * Lấy toàn bộ Entity để hiển thị lên bảng Quản lý Danh mục
      */
     public List<MasterData> getAllByType(String dataType) {
-        return masterDataRepository.findByDataTypeOrderBySortOrderAsc(dataType);
+        return getMasterDataByType(dataType);
     }
 
     /**
@@ -73,6 +77,7 @@ public class MasterDataService {
      * Sửa tên hoặc thứ tự hiển thị của một danh mục
      */
     @Transactional
+    @CacheEvict(value = "masterDataByType", allEntries = true)
     public MasterData update(Long id, MasterData request) {
         MasterData existingData = getById(id);
 
@@ -99,6 +104,7 @@ public class MasterDataService {
      * Xóa danh mục
      */
     @Transactional
+    @CacheEvict(value = "masterDataByType", allEntries = true)
     public void delete(Long id) {
         MasterData existingData = getById(id);
 
@@ -116,6 +122,7 @@ public class MasterDataService {
      * Lưu nhiều cấu hình cùng lúc từ một Map (Key - Value)
      */
     @Transactional
+    @CacheEvict(value = "masterDataByType", allEntries = true)
     public void saveSystemConfigs(Map<String, String> configs) {
         configs.forEach((key, value) -> {
             String upperKey = key.toUpperCase(); // Chuyển key thành in hoa, VD: STORE_NAME

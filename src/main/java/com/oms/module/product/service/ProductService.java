@@ -250,6 +250,36 @@ public class ProductService {
         return productRepository.searchAndFilterProducts(keyword, category, brand);
     }
 
+    /**
+     * Gán 1 mã vạch (barcode) cho biến thể theo SKU.
+     * Dùng khi quét mã lạ ở nhập kho: 1 biến thể có thể có nhiều barcode (CN/VN/JP...) hoặc chưa có barcode.
+     * - Idempotent: barcode đã thuộc chính biến thể này -> bỏ qua.
+     * - Chặn gán barcode đang thuộc biến thể KHÁC (tránh trùng mã vạch giữa 2 sản phẩm).
+     */
+    @Transactional
+    public ProductVariant addBarcodeToVariant(String sku, String barcode) {
+        if (barcode == null || barcode.isBlank()) {
+            throw new com.oms.config.exception.BusinessException("Mã vạch không hợp lệ!");
+        }
+        String code = barcode.trim();
+        ProductVariant variant = productVariantRepository.findBySkuForUpdate(sku)
+                .orElseThrow(() -> new com.oms.config.exception.BusinessException("Không tìm thấy sản phẩm có SKU: " + sku));
+
+        if (variant.getBarcodes() != null && variant.getBarcodes().contains(code)) {
+            return variant; // đã có -> không thêm trùng
+        }
+        // Không cho mã vạch trùng với biến thể khác
+        for (ProductVariant other : productVariantRepository.findAllByBarcode(code)) {
+            if (other.getId() != null && !other.getId().equals(variant.getId())) {
+                throw new com.oms.config.exception.BusinessException(
+                        "Mã vạch [" + code + "] đã được gắn cho sản phẩm khác (" + other.getSku() + ").");
+            }
+        }
+        if (variant.getBarcodes() == null) variant.setBarcodes(new ArrayList<>());
+        variant.getBarcodes().add(code);
+        return productVariantRepository.save(variant);
+    }
+
     @Transactional(readOnly = true)
     public List<ProductVariant> getFilteredInventory(String keyword, String stockStatus, Integer minStock, Integer maxStock, String dateRange) {
         java.time.LocalDateTime startDate = null;

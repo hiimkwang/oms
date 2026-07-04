@@ -53,6 +53,13 @@ public class ProductController {
     public ResponseEntity<List<ProductVariant>> searchVariants(@RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(productService.searchVariantsForOrder(keyword));
     }
+
+    /** Gán 1 mã vạch cho biến thể (khi quét mã lạ ở nhập kho -> cho phép gắn vào sản phẩm). */
+    @PostMapping("/variants/{sku}/barcodes")
+    public ResponseEntity<?> addBarcode(@PathVariable String sku, @RequestBody Map<String, String> body) {
+        productService.addBarcodeToVariant(sku, body.get("barcode"));
+        return ResponseEntity.ok(Map.of("message", "Đã gán mã vạch cho sản phẩm."));
+    }
     // Hứng request Xóa hàng loạt (chỉ ADMIN)
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/bulk")

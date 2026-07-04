@@ -200,9 +200,23 @@ public class PackingService {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode));
         order.setPackingVideoPath(emptyToNull(videoPath));
-        addActivity(order, "Video đóng gói", "Đã lưu video đóng gói: " + videoPath);
+        addActivity(order, "Video đóng gói", describeVideo(videoPath));
         order.getDetails().size(); // nạp details trong transaction để tránh LazyInitializationException khi build response
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        return saved;
+    }
+
+    /** Mô tả thân thiện cho lịch sử thao tác (không dump JSON thô ra giao diện). */
+    private String describeVideo(String videoPath) {
+        if (videoPath == null || videoPath.isBlank()) return "Đã cập nhật video đóng gói.";
+        String s = videoPath.trim();
+        if (!s.startsWith("{")) return "Đã lưu video đóng gói.";
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        if (s.contains("\"pano\":\"")) parts.add("toàn cảnh");
+        if (s.contains("\"qr\":\"")) parts.add("cam QR");
+        if (s.contains("\"merged\":\"")) parts.add("video ghép");
+        return parts.isEmpty() ? "Đã lưu video đóng gói."
+                : "Đã lưu video đóng gói (" + String.join(" + ", parts) + ").";
     }
 
     /** Tra cứu nhanh thông tin biến thể theo SKU HOẶC barcode (an toàn, không lộ giá vốn). */

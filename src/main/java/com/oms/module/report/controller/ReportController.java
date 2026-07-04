@@ -120,8 +120,20 @@ public class ReportController {
                 }
             }
             model.addAttribute("marginData", marginData);
-            model.addAttribute("channelProfitData", extractBigDecimalData(orderRepo.findProfitByChannel(startTime, endTime)));
-            model.addAttribute("branchProfitData", extractBigDecimalData(orderRepo.findProfitByBranch(startTime, endTime)));
+
+            // Lợi nhuận gộp theo KÊNH/CHI NHÁNH — CÙNG cơ sở order-level (Doanh thu − COGS) như KPI,
+            // và CĂN ĐÚNG theo nhãn (channelLabels/branchLabels) để không vẽ lệch cột.
+            @SuppressWarnings("unchecked")
+            List<String> channelLabels = (List<String>) model.getAttribute("channelLabels");
+            @SuppressWarnings("unchecked")
+            List<String> branchLabels = (List<String>) model.getAttribute("branchLabels");
+
+            model.addAttribute("channelProfitData", profitAlignedToLabels(channelLabels,
+                    orderRepo.findRevenueByChannel(startTime, endTime),
+                    orderRepo.findCogsByChannel(startTime, endTime)));
+            model.addAttribute("branchProfitData", profitAlignedToLabels(branchLabels,
+                    orderRepo.findRevenueByBranch(startTime, endTime),
+                    orderRepo.findCogsByBranch(startTime, endTime)));
 
         } else if ("customer".equals(tab)) {
             loadGeneralKPIs(model, startTime, endTime);
@@ -389,5 +401,30 @@ public class ReportController {
         List<BigDecimal> result = new ArrayList<>();
         for (Object[] obj : list) result.add(obj[1] != null ? (BigDecimal) obj[1] : BigDecimal.ZERO);
         return result;
+    }
+
+    // Gom [label -> BigDecimal] từ kết quả GROUP BY
+    private java.util.Map<String, BigDecimal> toAmountMap(List<Object[]> list) {
+        java.util.Map<String, BigDecimal> map = new java.util.HashMap<>();
+        for (Object[] obj : list) {
+            String key = obj[0] != null ? obj[0].toString() : "Khác";
+            BigDecimal val = obj[1] != null ? (BigDecimal) obj[1] : BigDecimal.ZERO;
+            map.merge(key, val, BigDecimal::add);
+        }
+        return map;
+    }
+
+    // Lợi nhuận gộp = doanh thu − COGS, TRẢ VỀ theo đúng thứ tự labels (căn khớp biểu đồ)
+    private List<BigDecimal> profitAlignedToLabels(List<String> labels, List<Object[]> revList, List<Object[]> cogsList) {
+        List<BigDecimal> out = new ArrayList<>();
+        if (labels == null) return out;
+        java.util.Map<String, BigDecimal> rev = toAmountMap(revList);
+        java.util.Map<String, BigDecimal> cogs = toAmountMap(cogsList);
+        for (String label : labels) {
+            BigDecimal r = rev.getOrDefault(label, BigDecimal.ZERO);
+            BigDecimal c = cogs.getOrDefault(label, BigDecimal.ZERO);
+            out.add(r.subtract(c));
+        }
+        return out;
     }
 }
