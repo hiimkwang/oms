@@ -161,8 +161,7 @@
                     <div class="col-md-6">
                         <label class="form-label">Giá bán</label>
                         <div class="input-group">
-                            <input type="number" id="price" class="form-control oms-input text-end py-2" placeholder="0"
-                                   oninput="generateVariantTable()">
+                            <input type="number" id="price" class="form-control oms-input text-end py-2" placeholder="0">
                             <span class="input-group-text bg-light text-muted border-light">đ</span>
                         </div>
                     </div>
@@ -178,43 +177,20 @@
 
             <div class="card p-4 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="card-title-custom mb-0">Phân loại & Thuộc tính</div>
+                    <div class="card-title-custom mb-0">Phân loại hàng</div>
+                    <span class="text-muted small">Chỉ nhóm phân loại 1 cần thêm ảnh cho từng tùy chọn</span>
                 </div>
 
-                <div id="attributesContainer">
-                    <div class="row g-2 mb-3 align-items-start attr-row">
-                        <div class="col-md-3">
-                            <label class="form-label">Tên thuộc tính</label>
-                            <input type="text" class="form-control oms-input attr-name-input" value="Phân loại"
-                                   placeholder="VD: Phân loại...">
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label">Giá trị</label>
-                            <input type="text" class="tag-input" placeholder="Nhập giá trị và ấn enter">
-                        </div>
-                        <div class="col-md-1 d-flex justify-content-center pt-4 mt-1">
-                            <i class="bi bi-trash fs-5 btn-remove-attr"></i>
-                        </div>
-                    </div>
-                </div>
+                <div id="tierList"></div>
 
                 <div>
-                    <button class="btn btn-link text-decoration-none p-0 fw-medium" onclick="addAttributeRow()">
-                        <i class="bi bi-plus-circle me-1"></i>Thêm thuộc tính khác
+                    <button type="button" id="addTierBtn"
+                            class="btn btn-outline-primary btn-sm fw-medium">
+                        <i class="bi bi-plus-circle me-1"></i>Thêm nhóm phân loại
                     </button>
                 </div>
 
-                <div class="mt-4 pt-4 border-top d-none" id="variantTableContainer">
-                    <h6 class="fw-bold mb-3 text-dark">Cấu hình biến thể chi tiết</h6>
-                    <div class="table-responsive">
-                        <table class="table table-bordered align-middle text-center mb-0">
-                            <thead id="variantTableHead">
-                            </thead>
-                            <tbody id="variantTableBody">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <div class="mt-4 pt-4 border-top d-none" id="variantMatrix"></div>
             </div>
 
             <div class="card p-4 mb-4 border-0 shadow-sm">
@@ -290,6 +266,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
+    <script src="/js/product-variants.js"></script>
     <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function () {
             const masterDataConfig = {
@@ -337,11 +314,24 @@
             new TomSelect('#unit', masterDataConfig);
             new TomSelect('#tags', {create: true, plugins: ['remove_button']});
 
-            initAttributeTags();
+            // Trình biên tập phân loại hàng kiểu Shopee (ảnh gắn ở nhóm phân loại 1)
+            OMSVariants.init({
+                tierListId: 'tierList',
+                matrixWrapId: 'variantMatrix',
+                addTierBtnId: 'addTierBtn',
+                priceInputId: 'price',
+                skuInputId: 'sku',
+                nameInputId: 'name',
+                manageStockId: 'manageStock',
+                singleStockAreaId: 'singleProductStockArea',
+                uploadFn: uploadFileToAPI
+            });
 
-            // MỚI THÊM: Trigger gen bảng Biến thể realtime khi gõ Tên / SKU
-            document.getElementById('name').addEventListener('input', generateVariantTable);
-            document.getElementById('sku').addEventListener('input', generateVariantTable);
+            // Vẽ lại SKU/giá gợi ý khi đổi Tên / SKU / Giá sản phẩm
+            document.getElementById('name').addEventListener('input', OMSVariants.refresh);
+            document.getElementById('sku').addEventListener('input', OMSVariants.refresh);
+            document.getElementById('price').addEventListener('input', OMSVariants.refresh);
+            document.getElementById('manageStock').addEventListener('change', OMSVariants.refresh);
         });
 
         // Hàm tiện ích: Cập nhật tên kho khi chọn
@@ -355,191 +345,6 @@
             }
         }
 
-        document.addEventListener('input', function (e) {
-            if (e.target.classList.contains('attr-name-input')) {
-                generateVariantTable();
-            }
-        });
-
-        function initAttributeTags() {
-            document.querySelectorAll('.tag-input').forEach(el => {
-                if (!el.tomselect) {
-                    new TomSelect(el, {
-                        create: true,
-                        plugins: ['remove_button'],
-                        delimiter: ',',
-                        placeholder: "Nhập giá trị và ấn enter",
-                        onChange: function () {
-                            generateVariantTable();
-                        }
-                    });
-                }
-            });
-        }
-
-        function addAttributeRow() {
-            const container = document.getElementById('attributesContainer');
-            const newRow = document.createElement('div');
-            newRow.className = 'row g-2 mb-3 align-items-start attr-row';
-
-            newRow.innerHTML = `
-                <div class="col-md-3">
-                    <input type="text" class="form-control oms-input attr-name-input" placeholder="Tên thuộc tính (VD: Switch)">
-                </div>
-                <div class="col-md-8">
-                    <input type="text" class="tag-input" placeholder="Nhập giá trị và ấn enter">
-                </div>
-                <div class="col-md-1 d-flex justify-content-center pt-2 mt-1">
-                    <i class="bi bi-trash fs-5 btn-remove-attr"></i>
-                </div>
-            `;
-            container.appendChild(newRow);
-
-            const allTagInputs = container.querySelectorAll('.tag-input');
-            const newestInput = allTagInputs[allTagInputs.length - 1];
-
-            new TomSelect(newestInput, {
-                create: true,
-                plugins: ['remove_button'],
-                delimiter: ',',
-                placeholder: "Nhập giá trị và ấn enter",
-                onChange: function () {
-                    generateVariantTable();
-                }
-            });
-
-            generateVariantTable();
-        }
-
-        // MỚI THÊM: Hàm gen chuẩn hóa chuỗi (Giống code Java Backend)
-        function generateSlugFromName(name) {
-            if (!name || name.trim() === '') {
-                return "AUTO";
-            }
-            return name.normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/Đ/g, "D")
-                .replace(/đ/g, "d")
-                .replace(/[^a-zA-Z0-9\s-]/g, "")
-                .trim()
-                .replace(/\s+/g, '-')
-                .toUpperCase();
-        }
-
-        function generateVariantTable() {
-            const container = document.getElementById('variantTableContainer');
-            const thead = document.getElementById('variantTableHead');
-            const tbody = document.getElementById('variantTableBody');
-            const isManaged = document.getElementById('manageStock').checked;
-
-            // Lấy khối HTML chứa Tồn kho của sản phẩm gốc
-            const singleProductStockArea = document.getElementById('singleProductStockArea');
-
-            let validAttributes = [];
-            document.querySelectorAll('.attr-row').forEach(row => {
-                const nameInput = row.querySelector('.attr-name-input');
-                const attrName = nameInput ? nameInput.value.trim() : 'Thuộc tính';
-                const tagInput = row.querySelector('.tag-input');
-
-                if (tagInput && tagInput.tomselect) {
-                    const values = tagInput.tomselect.getValue().split(',').filter(v => v.trim() !== '');
-                    if (values.length > 0) {
-                        validAttributes.push({name: attrName || 'Phân loại', values: values});
-                    }
-                }
-            });
-
-            // 1. NẾU KHÔNG CÓ BIẾN THỂ NÀO
-            if (validAttributes.length === 0) {
-                container.classList.add('d-none'); // Ẩn bảng biến thể
-                if (singleProductStockArea) {
-                    singleProductStockArea.classList.remove('d-none'); // HIỆN LẠI ô nhập tồn kho gốc
-                }
-                return;
-            }
-
-            // 2. NẾU CÓ BIẾN THỂ
-            if (singleProductStockArea) {
-                singleProductStockArea.classList.add('d-none'); // ẨN NGAY ô nhập tồn kho gốc
-            }
-
-            let headerHtml = '<tr>';
-            validAttributes.forEach(attr => {
-                headerHtml += `<th class="text-start ps-3">${attr.name}</th>`;
-            });
-            headerHtml += `
-                <th width="80">Ảnh</th>
-                <th width="130">Giá bán</th>
-                <th width="130">Giá nhập (Vốn)</th>
-                <th width="100">Tồn kho ban đầu</th>
-                <th width="160">Mã SKU</th>
-                <th width="170">Mã vạch (barcode)</th>
-            </tr>`;
-            thead.innerHTML = headerHtml;
-
-            const allValues = validAttributes.map(attr => attr.values);
-            const cartesian = (args) => {
-                let r = [], max = args.length - 1;
-
-                function helper(arr, i) {
-                    for (let j = 0, l = args[i].length; j < l; j++) {
-                        let a = arr.slice(0);
-                        a.push(args[i][j]);
-                        if (i === max) r.push(a);
-                        else helper(a, i + 1);
-                    }
-                }
-
-                helper([], 0);
-                return r;
-            };
-
-            const combos = cartesian(allValues);
-            const basePrice = document.getElementById('price').value || 0;
-
-            // MỚI THÊM: Tính toán SKU mẹ linh hoạt
-            let productName = document.getElementById("name").value.trim();
-            let manualSku = document.getElementById('sku').value.trim();
-            let baseSku = manualSku ? manualSku : generateSlugFromName(productName);
-
-            let bodyHtml = '';
-
-            combos.forEach((combo, index) => {
-                let variantSuffix = Array.isArray(combo) ? combo.join('-') : combo;
-
-                // MỚI THÊM: Nối SKU mẹ và SKU con
-                const variantSku = baseSku === "AUTO" ? generateSlugFromName(variantSuffix) : `${baseSku}-${generateSlugFromName(variantSuffix)}`;
-
-                let rowHtml = '<tr>';
-                combo.forEach(val => {
-                    rowHtml += `<td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part">${val}</td>`;
-                });
-
-                rowHtml += `
-                    <td>
-                        <div class="d-flex justify-content-center">
-                            <label style="cursor: pointer; margin: 0;">
-                                <div class="variant-img-placeholder bg-light border rounded d-flex align-items-center justify-content-center text-muted" style="width: 36px; height: 36px;">
-                                    <i class="bi bi-camera"></i>
-                                </div>
-                                <img class="variant-img-preview rounded border d-none" style="width: 36px; height: 36px; object-fit: cover;">
-                                <input type="file" class="d-none" accept="image/*" onchange="uploadVariantImage(this)">
-                            </label>
-                            <input type="hidden" class="var-image" value="">
-                        </div>
-                    </td>
-                    <td><input type="number" class="form-control form-control-sm text-end oms-input var-price" value="${basePrice}"></td>
-                    <td><input type="number" class="form-control form-control-sm text-end oms-input var-cost" value="0" placeholder="Giá nhập"></td>
-                    <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock" value="0" ${!isManaged ? 'disabled' : ''}></td>
-                    <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium" value="${variantSku}" readonly></td>
-                    <td><input type="text" class="form-control form-control-sm oms-input var-barcode" placeholder="Quét/nhập, nhiều mã cách nhau dấu phẩy"></td>
-                </tr>`;
-                bodyHtml += rowHtml;
-            });
-
-            tbody.innerHTML = bodyHtml;
-            container.classList.remove('d-none');
-        }
 
         function saveProduct() {
             const nameVal = document.getElementById("name").value.trim();
@@ -584,39 +389,14 @@
                 minStockLevel: 0,
                 description: document.getElementById("description").value,
                 warrantyPeriod: (document.getElementById("warrantyMonths").value || '').trim(),
-                attributes: [], // MỚI THÊM: Hứng dữ liệu thuộc tính
+                attributes: [],
                 variants: []
             };
 
-            // MỚI THÊM: THU THẬP THUỘC TÍNH (MÀU SẮC, KÍCH THƯỚC...)
-            document.querySelectorAll('.attr-row').forEach(row => {
-                const nameInput = row.querySelector('.attr-name-input');
-                const attrName = nameInput ? nameInput.value.trim() : '';
-                const tagInput = row.querySelector('.tag-input');
-
-                if (attrName && tagInput && tagInput.tomselect) {
-                    const values = tagInput.tomselect.getValue().split(',').filter(v => v.trim() !== '');
-                    if (values.length > 0) {
-                        payload.attributes.push({name: attrName, values: values});
-                    }
-                }
-            });
-
-            const variantRows = document.querySelectorAll('#variantTableBody tr');
-            variantRows.forEach(row => {
-                const nameParts = Array.from(row.querySelectorAll('.var-name-part')).map(td => td.innerText);
-                const variantName = nameParts.join(' - ');
-
-                payload.variants.push({
-                    variantName: variantName,
-                    sku: row.querySelector('.var-sku').value,
-                    imageUrl: row.querySelector('.var-image').value.trim(),
-                    price: parseFloat(row.querySelector('.var-price').value) || 0,
-                    costPrice: parseFloat(row.querySelector('.var-cost').value) || 0,
-                    stockQuantity: parseInt(row.querySelector('.var-stock').value) || 0,
-                    barcodes: ((row.querySelector('.var-barcode') || {}).value || '').split(',').map(s => s.trim()).filter(Boolean)
-                });
-            });
+            // Thu thập phân loại + biến thể từ trình biên tập dùng chung (ảnh gắn ở nhóm phân loại 1)
+            const collected = OMSVariants.collect();
+            payload.attributes = collected.attributes;
+            payload.variants = collected.variants;
 
             fetch('/api/v1/products', {
                 method: 'POST',
@@ -677,28 +457,6 @@
             }
         }
 
-        async function uploadVariantImage(inputEl) {
-            if (!inputEl.files || inputEl.files.length === 0) return;
-            try {
-                const url = await uploadFileToAPI(inputEl.files[0]);
-                const labelWrapper = inputEl.closest('label');
-                const td = inputEl.closest('td');
-
-                td.querySelector('.var-image').value = url;
-
-                const previewEl = labelWrapper.querySelector('.variant-img-preview');
-                const placeholder = labelWrapper.querySelector('.variant-img-placeholder');
-
-                previewEl.src = url;
-                previewEl.classList.remove('d-none');
-                placeholder.classList.add('d-none');
-            } catch (err) {
-                Toast.fire({
-                    icon: 'error',
-                    title: 'Lỗi kết nối máy chủ!'
-                });
-            }
-        }
     </script>
 </div>
 </body>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Danh sách 9 preset ngày dùng chung cho MỌI bộ lọc.
+  Cách dùng: đặt bên trong <select id="datePreset"> của trang:
+    <th:block th:replace="~{fragments/date-filter :: presetOptions(${preset})}"></th:block>
+  Tham số 'selected' là chuỗi preset đang chọn (vd 'thisMonth'); truyền '' nếu để JS tự chọn.
+  Giá trị preset đồng bộ với com.oms.utility.DateRangeUtil.
+-->
+<th:block th:fragment="presetOptions(selected)">
+    <option value="today" th:selected="${selected == 'today'}">Hôm nay</option>
+    <option value="yesterday" th:selected="${selected == 'yesterday'}">Hôm qua</option>
+    <option value="thisWeek" th:selected="${selected == 'thisWeek'}">Tuần này</option>
+    <option value="lastWeek" th:selected="${selected == 'lastWeek'}">Tuần trước</option>
+    <option value="thisMonth" th:selected="${selected == 'thisMonth'}">Tháng này</option>
+    <option value="lastMonth" th:selected="${selected == 'lastMonth'}">Tháng trước</option>
+    <option value="thisYear" th:selected="${selected == 'thisYear'}">Năm nay</option>
+    <option value="lastYear" th:selected="${selected == 'lastYear'}">Năm trước</option>
+    <option value="custom" th:selected="${selected == 'custom'}">Tùy chọn...</option>
+</th:block>
+</body>
+</html>

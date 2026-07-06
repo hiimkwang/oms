@@ -166,7 +166,7 @@
                         <div class="input-group">
                             <input type="text" id="price" class="form-control oms-input text-end py-2"
                                    th:value="${product.price != null ? #numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT') : '0'}"
-                                   oninput="formatNumberInput(this); generateVariantTable()">
+                                   oninput="formatNumberInput(this); if(window.OMSVariants) OMSVariants.refresh()">
                             <span class="input-group-text bg-light text-muted border-light">đ</span>
                         </div>
                     </div>
@@ -183,136 +183,35 @@
 
             <div class="card p-4 mb-4 border-0 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="card-title-custom mb-0">Phân loại & Thuộc tính</div>
+                    <div class="card-title-custom mb-0">Phân loại hàng</div>
                     <small class="text-success fw-medium bg-success bg-opacity-10 px-2 py-1 rounded"><i
-                            class="bi bi-shield-check me-1"></i>Hệ thống tự động giữ lại thông tin cũ (Giá, Kho, SKU)
-                        khi thêm mới phân loại!</small>
+                            class="bi bi-shield-check me-1"></i>Giữ lại Giá/SKU cũ khi chỉnh phân loại. Ảnh gắn ở nhóm
+                        phân loại 1.</small>
                 </div>
 
-                <div id="attributesContainer">
-                    <th:block th:if="${not #lists.isEmpty(product.attributes)}">
-                        <div th:each="attr, iterStat : ${product.attributes}"
-                             class="row g-2 mb-3 align-items-start attr-row">
-                            <div class="col-md-3">
-                                <label class="form-label" th:if="${iterStat.index == 0}">Tên thuộc tính</label>
-                                <input type="text" class="form-control oms-input attr-name-input"
-                                       th:value="${attr.name}" placeholder="VD: Màu sắc...">
-                            </div>
-                            <div class="col-md-8">
-                                <label class="form-label" th:if="${iterStat.index == 0}">Giá trị</label>
-                                <input type="text" class="tag-input" th:value="${#strings.arrayJoin(attr.values, ',')}"
-                                       placeholder="Nhập giá trị và ấn enter">
-                            </div>
-                            <div class="col-md-1 d-flex justify-content-center mt-1"
-                                 th:classappend="${iterStat.index == 0 ? 'pt-4' : 'pt-2'}">
-                                <i class="bi bi-trash fs-5 btn-remove-attr"></i>
-                            </div>
-                        </div>
-                    </th:block>
-
-                    <th:block
-                            th:if="${#lists.isEmpty(product.attributes) and not #lists.isEmpty(product.variants) and product.variants[0].variantName != 'Mặc định'}">
-                        <div class="row g-2 mb-3 align-items-start attr-row">
-                            <div class="col-md-3">
-                                <label class="form-label">Tên thuộc tính</label>
-                                <input type="text" class="form-control oms-input attr-name-input"
-                                       placeholder="VD: Phân loại...">
-                            </div>
-                            <div class="col-md-8">
-                                <label class="form-label">Giá trị</label>
-                                <input type="text" class="tag-input" placeholder="Nhập giá trị và ấn enter">
-                            </div>
-                            <div class="col-md-1 d-flex justify-content-center pt-4 mt-1"><i
-                                    class="bi bi-trash fs-5 btn-remove-attr"></i></div>
-                        </div>
-                    </th:block>
+                <!-- Đảo dữ liệu phân loại/biến thể đã lưu để JS dựng lại trình biên tập (ảnh tier-1 suy ra từ biến thể) -->
+                <div id="preloadData" style="display:none;">
+                    <span class="pl-attr" th:each="attr : ${product.attributes}"
+                          th:attr="data-name=${attr.name},data-values=${#strings.arrayJoin(attr.values, '||')}"></span>
+                    <span class="pl-var" th:each="v : ${product.variants}" th:if="${v.variantName != 'Mặc định'}"
+                          th:attr="data-name=${v.variantName},
+                                    data-image=${v.imageUrl != null ? v.imageUrl : ''},
+                                    data-price=${v.price != null ? v.price : 0},
+                                    data-cost=${v.costPrice != null ? v.costPrice : 0},
+                                    data-stock=${v.actualStock != null ? v.actualStock : 0},
+                                    data-sku=${v.sku},
+                                    data-barcodes=${v.barcodes != null ? #strings.listJoin(v.barcodes, ',') : ''}"></span>
                 </div>
+
+                <div id="tierList"></div>
 
                 <div>
-                    <button class="btn btn-link text-decoration-none p-0 fw-medium" onclick="addAttributeRow()">
-                        <i class="bi bi-plus-circle me-1"></i>Thêm thuộc tính khác
+                    <button type="button" id="addTierBtn" class="btn btn-outline-primary btn-sm fw-medium">
+                        <i class="bi bi-plus-circle me-1"></i>Thêm nhóm phân loại
                     </button>
                 </div>
 
-                <div class="mt-4 pt-4 border-top" id="variantTableContainer"
-                     th:classappend="${#lists.isEmpty(product.variants) or (#lists.size(product.variants) == 1 and product.variants[0].variantName == 'Mặc định')} ? 'd-none' : ''">
-                    <h6 class="fw-bold mb-3 text-dark">Cấu hình biến thể chi tiết (Đã lưu)</h6>
-                    <div class="table-responsive">
-                        <table class="table table-bordered align-middle text-center mb-0">
-                            <thead id="variantTableHead">
-                            <tr th:if="${not #lists.isEmpty(product.variants)}">
-                                <th:block th:if="${not #lists.isEmpty(product.attributes)}">
-                                    <th class="text-start ps-3" th:each="attr : ${product.attributes}" th:text="${attr.name}"></th>
-                                </th:block>
-                                <th:block th:unless="${not #lists.isEmpty(product.attributes)}">
-                                    <th class="text-start ps-3">Phân loại</th>
-                                </th:block>
-
-                                <th width="80">Ảnh</th>
-                                <th width="130">Giá bán</th>
-                                <th width="130">Giá nhập (Vốn)</th>
-                                <th width="100">Tồn kho <i class="bi bi-lock text-muted ms-1" title="Không sửa được tồn kho"></i></th>
-                                <th width="160">Mã SKU</th>
-                                <th width="170">Mã vạch (barcode)</th>
-                            </tr>
-                            </thead>
-                            <tbody id="variantTableBody">
-                            <tr th:each="v : ${product.variants}" th:if="${v.variantName != 'Mặc định'}">
-
-                                <th:block th:if="${not #lists.isEmpty(product.attributes)}">
-                                    <td th:each="part : ${v.variantName.split(' - ')}"
-                                        class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part"
-                                        th:text="${part}"></td>
-                                </th:block>
-                                <th:block th:unless="${not #lists.isEmpty(product.attributes)}">
-                                    <td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part"
-                                        th:text="${v.variantName}"></td>
-                                </th:block>
-
-                                <td>
-                                    <div class="d-flex justify-content-center">
-                                        <label style="cursor: pointer; margin: 0;">
-                                            <div class="variant-img-placeholder bg-light border rounded d-flex align-items-center justify-content-center text-muted"
-                                                 style="width: 36px; height: 36px;"
-                                                 th:classappend="${v.imageUrl != null and v.imageUrl != '' ? 'd-none' : ''}">
-                                                <i class="bi bi-camera"></i>
-                                            </div>
-                                            <img class="variant-img-preview rounded border"
-                                                 style="width: 36px; height: 36px; object-fit: cover;"
-                                                 th:src="${v.imageUrl != null ? v.imageUrl : ''}"
-                                                 th:classappend="${v.imageUrl == null or v.imageUrl == '' ? 'd-none' : ''}">
-                                            <input type="file" class="d-none" accept="image/*"
-                                                   onchange="uploadVariantImage(this)">
-                                        </label>
-                                        <input type="hidden" class="var-image"
-                                               th:value="${v.imageUrl != null ? v.imageUrl : ''}">
-                                    </div>
-                                </td>
-                                <td><input type="text"
-                                           class="form-control form-control-sm text-end oms-input var-price"
-                                           th:value="${v.price != null ? #numbers.formatDecimal(v.price, 0, 'COMMA', 0, 'POINT') : '0'}"
-                                           oninput="formatNumberInput(this)"></td>
-                                <td><input type="text"
-                                           class="form-control form-control-sm text-end oms-input var-cost"
-                                           th:value="${v.costPrice != null ? #numbers.formatDecimal(v.costPrice, 0, 'COMMA', 0, 'POINT') : '0'}"
-                                           oninput="formatNumberInput(this)"></td>
-                                <td><input type="number"
-                                           class="form-control form-control-sm text-center oms-input var-stock bg-light"
-                                           th:value="${v.actualStock != null ? v.actualStock : 0}"
-                                           th:disabled="${product.manageStock != null and product.manageStock}"
-                                           title="Vui lòng dùng chức năng Điều chỉnh kho"></td>
-                                <td><input type="text"
-                                           class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light"
-                                           th:value="${v.sku}" readonly></td>
-                                <td><input type="text"
-                                           class="form-control form-control-sm oms-input var-barcode"
-                                           placeholder="Quét/nhập, cách nhau dấu phẩy"
-                                           th:value="${v.barcodes != null ? #strings.listJoin(v.barcodes, ', ') : ''}"></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <div class="mt-4 pt-4 border-top d-none" id="variantMatrix"></div>
             </div>
 
             <div class="card p-4 mb-4 border-0 shadow-sm">
@@ -392,6 +291,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="/js/product-variants.js"></script>
 
     <script th:inline="javascript">
         // Hàm format số có dấu phẩy khi người dùng gõ phím
@@ -436,9 +336,79 @@
             new TomSelect('#unit', smartSelectConfig);
             new TomSelect('#tags', {create: true, plugins: ['remove_button']});
 
-            initAttributeTags();
-            toggleStockManagement();
+            initVariantEditor();
         });
+
+        // Dựng lại phân loại & ảnh tier-1 từ dữ liệu đã lưu (đảo trong #preloadData)
+        function initVariantEditor() {
+            const attrEls = Array.from(document.querySelectorAll('#preloadData .pl-attr'));
+            const varEls = Array.from(document.querySelectorAll('#preloadData .pl-var'));
+
+            const SEP = (window.OMSVariants && window.OMSVariants.SEP) || '';
+
+            // Bản đồ: giá trị tier-1 -> ảnh (suy từ biến thể có phần đầu = giá trị đó)
+            const firstPartImage = {};
+            varEls.forEach(v => {
+                const parts = (v.getAttribute('data-name') || '').split(' - ');
+                const img = v.getAttribute('data-image') || '';
+                if (parts.length && img && !firstPartImage[parts[0]]) firstPartImage[parts[0]] = img;
+            });
+
+            let preload = [];
+            if (attrEls.length) {
+                preload = attrEls.map((a, idx) => {
+                    const values = (a.getAttribute('data-values') || '').split('||').filter(x => x !== '');
+                    return {
+                        name: a.getAttribute('data-name') || '',
+                        options: values.map(val => ({value: val, image: idx === 0 ? (firstPartImage[val] || '') : ''}))
+                    };
+                });
+            } else if (varEls.length) {
+                // Không có thuộc tính lưu sẵn nhưng có biến thể -> gom thành 1 nhóm "Phân loại"
+                const seen = [];
+                varEls.forEach(v => {
+                    const name = v.getAttribute('data-name') || '';
+                    if (name && !seen.includes(name)) seen.push(name);
+                });
+                preload = [{
+                    name: 'Phân loại',
+                    options: seen.map(val => ({value: val, image: firstPartImage[val] || ''}))
+                }];
+            }
+
+            // Dữ liệu ô (giá/vốn/kho/sku/mã vạch) theo tổ hợp -> key = các phần nối bằng SEP
+            const preloadCells = {};
+            varEls.forEach(v => {
+                const parts = (v.getAttribute('data-name') || '').split(' - ');
+                const key = parts.join(SEP);
+                preloadCells[key] = {
+                    price: Number(v.getAttribute('data-price')) || 0,
+                    cost: Number(v.getAttribute('data-cost')) || 0,
+                    stock: Number(v.getAttribute('data-stock')) || 0,
+                    sku: v.getAttribute('data-sku') || '',
+                    barcode: (v.getAttribute('data-barcodes') || '').split(',').map(s => s.trim()).filter(Boolean).join(', ')
+                };
+            });
+
+            OMSVariants.init({
+                tierListId: 'tierList',
+                matrixWrapId: 'variantMatrix',
+                addTierBtnId: 'addTierBtn',
+                priceInputId: 'price',
+                skuInputId: 'sku',
+                nameInputId: 'name',
+                singleStockAreaId: 'singleProductStockArea',
+                lockStock: true,
+                preload: preload,
+                preloadCells: preloadCells,
+                uploadFn: uploadFileToAPI
+            });
+
+            const nameEl = document.getElementById('name');
+            if (nameEl) nameEl.addEventListener('input', OMSVariants.refresh);
+            const skuEl = document.getElementById('sku');
+            if (skuEl) skuEl.addEventListener('input', OMSVariants.refresh);
+        }
 
         function toggleStockManagement() {
             const isManaged = document.getElementById('manageStock').checked;
@@ -454,229 +424,6 @@
             }
         }
 
-        document.addEventListener('input', function (e) {
-            if (e.target.classList.contains('attr-name-input')) generateVariantTable();
-        });
-
-        function initAttributeTags() {
-            document.querySelectorAll('.tag-input').forEach(el => {
-                if (!el.tomselect) {
-                    new TomSelect(el, {
-                        create: true,
-                        plugins: ['remove_button'],
-                        delimiter: ',',
-                        placeholder: "Nhập giá trị và ấn enter",
-                        onChange: function () {
-                            generateVariantTable();
-                        }
-                    });
-                }
-            });
-        }
-
-        function addAttributeRow() {
-            const container = document.getElementById('attributesContainer');
-            const newRow = document.createElement('div');
-            newRow.className = 'row g-2 mb-3 align-items-start attr-row';
-            newRow.innerHTML = `
-                <div class="col-md-3"><input type="text" class="form-control oms-input attr-name-input" placeholder="Tên thuộc tính (VD: Switch)"></div>
-                <div class="col-md-8"><input type="text" class="tag-input" placeholder="Nhập giá trị và ấn enter"></div>
-                <div class="col-md-1 d-flex justify-content-center pt-2 mt-1"><i class="bi bi-trash fs-5 btn-remove-attr"></i></div>
-            `;
-            container.appendChild(newRow);
-            const allTagInputs = container.querySelectorAll('.tag-input');
-            new TomSelect(allTagInputs[allTagInputs.length - 1], {
-                create: true, plugins: ['remove_button'], delimiter: ',', placeholder: "Nhập giá trị và ấn enter",
-                onChange: function () {
-                    generateVariantTable();
-                }
-            });
-            generateVariantTable();
-        }
-
-        // Hàm hỗ trợ gen SKU chuẩn hóa
-        const generateSlug = (str) => {
-            if (!str) return "AUTO";
-            return str.normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/Đ/g, "D")
-                .replace(/đ/g, "d")
-                .replace(/[^a-zA-Z0-9\s-]/g, "")
-                .trim()
-                .replace(/\s+/g, '-')
-                .toUpperCase();
-        };
-
-        function generateVariantTable() {
-            const container = document.getElementById('variantTableContainer');
-            const thead = document.getElementById('variantTableHead');
-            const tbody = document.getElementById('variantTableBody');
-            const singleProductStockArea = document.getElementById('singleProductStockArea');
-            const isManaged = document.getElementById('manageStock').checked;
-
-            // 1. Quét toàn bộ dữ liệu đang có trên bảng
-            const existingVariants = window.preloadedVariants || {};
-            window.preloadedVariants = null;
-
-            document.querySelectorAll('#variantTableBody tr').forEach(row => {
-                const nameParts = Array.from(row.querySelectorAll('.var-name-part')).map(td => td.innerText.trim());
-                const variantName = nameParts.join(' - ');
-                if (variantName) {
-                    existingVariants[variantName] = {
-                        imageUrl: row.querySelector('.var-image') ? row.querySelector('.var-image').value : '',
-                        price: row.querySelector('.var-price') ? row.querySelector('.var-price').value : '',
-                        cost: row.querySelector('.var-cost') ? row.querySelector('.var-cost').value : '',
-                        stock: row.querySelector('.var-stock') ? row.querySelector('.var-stock').value : '0',
-                        sku: row.querySelector('.var-sku') ? row.querySelector('.var-sku').value : '',
-                        barcode: row.querySelector('.var-barcode') ? row.querySelector('.var-barcode').value : ''
-                    };
-                }
-            });
-
-            // 2. Lấy tổ hợp mới
-            let validAttributes = [];
-            document.querySelectorAll('.attr-row').forEach(row => {
-                const nameInput = row.querySelector('.attr-name-input');
-                const attrName = nameInput ? nameInput.value.trim() : 'Phân loại';
-                const tagInput = row.querySelector('.tag-input');
-                if (tagInput && tagInput.tomselect) {
-                    const values = tagInput.tomselect.getValue().split(',').filter(v => v.trim() !== '');
-                    if (values.length > 0) validAttributes.push({name: attrName, values: values});
-                }
-            });
-
-            if (validAttributes.length === 0) return;
-
-            singleProductStockArea.classList.add('d-none');
-
-            // Render Header
-            let headerHtml = '<tr>';
-            validAttributes.forEach(attr => headerHtml += `<th class="text-start ps-3">${attr.name}</th>`);
-            headerHtml += `
-        <th width="80">Ảnh</th>
-        <th width="130">Giá bán</th>
-        <th width="130">Giá nhập</th>
-        <th width="100">Tồn kho <i class="bi bi-lock text-muted ms-1"></i></th>
-        <th width="160">Mã SKU</th>
-        <th width="170">Mã vạch (barcode)</th>
-    </tr>`;
-            thead.innerHTML = headerHtml;
-
-            // Tạo tổ hợp
-            const cartesian = (args) => {
-                let r = [], max = args.length - 1;
-
-                function helper(arr, i) {
-                    for (let j = 0, l = args[i].length; j < l; j++) {
-                        let a = arr.slice(0);
-                        a.push(args[i][j]);
-                        if (i === max) r.push(a); else helper(a, i + 1);
-                    }
-                }
-
-                helper([], 0);
-                return r;
-            };
-
-            const combos = cartesian(validAttributes.map(a => a.values));
-            let baseSku = document.getElementById('sku').value.trim() || generateSlug(document.getElementById("name").value);
-
-            let bodyHtml = '';
-
-            combos.forEach((combo) => {
-                let variantName = combo.join(' - ');
-                let variantSuffix = combo.join('-');
-                const generatedSku = `${baseSku}-${generateSlug(variantSuffix)}`;
-
-                // Khớp nối thông minh
-                let matchName = Object.keys(existingVariants).find(oldName =>
-                    oldName === variantName ||
-                    oldName.includes(variantName) ||
-                    variantName.includes(oldName) ||
-                    existingVariants[oldName].sku === generatedSku
-                );
-
-                let data = matchName ? existingVariants[matchName] : null;
-                if (matchName) delete existingVariants[matchName];
-
-                let finalSku = data && data.sku ? data.sku : generatedSku;
-                let finalStock = data && data.stock ? data.stock : 0;
-                let finalImage = data && data.imageUrl ? data.imageUrl : '';
-
-                // Xử lý giá bằng getRawNumber để đảm bảo không bị lỗi tính toán
-                let finalPriceRaw = data && data.price ? getRawNumber(data.price) : getRawNumber(document.getElementById('price').value);
-                let finalCostRaw = data && data.cost ? getRawNumber(data.cost) : 0;
-
-                // Format lại thành dấu phẩy để gán cho input hiển thị
-                let finalPriceFmt = finalPriceRaw > 0 ? new Intl.NumberFormat('en-US').format(finalPriceRaw) : '0';
-                let finalCostFmt = finalCostRaw > 0 ? new Intl.NumberFormat('en-US').format(finalCostRaw) : '0';
-
-                let rowHtml = '<tr>';
-                combo.forEach(val => rowHtml += `<td class="fw-medium text-dark text-start ps-3 align-middle bg-light border-end-0 var-name-part">${val}</td>`);
-
-                rowHtml += `
-            <td>
-                <div class="d-flex justify-content-center">
-                    <label style="cursor: pointer; margin: 0;">
-                        <div class="variant-img-placeholder bg-light border rounded d-flex align-items-center justify-content-center text-muted ${finalImage ? 'd-none' : ''}" style="width: 36px; height: 36px;">
-                            <i class="bi bi-camera"></i>
-                        </div>
-                        <img class="variant-img-preview rounded border ${finalImage ? '' : 'd-none'}" src="${finalImage}" style="width: 36px; height: 36px; object-fit: cover;">
-                        <input type="file" class="d-none" accept="image/*" onchange="uploadVariantImage(this)">
-                    </label>
-                    <input type="hidden" class="var-image" value="${finalImage}">
-                </div>
-            </td>
-            <td><input type="text" class="form-control form-control-sm text-end oms-input var-price" value="${finalPriceFmt}" oninput="formatNumberInput(this)"></td>
-            <td><input type="text" class="form-control form-control-sm text-end oms-input var-cost" value="${finalCostFmt}" oninput="formatNumberInput(this)"></td>
-            <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock bg-light" value="${finalStock}" ${isManaged ? 'disabled' : ''} title="Sửa bằng tính năng Kiểm kho"></td>
-            <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light" value="${finalSku}" readonly></td>
-            <td><input type="text" class="form-control form-control-sm oms-input var-barcode" placeholder="Quét/nhập, cách nhau dấu phẩy" value="${data && data.barcode ? data.barcode : ''}"></td>
-        </tr>`;
-                bodyHtml += rowHtml;
-            });
-
-            // 3. Giữ nguyên các dòng cảnh báo rác
-            for (const [vName, vData] of Object.entries(existingVariants)) {
-                let vPriceRaw = getRawNumber(vData.price);
-                let vCostRaw = getRawNumber(vData.cost);
-                let vPriceFmt = vPriceRaw > 0 ? new Intl.NumberFormat('en-US').format(vPriceRaw) : '0';
-                let vCostFmt = vCostRaw > 0 ? new Intl.NumberFormat('en-US').format(vCostRaw) : '0';
-
-                let rowHtml = `<tr class="table-warning" title="Dữ liệu cũ chưa khớp với cấu hình phân loại phía trên">`;
-                rowHtml += `<td class="fw-medium text-dark text-start ps-3 align-middle border-end-0 var-name-part" colspan="${validAttributes.length}">${vName}</td>`;
-                rowHtml += `
-            <td>
-                <div class="d-flex justify-content-center">
-                    <label style="cursor: pointer; margin: 0;">
-                        <div class="variant-img-placeholder bg-light border rounded d-flex align-items-center justify-content-center text-muted ${vData.imageUrl ? 'd-none' : ''}" style="width: 36px; height: 36px;">
-                            <i class="bi bi-camera"></i>
-                        </div>
-                        <img class="variant-img-preview rounded border ${vData.imageUrl ? '' : 'd-none'}" src="${vData.imageUrl}" style="width: 36px; height: 36px; object-fit: cover;">
-                        <input type="file" class="d-none" accept="image/*" onchange="uploadVariantImage(this)">
-                    </label>
-                    <input type="hidden" class="var-image" value="${vData.imageUrl}">
-                </div>
-            </td>
-            <td><input type="text" class="form-control form-control-sm text-end oms-input var-price" value="${vPriceFmt}" oninput="formatNumberInput(this)"></td>
-            <td><input type="text" class="form-control form-control-sm text-end oms-input var-cost" value="${vCostFmt}" oninput="formatNumberInput(this)"></td>
-            <td><input type="number" class="form-control form-control-sm text-center oms-input var-stock bg-light" value="${vData.stock}" ${isManaged ? 'disabled' : ''}></td>
-            <td><input type="text" class="form-control form-control-sm oms-input var-sku text-primary fw-medium bg-light" value="${vData.sku}" readonly></td>
-            <td><input type="text" class="form-control form-control-sm oms-input var-barcode" placeholder="Quét/nhập, cách nhau dấu phẩy" value="${vData.barcode || ''}"></td>
-        </tr>`;
-                bodyHtml += rowHtml;
-            }
-
-            tbody.innerHTML = bodyHtml;
-            container.classList.remove('d-none');
-        }
-
-        document.addEventListener('click', function (e) {
-            if (e.target.classList.contains('btn-remove-attr')) {
-                e.target.closest('.attr-row').remove();
-                generateVariantTable();
-            }
-        });
 
         function saveProduct() {
             const nameVal = document.getElementById("name").value.trim();
@@ -706,33 +453,10 @@
                 variants: []
             };
 
-            document.querySelectorAll('.attr-row').forEach(row => {
-                const nameInput = row.querySelector('.attr-name-input');
-                const attrName = nameInput ? nameInput.value.trim() : '';
-                const tagInput = row.querySelector('.tag-input');
-
-                if (attrName && tagInput && tagInput.tomselect) {
-                    const values = tagInput.tomselect.getValue().split(',').filter(v => v.trim() !== '');
-                    if (values.length > 0) {
-                        payload.attributes.push({name: attrName, values: values});
-                    }
-                }
-            });
-            const variantRows = document.querySelectorAll('#variantTableBody tr');
-            variantRows.forEach(row => {
-                const nameParts = Array.from(row.querySelectorAll('.var-name-part')).map(td => td.innerText);
-                const variantName = nameParts.join(' - ');
-
-                payload.variants.push({
-                    variantName: variantName,
-                    imageUrl: row.querySelector('.var-image') ? row.querySelector('.var-image').value.trim() : null,
-                    sku: row.querySelector('.var-sku').value,
-                    price: getRawNumber(row.querySelector('.var-price').value),
-                    costPrice: getRawNumber(row.querySelector('.var-cost').value),
-                    stockQuantity: parseInt(row.querySelector('.var-stock').value) || 0,
-                    barcodes: ((row.querySelector('.var-barcode') || {}).value || '').split(',').map(s => s.trim()).filter(Boolean)
-                });
-            });
+            // Thu thập phân loại + biến thể từ trình biên tập dùng chung (ảnh gắn ở nhóm phân loại 1)
+            const collected = OMSVariants.collect();
+            payload.attributes = collected.attributes;
+            payload.variants = collected.variants;
 
             fetch('/api/v1/products/' + skuVal, {
                 method: 'PUT',
@@ -780,19 +504,6 @@
             }
         }
 
-        async function uploadVariantImage(inputEl) {
-            if (!inputEl.files || inputEl.files.length === 0) return;
-            try {
-                const url = await uploadFileToAPI(inputEl.files[0]);
-                const labelWrapper = inputEl.closest('label');
-                inputEl.closest('td').querySelector('.var-image').value = url;
-                labelWrapper.querySelector('.variant-img-preview').src = url;
-                labelWrapper.querySelector('.variant-img-preview').classList.remove('d-none');
-                labelWrapper.querySelector('.variant-img-placeholder').classList.add('d-none');
-            } catch (err) {
-                Toast.fire({icon: 'error', title: 'Lỗi kết nối máy chủ!'});
-            }
-        }
         function deleteProduct() {
             const skuVal = document.getElementById("sku").value.trim();
             if (!skuVal) return;

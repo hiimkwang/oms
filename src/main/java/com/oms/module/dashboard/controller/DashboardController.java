@@ -46,40 +46,15 @@ public class DashboardController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
 
-        LocalDateTime now = LocalDateTime.now();
-
-        // Tránh NPE ở switch(preset): nếu thiếu preset -> suy ra "custom" khi có start/end, ngược lại "thisWeek"
+        // Tránh NPE: nếu thiếu preset -> suy ra "custom" khi có start/end, ngược lại "thisWeek"
         if (preset == null || preset.isBlank()) {
             preset = (start != null || end != null) ? "custom" : "thisWeek";
         }
 
-        // 1. LOGIC XỬ LÝ THỜI GIAN
-        if ("custom".equals(preset)) {
-            if (start == null) start = now.with(LocalTime.MIN);
-            if (end == null) end = now.with(LocalTime.MAX);
-        } else {
-            switch (preset) {
-                case "thisMonth":
-                    start = now.withDayOfMonth(1).with(LocalTime.MIN);
-                    end = now.with(LocalTime.MAX);
-                    break;
-                case "thisQuarter":
-                    int currentMonth = now.getMonthValue();
-                    int firstMonthOfQuarter = ((currentMonth - 1) / 3) * 3 + 1;
-                    start = now.withMonth(firstMonthOfQuarter).withDayOfMonth(1).with(LocalTime.MIN);
-                    end = start.plusMonths(2).with(TemporalAdjusters.lastDayOfMonth()).with(LocalTime.MAX);
-                    break;
-                case "thisYear":
-                    start = now.withDayOfYear(1).with(LocalTime.MIN);
-                    end = now.with(LocalTime.MAX);
-                    break;
-                case "thisWeek":
-                default:
-                    start = now.with(DayOfWeek.MONDAY).with(LocalTime.MIN);
-                    end = now.with(LocalTime.MAX);
-                    break;
-            }
-        }
+        // 1. LOGIC XỬ LÝ THỜI GIAN (dùng bộ giải mã chuẩn 9 preset)
+        com.oms.utility.DateRangeUtil.DateRange range = com.oms.utility.DateRangeUtil.resolve(preset, start, end);
+        start = range.start();
+        end = range.end();
 
         model.addAttribute("preset", preset);
         model.addAttribute("startDate", start);

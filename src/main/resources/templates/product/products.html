@@ -308,10 +308,13 @@
             <div class="d-flex align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2">
                     <span class="small text-muted">Hiển thị</span>
-                    <select class="form-select form-select-sm w-auto">
-                        <option>20</option>
+                    <select class="form-select form-select-sm oms-page-size" id="productPageSize">
+                        <option value="15">15</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
                     </select>
-                    <span class="small text-muted">kết quả</span>
+                    <span class="small text-muted">kết quả/trang</span>
                 </div>
                 <nav>
                     <ul class="pagination pagination-sm mb-0" id="productPagination"></ul>
@@ -323,7 +326,7 @@
 
     <script th:inline="javascript">
         document.addEventListener('DOMContentLoaded', function () {
-            OMSPaginate({tbodyId: 'productTableBody', pageSize: 20, paginationId: 'productPagination', infoId: 'recordInfo', noun: 'sản phẩm'});
+            OMSPaginate({tbodyId: 'productTableBody', pageSize: 20, paginationId: 'productPagination', infoId: 'recordInfo', noun: 'sản phẩm', pageSizeSelectId: 'productPageSize'});
         });
 
         // Xử lý Checkbox & Bulk Actions

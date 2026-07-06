@@ -200,10 +200,13 @@
                 <div class="d-flex align-items-center gap-3">
                     <div class="d-flex align-items-center gap-2">
                         <span class="small text-muted">Hiển thị</span>
-                        <select class="form-select form-select-sm w-auto">
-                            <option>20</option>
+                        <select class="form-select form-select-sm oms-page-size" id="customerPageSize">
+                            <option value="15">15</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
                         </select>
-                        <span class="small text-muted">kết quả</span>
+                        <span class="small text-muted">kết quả/trang</span>
                     </div>
                     <nav>
                         <ul class="pagination pagination-sm mb-0" id="customerPagination"></ul>
@@ -217,30 +220,35 @@
         // Biến toàn cục để lưu trữ thông tin nhóm (Tên -> Màu)
         let groupColorMap = {};
 
-        // --- PHÂN TRANG PHÍA CLIENT ---
-        const CUSTOMER_PAGE_SIZE = 20;
-        let customerCurrentPage = 1;
-        let customerCache = [];
+        // --- PHÂN TRANG PHÍA BACKEND ---
+        let customerCurrentPage = 1;    // 1-based ở UI
+        let customerTotalPages = 1;
+        let customerTotalElements = 0;
+        let pageCustomers = [];
+        let customerLoading = false;
 
         document.addEventListener('DOMContentLoaded', async function () {
             // 1. Tải danh sách nhóm để lấy mã màu TRƯỚC
             await loadGroupColors();
 
-            // 2. Sau đó mới tải danh sách khách hàng
-            loadCustomers();
+            // 2. Sau đó mới tải danh sách khách hàng (trang 1)
+            loadCustomers(1);
 
             // Xử lý Search với Debounce
             let timeout = null;
             document.getElementById('cusSearchInput').addEventListener('input', function () {
                 clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    loadCustomers(this.value);
-                }, 400);
+                timeout = setTimeout(() => loadCustomers(1), 400);
             });
 
             // Xử lý Bộ lọc nhóm khách hàng
             document.getElementById('groupFilter').addEventListener('change', function () {
-                loadCustomers(document.getElementById('cusSearchInput').value);
+                loadCustomers(1);
+            });
+
+            // Ô chọn số dòng/trang
+            document.getElementById('customerPageSize').addEventListener('change', function () {
+                loadCustomers(1);
             });
 
             // Xử lý Checkbox Chọn tất cả
@@ -337,9 +345,9 @@
                         title: `Đã xóa thành công ${codes.length} khách hàng!`
                     });
 
-                    // Xóa vùng chọn và load lại danh sách mượt mà
+                    // Xóa vùng chọn và load lại trang hiện tại
                     clearSelection();
-                    loadCustomers(document.getElementById('cusSearchInput').value);
+                    loadCustomers(customerCurrentPage);
                 } else {
                     const err = await res.json();
                     Toast.fire({
@@ -356,30 +364,35 @@
             }
         }
 
-        async function loadCustomers(keyword = '') {
+        // Nạp 1 trang khách hàng từ backend theo bộ lọc hiện tại
+        async function loadCustomers(page) {
+            if (customerLoading) return;
+            customerLoading = true;
             const tbody = document.getElementById('customerTableBody');
-            const groupFilterValue = document.getElementById('groupFilter').value;
+            const keyword = document.getElementById('cusSearchInput').value.trim();
+            const group = document.getElementById('groupFilter').value;
+            const size = parseInt(document.getElementById('customerPageSize').value, 10) || 20;
+
+            const params = new URLSearchParams();
+            params.set('page', Math.max(0, (page || 1) - 1));
+            params.set('size', size);
+            if (keyword) params.set('keyword', keyword);
+            if (group) params.set('group', group);
 
             try {
-                const response = await fetch(`/api/v1/customers?keyword=${encodeURIComponent(keyword)}`);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                let customers = await response.json();
-
-                if (groupFilterValue !== "") {
-                    customers = customers.filter(c => c.customerGroup === groupFilterValue);
-                }
-
-                // Lưu cache và quay về trang 1, sau đó render theo trang
-                customerCache = customers || [];
-                customerCurrentPage = 1;
+                const response = await fetch('/api/v1/customers?' + params.toString());
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                pageCustomers = data.content || [];
+                customerCurrentPage = (data.page || 0) + 1;
+                customerTotalPages = data.totalPages || 1;
+                customerTotalElements = data.totalElements || 0;
                 renderCustomers();
             } catch (error) {
                 console.error("Lỗi tải khách hàng:", error);
                 tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-danger">Có lỗi xảy ra khi tải dữ liệu! <br> <small>${error.message}</small></td></tr>`;
+            } finally {
+                customerLoading = false;
             }
         }
 
@@ -387,19 +400,18 @@
             const tbody = document.getElementById('customerTableBody');
             const info = document.getElementById('recordInfo');
 
-            const total = customerCache.length;
-            if (total === 0) {
+            const total = customerTotalElements;
+            if (!pageCustomers.length) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-person-x fs-2 d-block mb-2"></i>Không tìm thấy khách hàng nào</td></tr>';
                 info.innerText = 'Hiển thị 0 khách hàng';
-                renderCustomerPagination(0);
+                renderCustomerPagination();
                 clearSelection();
                 return;
             }
 
-            const totalPages = Math.ceil(total / CUSTOMER_PAGE_SIZE);
-            if (customerCurrentPage > totalPages) customerCurrentPage = totalPages;
-            const startIdx = (customerCurrentPage - 1) * CUSTOMER_PAGE_SIZE;
-            const customers = customerCache.slice(startIdx, startIdx + CUSTOMER_PAGE_SIZE);
+            const size = parseInt(document.getElementById('customerPageSize').value, 10) || 20;
+            const startIdx = (customerCurrentPage - 1) * size;
+            const customers = pageCustomers;
 
             {
                 let html = '';
@@ -448,16 +460,16 @@
                 const fromIdx = startIdx + 1;
                 const toIdx = startIdx + customers.length;
                 info.innerText = `Hiển thị ${fromIdx} - ${toIdx} trên tổng số ${total} khách hàng`;
-                renderCustomerPagination(total);
+                renderCustomerPagination();
                 clearSelection();
             }
         }
 
-        // Vẽ thanh phân trang khách hàng
-        function renderCustomerPagination(total) {
+        // Vẽ thanh phân trang khách hàng (theo tổng số trang từ backend)
+        function renderCustomerPagination() {
             const ul = document.getElementById('customerPagination');
             if (!ul) return;
-            const totalPages = Math.ceil(total / CUSTOMER_PAGE_SIZE);
+            const totalPages = customerTotalPages;
             if (totalPages <= 1) {
                 ul.innerHTML = '';
                 return;
@@ -478,10 +490,8 @@
         }
 
         function goToCustomerPage(p) {
-            const totalPages = Math.ceil(customerCache.length / CUSTOMER_PAGE_SIZE);
-            if (p < 1 || p > totalPages) return;
-            customerCurrentPage = p;
-            renderCustomers();
+            if (p < 1 || p > customerTotalPages || p === customerCurrentPage) return;
+            loadCustomers(p);
         }
 
         async function syncGroups() {
@@ -518,7 +528,7 @@
                         title: 'Đồng bộ và phân loại nhóm khách hàng thành công!'
                     });
                     // Gọi lại hàm load để vẽ lại danh sách mượt mà
-                    loadCustomers(document.getElementById('cusSearchInput').value);
+                    loadCustomers(customerCurrentPage);
                 } else {
                     const err = await res.json();
                     Toast.fire({

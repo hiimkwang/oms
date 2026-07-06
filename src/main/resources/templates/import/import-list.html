@@ -163,11 +163,16 @@
 
                     <div class="d-flex gap-2 align-items-center flex-wrap">
                         <select id="dateFilter" class="form-select filter-btn w-auto">
-                            <option value="ALL">Tất cả thời gian</option>
-                            <option value="THIS_WEEK">Tuần này</option>
-                            <option value="THIS_MONTH">Tháng này</option>
-                            <option value="THIS_YEAR">Năm nay</option>
-                            <option value="CUSTOM">Tùy chọn...</option>
+                            <option value="all">Tất cả thời gian</option>
+                            <option value="today">Hôm nay</option>
+                            <option value="yesterday">Hôm qua</option>
+                            <option value="thisWeek">Tuần này</option>
+                            <option value="lastWeek">Tuần trước</option>
+                            <option value="thisMonth">Tháng này</option>
+                            <option value="lastMonth">Tháng trước</option>
+                            <option value="thisYear">Năm nay</option>
+                            <option value="lastYear">Năm trước</option>
+                            <option value="custom">Tùy chọn...</option>
                         </select>
 
                         <div id="customDateRange" class="d-none gap-2 align-items-center">
@@ -229,7 +234,9 @@
                         th:data-search="|${order.code} ${order.supplier != null ? order.supplier.name : ''}|"
                         th:data-trading-status="${order.status}"
                         th:data-import-status="${order.importStatus}"
-                        th:data-date="${order.createdAt}">
+                        th:data-date="${order.createdAt}"
+                        th:data-qty="${order.totalQuantity}"
+                        th:data-amount="${order.totalAmount}">
 
                         <td class="ps-4">
                             <input class="form-check-input item-check" type="checkbox" th:value="${order.id}"
@@ -289,11 +296,28 @@
                         </td>
                     </tr>
                     </tbody>
+                    <tfoot>
+                    <tr class="fw-bold" style="border-top: 2px solid #dce0e4; background: #f8fafc;">
+                        <td colspan="6" class="text-end pe-3 text-muted" style="padding:12px 0;">Tổng theo bộ lọc</td>
+                        <td class="text-center" id="footQty" style="padding:12px 0;">0</td>
+                        <td class="pe-4 text-end text-dark" id="footAmount" style="padding:12px 0;">0 ₫</td>
+                    </tr>
+                    </tfoot>
                 </table>
             </div>
 
-            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
-                <div class="text-muted small" id="recordInfo"></div>
+            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-muted small" id="recordInfo"></div>
+                    <span class="small text-muted">Hiển thị</span>
+                    <select id="importPageSize" class="form-select form-select-sm oms-page-size">
+                        <option value="15">15</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span class="small text-muted">kết quả/trang</span>
+                </div>
                 <nav>
                     <ul class="pagination pagination-sm mb-0" id="importPagination"></ul>
                 </nav>
@@ -325,11 +349,27 @@
             rowsArray.forEach(row => tbody.appendChild(row));
 
             // Khởi tạo phân trang client-side (bỏ qua dòng đã bị lọc data-filtered-out)
-            const importPager = OMSPaginate({tbodyId: 'importTableBody', pageSize: 20, paginationId: 'importPagination', infoId: 'recordInfo', noun: 'đơn hàng'});
+            const importPager = OMSPaginate({tbodyId: 'importTableBody', pageSize: 20, paginationId: 'importPagination', infoId: 'recordInfo', noun: 'đơn hàng', pageSizeSelectId: 'importPageSize'});
+
+            // Tính tổng SL + giá trị theo bộ lọc hiện tại (các dòng chưa bị lọc bỏ)
+            function recomputeImportTotals() {
+                let qty = 0, amount = 0;
+                document.querySelectorAll('#importTableBody tr.import-row').forEach(row => {
+                    if (row.getAttribute('data-filtered-out') === '1') return;
+                    qty += parseFloat(row.getAttribute('data-qty') || '0') || 0;
+                    amount += parseFloat(row.getAttribute('data-amount') || '0') || 0;
+                });
+                const fq = document.getElementById('footQty');
+                const fa = document.getElementById('footAmount');
+                if (fq) fq.textContent = qty.toLocaleString('vi-VN');
+                if (fa) fa.textContent = amount.toLocaleString('vi-VN') + ' ₫';
+            }
+            window.recomputeImportTotals = recomputeImportTotals;
+            recomputeImportTotals();
 
             // Logic Bộ lọc Thời gian
             dateFilter.addEventListener('change', function () {
-                if (this.value === 'CUSTOM') {
+                if (this.value === 'custom') {
                     customDateRange.classList.remove('d-none');
                     customDateRange.classList.add('d-flex');
                 } else {
@@ -350,20 +390,6 @@
                 const activeTabEl = document.querySelector('#statusTabs .nav-link.active');
                 const activeTab = activeTabEl ? activeTabEl.getAttribute('data-status') : 'ALL';
 
-                // Lấy mốc thời gian chuẩn bị cho Date Filter
-                const now = new Date();
-
-                // Mốc Tuần này
-                const startOfWeek = new Date(now);
-                const day = startOfWeek.getDay();
-                const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-                startOfWeek.setDate(diff);
-                startOfWeek.setHours(0, 0, 0, 0);
-
-                // Mốc Tháng này, Năm nay
-                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                const startOfYear = new Date(now.getFullYear(), 0, 1);
-
                 let hasVisible = false;
 
                 rowsArray.forEach(row => {
@@ -377,28 +403,8 @@
                     const matchTab = (activeTab === "ALL" || tradingStatus === activeTab);
                     const matchSelect = (importStatusTerm === "ALL" || importStatus === importStatusTerm);
 
-                    // Check Logic Ngày tháng
-                    let matchDate = true;
-                    if (dateFilterVal !== 'ALL') {
-                        if (dateFilterVal === 'THIS_WEEK') {
-                            matchDate = rowDate >= startOfWeek;
-                        } else if (dateFilterVal === 'THIS_MONTH') {
-                            matchDate = rowDate >= startOfMonth;
-                        } else if (dateFilterVal === 'THIS_YEAR') {
-                            matchDate = rowDate >= startOfYear;
-                        } else if (dateFilterVal === 'CUSTOM') {
-                            if (startVal) {
-                                const s = new Date(startVal);
-                                s.setHours(0, 0, 0, 0);
-                                if (rowDate < s) matchDate = false;
-                            }
-                            if (endVal) {
-                                const e = new Date(endVal);
-                                e.setHours(23, 59, 59, 999);
-                                if (rowDate > e) matchDate = false;
-                            }
-                        }
-                    }
+                    // Check Logic Ngày tháng (dùng bộ lọc chuẩn 9 preset)
+                    const matchDate = window.OMSDateMatch(rowDate, dateFilterVal, startVal, endVal);
 
                     if (matchSearch && matchTab && matchSelect && matchDate) {
                         row.setAttribute('data-filtered-out', '0');
@@ -413,6 +419,7 @@
                 }
                 // Phân trang lại trên tập kết quả vừa lọc
                 if (importPager) importPager.refresh();
+                if (window.recomputeImportTotals) window.recomputeImportTotals();
                 updateBulkAction();
             }
 

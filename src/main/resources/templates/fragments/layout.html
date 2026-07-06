@@ -472,6 +472,15 @@
         }
         .form-label { font-weight:600; font-size:13px; color:#334155; }
 
+        /* Ô chọn số dòng/trang dùng CHUNG: chừa đủ chỗ bên phải cho mũi tên (tránh mũi tên đè lên số),
+           rộng gọn theo nội dung. Bù cho việc .form-select global bị ghi đè mất padding-right của Bootstrap. */
+        .oms-page-size {
+            width:auto; min-width:62px;
+            padding-right:1.9rem !important; padding-left:.6rem !important;
+            background-position:right .55rem center;
+            text-align:center; text-align-last:center;
+        }
+
         /* Bảng: header mảnh chữ hoa, dòng hover nhẹ, viền dịu */
         .table { --bs-table-border-color:#eef1f6; }
         .table > thead th {
@@ -829,7 +838,8 @@
             const pag = document.getElementById(opts.paginationId);
             if (!tbody || !pag) return null;
             const info = opts.infoId ? document.getElementById(opts.infoId) : null;
-            const pageSize = opts.pageSize || 15;
+            const sizeSelect = opts.pageSizeSelectId ? document.getElementById(opts.pageSizeSelectId) : null;
+            let pageSize = (sizeSelect ? parseInt(sizeSelect.value, 10) : 0) || opts.pageSize || 15;
             const noun = opts.noun || 'bản ghi';
             let page = 1;
 
@@ -910,14 +920,92 @@
                 }
             });
 
+            if (sizeSelect) {
+                sizeSelect.addEventListener('change', function () {
+                    const v = parseInt(sizeSelect.value, 10);
+                    if (v > 0) {
+                        pageSize = v;
+                        page = 1;
+                        render();
+                    }
+                });
+            }
+
             render();
             // Trả về API để các trang có bộ lọc tự gọi lại sau khi lọc
             return {
                 refresh: function () {
                     page = 1;
                     render();
+                },
+                setPageSize: function (v) {
+                    v = parseInt(v, 10);
+                    if (v > 0) {
+                        pageSize = v;
+                        page = 1;
+                        render();
+                    }
                 }
             };
+        };
+
+        // --- BỘ LỌC NGÀY CLIENT-SIDE DÙNG CHUNG (9 preset) ---
+        // Trả về {start, end} là mốc Date [từ, đến] cho preset. Với 'custom' dùng startVal/endVal (chuỗi yyyy-MM-dd).
+        // Preset 'all'/'' -> {start:null, end:null} nghĩa là không lọc.
+        window.OMSDateRange = function (preset, startVal, endVal) {
+            const now = new Date();
+            const startOfDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+            const endOfDay = d => { const x = new Date(d); x.setHours(23, 59, 59, 999); return x; };
+            const mondayOf = d => {
+                const x = startOfDay(d); const day = x.getDay();
+                x.setDate(x.getDate() - day + (day === 0 ? -6 : 1)); return x;
+            };
+            let start = null, end = endOfDay(now);
+            switch (preset) {
+                case 'today': start = startOfDay(now); break;
+                case 'yesterday': {
+                    const y = new Date(now); y.setDate(y.getDate() - 1);
+                    start = startOfDay(y); end = endOfDay(y); break;
+                }
+                case 'thisWeek': start = mondayOf(now); break;
+                case 'lastWeek': {
+                    const lw = new Date(now); lw.setDate(lw.getDate() - 7);
+                    start = mondayOf(lw); end = endOfDay(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6)); break;
+                }
+                case 'thisMonth': start = new Date(now.getFullYear(), now.getMonth(), 1); break;
+                case 'lastMonth':
+                    start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    end = endOfDay(new Date(now.getFullYear(), now.getMonth(), 0)); break;
+                case 'thisYear': start = new Date(now.getFullYear(), 0, 1); break;
+                case 'lastYear':
+                    start = new Date(now.getFullYear() - 1, 0, 1);
+                    end = endOfDay(new Date(now.getFullYear() - 1, 11, 31)); break;
+                case 'custom':
+                    start = startVal ? startOfDay(new Date(startVal)) : null;
+                    end = endVal ? endOfDay(new Date(endVal)) : endOfDay(now); break;
+                default: start = null; end = null; // 'all' / '' -> không lọc
+            }
+            return {start, end};
+        };
+        // Predicate tiện dụng: rowDate có nằm trong preset không.
+        window.OMSDateMatch = function (rowDate, preset, startVal, endVal) {
+            const r = window.OMSDateRange(preset, startVal, endVal);
+            if (!r.start && !r.end) return true;
+            if (r.start && rowDate < r.start) return false;
+            if (r.end && rowDate > r.end) return false;
+            return true;
+        };
+
+        // Markup dựng sẵn cho ô chọn số dòng/trang (dùng chung). Trả về chuỗi HTML.
+        window.OMSPageSizeSelect = function (id, current) {
+            const opts = [15, 30, 50, 100];
+            const cur = current || 15;
+            let h = `<select id="${id}" class="form-select form-select-sm w-auto d-inline-block" style="min-width:120px;">`;
+            opts.forEach(o => {
+                h += `<option value="${o}"${o === cur ? ' selected' : ''}>${o} dòng/trang</option>`;
+            });
+            h += '</select>';
+            return h;
         };
 
         // --- XỬ LÝ COLLAPSE SIDEBAR ---

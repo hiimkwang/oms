@@ -18,10 +18,28 @@ public class CustomerController {
 
     private final CustomerService customerService;
 
-    // Lấy danh sách khách hàng (có hỗ trợ tìm kiếm theo keyword)
+    // Lấy danh sách khách hàng (phân trang + lọc keyword/nhóm phía BACKEND)
     @GetMapping
-    public ResponseEntity<List<CustomerRequest>> getList(@RequestParam(required = false) String keyword) {
-        return ResponseEntity.ok(customerService.getCustomerList(keyword));
+    public ResponseEntity<Map<String, Object>> getList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String group,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                Math.max(0, page), size <= 0 ? 20 : size,
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        org.springframework.data.domain.Page<CustomerRequest> pageData =
+                customerService.getCustomerPage(keyword, group, pageable);
+
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("content", pageData.getContent());
+        body.put("totalElements", pageData.getTotalElements());
+        body.put("totalPages", pageData.getTotalPages());
+        body.put("page", pageData.getNumber());
+        body.put("size", pageData.getSize());
+        return ResponseEntity.ok(body);
     }
 
     // Lấy chi tiết 1 khách hàng theo Mã (code)

@@ -187,12 +187,7 @@
                     <select class="form-select filter-btn w-auto fw-bold text-dark" id="datePreset"
                             onchange="handleDatePresetChange()">
                         <option value="all">Toàn thời gian</option>
-                        <option value="today">Hôm nay</option>
-                        <option value="yesterday">Hôm qua</option>
-                        <option value="7days">7 ngày qua</option>
-                        <option value="thisMonth">Tháng này</option>
-                        <option value="lastMonth">Tháng trước</option>
-                        <option value="custom">Tùy chọn...</option>
+                        <th:block th:replace="~{fragments/date-filter :: presetOptions('')}"></th:block>
                     </select>
 
                     <div id="customDateContainer" class="gap-2 align-items-center d-none">
@@ -265,11 +260,30 @@
                         </td>
                     </tr>
                     </tbody>
+                    <tfoot id="orderTableFoot" style="display:none;">
+                    <tr class="fw-bold" style="border-top: 2px solid #dce0e4; background: #f8fafc;">
+                        <td colspan="7" class="text-end pe-3 text-muted" style="padding:12px 0;">Tổng theo bộ lọc</td>
+                        <td class="text-end text-dark" id="footOrderAmount" style="padding:12px 0;">0₫</td>
+                        <td class="text-end" id="footOrderProfit" sec:authorize="hasRole('ADMIN')"
+                            style="padding:12px 0;">0₫</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    </tfoot>
                 </table>
             </div>
 
-            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
-                <div class="text-muted small" id="recordInfo">Đang tải...</div>
+            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-muted small" id="recordInfo">Đang tải...</div>
+                    <span class="small text-muted">Hiển thị</span>
+                    <select id="orderPageSize" class="form-select form-select-sm oms-page-size">
+                        <option value="15" selected>15</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span class="small text-muted">kết quả/trang</span>
+                </div>
                 <div class="d-flex align-items-center gap-3">
                     <nav>
                         <ul class="pagination pagination-sm mb-0" id="orderPagination"></ul>
@@ -289,13 +303,15 @@
     </script>
 
     <script th:inline="none">
-        let allOrders = [];
         let currentTabStatus = 'ALL';
 
-        // --- PHÂN TRANG PHÍA CLIENT ---
-        const ORDER_PAGE_SIZE = 15;
-        let orderCurrentPage = 1;
-        let orderFilteredCache = [];
+        // --- PHÂN TRANG PHÍA BACKEND ---
+        let orderCurrentPage = 1;          // trang hiện tại (1-based ở UI)
+        let orderTotalPages = 1;
+        let orderTotalElements = 0;
+        let pageOrders = [];               // đơn của TRANG hiện tại (đã fetch từ backend)
+        let orderLoading = false;
+        let lastProfitSum = null;          // tổng Lãi/Lỗ theo bộ lọc (chỉ ADMIN mới có)
 
         const paymentLabelMap = {
             'UNPAID': 'Chưa thanh toán',
@@ -321,7 +337,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadOrders();
+            await fetchOrders(1);
 
             document.querySelectorAll('#orderTabs .nav-link').forEach(tab => {
                 tab.addEventListener('click', function (e) {
@@ -335,8 +351,10 @@
             let searchTimeout;
             document.getElementById('orderSearchInput').addEventListener('input', () => {
                 clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(applyFilters, 300);
+                searchTimeout = setTimeout(applyFilters, 350);
             });
+
+            document.getElementById('orderPageSize').addEventListener('change', applyFilters);
 
             document.getElementById('checkAll').addEventListener('change', function () {
                 document.querySelectorAll('.order-checkbox').forEach(cb => {
@@ -346,143 +364,108 @@
             });
         });
 
-        async function loadOrders() {
+        // Gom các tham số lọc hiện tại thành query string cho backend
+        function buildOrderQuery(page) {
+            const size = parseInt(document.getElementById('orderPageSize').value, 10) || 15;
+            const params = new URLSearchParams();
+            params.set('page', Math.max(0, (page || 1) - 1)); // backend 0-based
+            params.set('size', size);
+
+            const keyword = document.getElementById('orderSearchInput').value.trim();
+            if (keyword) params.set('keyword', keyword);
+
+            if (currentTabStatus && currentTabStatus !== 'ALL') params.set('status', currentTabStatus);
+
+            const channel = document.getElementById('channelFilter').value;
+            if (channel && channel !== 'ALL') params.set('channel', channel);
+
+            const preset = document.getElementById('datePreset').value;
+            if (preset === 'custom') {
+                params.set('preset', 'custom');
+                const s = document.getElementById('startDate').value;
+                const e = document.getElementById('endDate').value;
+                if (s) params.set('start', s + 'T00:00:00');
+                if (e) params.set('end', e + 'T23:59:59');
+            } else if (preset && preset !== 'all') {
+                params.set('preset', preset);
+            }
+            return params.toString();
+        }
+
+        async function fetchOrders(page) {
+            if (orderLoading) return;
+            orderLoading = true;
+            const tbody = document.getElementById('orderTableBody');
             try {
-                const res = await fetch('/api/v1/orders');
-                if (!res.ok) throw new Error("Lỗi mạng");
-                allOrders = await res.json();
-                applyFilters();
+                const res = await fetch('/api/v1/orders?' + buildOrderQuery(page));
+                if (!res.ok) throw new Error('Lỗi mạng');
+                const data = await res.json();
+                pageOrders = data.content || [];
+                orderCurrentPage = (data.page || 0) + 1;
+                orderTotalPages = data.totalPages || 1;
+                orderTotalElements = data.totalElements || 0;
+                lastProfitSum = (typeof data.totalProfitSum === 'number') ? data.totalProfitSum : null;
+                renderTable(data.totalAmountSum || 0);
             } catch (e) {
                 console.error(e);
-                document.getElementById('orderTableBody').innerHTML = '<tr><td colspan="11" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>Lỗi kết nối Server! Vui lòng thử lại sau.</td></tr>';
+                document.getElementById('orderTableFoot').style.display = 'none';
+            } finally {
+                orderLoading = false;
             }
         }
 
         function handleDatePresetChange() {
             const preset = document.getElementById('datePreset').value;
             const customContainer = document.getElementById('customDateContainer');
-            const startInput = document.getElementById('startDate');
-            const endInput = document.getElementById('endDate');
-
-            const formatDate = (date) => date.toISOString().split('T')[0];
-            const today = new Date();
-
             if (preset === 'custom') {
                 customContainer.classList.remove('d-none');
                 customContainer.classList.add('d-flex');
-                return;
-            } else {
-                customContainer.classList.remove('d-flex');
-                customContainer.classList.add('d-none');
+                return; // chờ người dùng chọn ngày rồi mới lọc
             }
-
-            if (preset === 'all') {
-                startInput.value = '';
-                endInput.value = '';
-            } else if (preset === 'today') {
-                startInput.value = formatDate(today);
-                endInput.value = formatDate(today);
-            } else if (preset === 'yesterday') {
-                const yesterday = new Date(today);
-                yesterday.setDate(yesterday.getDate() - 1);
-                startInput.value = formatDate(yesterday);
-                endInput.value = formatDate(yesterday);
-            } else if (preset === '7days') {
-                const last7 = new Date(today);
-                last7.setDate(last7.getDate() - 6);
-                startInput.value = formatDate(last7);
-                endInput.value = formatDate(today);
-            } else if (preset === 'thisMonth') {
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                startInput.value = formatDate(firstDay);
-                endInput.value = formatDate(today);
-            } else if (preset === 'lastMonth') {
-                const firstDayPrev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                const lastDayPrev = new Date(today.getFullYear(), today.getMonth(), 0);
-                startInput.value = formatDate(firstDayPrev);
-                endInput.value = formatDate(lastDayPrev);
-            }
-
+            customContainer.classList.remove('d-flex');
+            customContainer.classList.add('d-none');
             applyFilters();
         }
 
+        // Đổi bộ lọc -> về trang 1 và nạp lại từ backend
         function applyFilters() {
-            const keyword = document.getElementById('orderSearchInput').value.toLowerCase().trim();
-            const channel = document.getElementById('channelFilter').value;
-
-            const startDateStr = document.getElementById('startDate').value;
-            const endDateStr = document.getElementById('endDate').value;
-            const startTimestamp = startDateStr ? new Date(startDateStr + 'T00:00:00').getTime() : null;
-            const endTimestamp = endDateStr ? new Date(endDateStr + 'T23:59:59').getTime() : null;
-
-            const filteredOrders = allOrders.filter(o => {
-                const matchTab = (currentTabStatus === 'ALL') || (o.status === currentTabStatus);
-                const matchChannel = (channel === 'ALL') || (o.salesChannelCode === channel) || (!o.salesChannelCode && channel === 'ALL');
-
-                let matchDate = true;
-                if (startTimestamp || endTimestamp) {
-                    if (o.createdAt) {
-                        const orderTime = new Date(o.createdAt).getTime();
-                        if (startTimestamp && orderTime < startTimestamp) matchDate = false;
-                        if (endTimestamp && orderTime > endTimestamp) matchDate = false;
-                    } else {
-                        matchDate = false;
-                    }
-                }
-
-                const cusName = o.customer ? (o.customer.fullName || o.customer.name || '').toLowerCase() : '';
-                const cusPhone = o.customer ? (o.customer.phone || o.customer.phoneNumber || '') : '';
-                const orderCode = o.orderCode ? o.orderCode.toLowerCase() : '';
-                const tracking = (o.trackingCode || '').toLowerCase();
-                const refCode = (o.referenceCode || '').toLowerCase();
-
-                const matchKeyword = !keyword ||
-                    orderCode.includes(keyword) ||
-                    cusName.includes(keyword) ||
-                    cusPhone.includes(keyword) ||
-                    tracking.includes(keyword) ||
-                    refCode.includes(keyword);
-
-                return matchTab && matchChannel && matchDate && matchKeyword;
-            });
-
-            // Lưu kết quả đã lọc và quay về trang 1 mỗi khi đổi bộ lọc
-            orderFilteredCache = filteredOrders;
-            orderCurrentPage = 1;
-            renderTable();
+            fetchOrders(1);
         }
 
         function clearAllFilters() {
             document.getElementById('orderSearchInput').value = '';
             document.getElementById('channelFilter').value = 'ALL';
             document.getElementById('datePreset').value = 'all';
-
             document.getElementById('customDateContainer').classList.replace('d-flex', 'd-none');
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
-
+            currentTabStatus = 'ALL';
+            document.querySelectorAll('#orderTabs .nav-link').forEach(t => t.classList.remove('active'));
+            const allTab = document.querySelector('#orderTabs .nav-link[data-status="ALL"]');
+            if (allTab) allTab.classList.add('active');
             applyFilters();
         }
 
-        function renderTable() {
+        function renderTable(totalAmountSum) {
             const tbody = document.getElementById('orderTableBody');
             const info = document.getElementById('recordInfo');
+            const foot = document.getElementById('orderTableFoot');
 
-            const total = orderFilteredCache.length;
+            const total = orderTotalElements;
 
-            if (total === 0) {
+            if (!pageOrders.length) {
                 tbody.innerHTML = '<tr><td colspan="11" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>Không tìm thấy đơn hàng nào phù hợp.</td></tr>';
                 info.innerText = 'Hiển thị 0 kết quả';
-                renderOrderPagination(0);
+                if (foot) foot.style.display = 'none';
+                renderOrderPagination();
                 clearSelection();
                 return;
             }
 
-            // Tính toán lát cắt theo trang hiện tại
-            const totalPages = Math.ceil(total / ORDER_PAGE_SIZE);
-            if (orderCurrentPage > totalPages) orderCurrentPage = totalPages;
-            const startIdx = (orderCurrentPage - 1) * ORDER_PAGE_SIZE;
-            const dataList = orderFilteredCache.slice(startIdx, startIdx + ORDER_PAGE_SIZE);
+            const size = parseInt(document.getElementById('orderPageSize').value, 10) || 15;
+            const startIdx = (orderCurrentPage - 1) * size;
+            const dataList = pageOrders;
 
             let html = '';
             dataList.forEach(o => {
@@ -602,15 +585,29 @@
             const fromIdx = startIdx + 1;
             const toIdx = startIdx + dataList.length;
             info.innerText = `Hiển thị ${fromIdx}-${toIdx} trên tổng ${total} đơn hàng`;
-            renderOrderPagination(total);
+
+            // Dòng tổng theo bộ lọc (backend trả về cho TOÀN BỘ tập đã lọc, không chỉ trang hiện tại)
+            if (foot) {
+                const fa = document.getElementById('footOrderAmount');
+                if (fa) fa.textContent = formatMoney(totalAmountSum);
+                const fp = document.getElementById('footOrderProfit');
+                if (fp && typeof lastProfitSum === 'number') {
+                    fp.textContent = (lastProfitSum >= 0 ? '' : '-') + formatMoney(Math.abs(lastProfitSum));
+                    fp.classList.toggle('text-success', lastProfitSum >= 0);
+                    fp.classList.toggle('text-danger', lastProfitSum < 0);
+                }
+                foot.style.display = '';
+            }
+
+            renderOrderPagination();
             clearSelection();
         }
 
-        // Vẽ thanh phân trang dựa trên tổng số bản ghi đã lọc
-        function renderOrderPagination(total) {
+        // Vẽ thanh phân trang dựa trên tổng số trang do backend trả về
+        function renderOrderPagination() {
             const ul = document.getElementById('orderPagination');
             if (!ul) return;
-            const totalPages = Math.ceil(total / ORDER_PAGE_SIZE);
+            const totalPages = orderTotalPages;
             if (totalPages <= 1) {
                 ul.innerHTML = '';
                 return;
@@ -620,7 +617,6 @@
             html += `<li class="page-item ${orderCurrentPage === 1 ? 'disabled' : ''}">
                         <a class="page-link" href="#" onclick="goToOrderPage(${orderCurrentPage - 1}); return false;"><i class="bi bi-chevron-left"></i></a></li>`;
 
-            // Hiển thị tối đa 5 nút trang quanh trang hiện tại
             let startPage = Math.max(1, orderCurrentPage - 2);
             let endPage = Math.min(totalPages, startPage + 4);
             startPage = Math.max(1, endPage - 4);
@@ -636,10 +632,8 @@
         }
 
         function goToOrderPage(p) {
-            const totalPages = Math.ceil(orderFilteredCache.length / ORDER_PAGE_SIZE);
-            if (p < 1 || p > totalPages) return;
-            orderCurrentPage = p;
-            renderTable();
+            if (p < 1 || p > orderTotalPages || p === orderCurrentPage) return;
+            fetchOrders(p);
         }
 
         function toggleBulkActionBar() {
@@ -732,7 +726,7 @@
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 select.value = '';
-                await loadOrders();
+                await fetchOrders(orderCurrentPage);
             }
         }
 

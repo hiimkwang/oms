@@ -343,40 +343,29 @@ public class WebController {
     @GetMapping("/ui/cashbook")
     public String cashbookOverview(Model model, @RequestParam(required = false) String keyword, @RequestParam(required = false) Long branchId, @RequestParam(required = false) String type, @RequestParam(required = false) String reason, @RequestParam(required = false, defaultValue = "today") String preset, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
 
-        LocalDateTime now = LocalDateTime.now();
-
-        if ("custom".equals(preset)) {
-            if (start == null) start = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
-            if (end == null) end = now.withHour(23).withMinute(59).withSecond(59).withNano(0);
-        } else {
-            switch (preset) {
-                case "yesterday":
-                    start = now.minusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-                    end = now.minusDays(1).withHour(23).withMinute(59).withSecond(59).withNano(0);
-                    break;
-                case "thisMonth":
-                    start = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-                    end = now.with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(0);
-                    break;
-                case "lastMonth":
-                    start = now.minusMonths(1).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-                    end = now.minusMonths(1).with(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59).withNano(0);
-                    break;
-                case "thisYear":
-                    start = now.withDayOfYear(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-                    end = now.with(TemporalAdjusters.lastDayOfYear()).withHour(23).withMinute(59).withSecond(59).withNano(0);
-                    break;
-                case "today":
-                default:
-                    start = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
-                    end = now.withHour(23).withMinute(59).withSecond(59).withNano(0);
-                    break;
-            }
-        }
+        com.oms.utility.DateRangeUtil.DateRange range = com.oms.utility.DateRangeUtil.resolve(preset, start, end);
+        start = range.start();
+        end = range.end();
 
         List<CashTransaction> filteredTransactions = cashbookService.filterTransactions(keyword, branchId, type, reason, start, end);
 
         model.addAttribute("transactions", filteredTransactions);
+
+        // Tổng theo đúng bộ lọc hiện tại (thu/chi/chênh lệch) - dùng cho dòng tổng cuối bảng
+        java.math.BigDecimal filterTotalIn = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal filterTotalOut = java.math.BigDecimal.ZERO;
+        for (CashTransaction t : filteredTransactions) {
+            java.math.BigDecimal amt = t.getAmount() != null ? t.getAmount() : java.math.BigDecimal.ZERO;
+            if (t.getType() == CashTransaction.TransactionType.RECEIPT) {
+                filterTotalIn = filterTotalIn.add(amt);
+            } else {
+                filterTotalOut = filterTotalOut.add(amt);
+            }
+        }
+        model.addAttribute("filterTotalIn", filterTotalIn);
+        model.addAttribute("filterTotalOut", filterTotalOut);
+        model.addAttribute("filterNet", filterTotalIn.subtract(filterTotalOut));
+        model.addAttribute("preset", preset);
 
         CashbookSummary summaryData = cashbookService.getSummary(start, end, branchId);
         model.addAttribute("summary", summaryData);

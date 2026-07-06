@@ -1,6 +1,8 @@
 package com.oms.module.customer.repository;
 
 import com.oms.module.customer.entity.Customer;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -22,6 +24,14 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
             "OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR c.phone LIKE CONCAT('%', :keyword, '%') ORDER BY c.createdAt DESC")
     List<Customer> searchByKeyword(@Param("keyword") String keyword);
+
+    // Danh sách khách có phân trang + lọc phía BACKEND (keyword + nhóm khách)
+    @Query("SELECT c FROM Customer c WHERE (:keyword IS NULL OR :keyword = '' " +
+            "OR LOWER(c.code) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR c.phone LIKE CONCAT('%', :keyword, '%')) " +
+            "AND (:group IS NULL OR :group = '' OR c.customerGroup = :group)")
+    Page<Customer> searchPage(@Param("keyword") String keyword, @Param("group") String group, Pageable pageable);
 
     @Modifying
     @Query("DELETE FROM Customer c WHERE c.code IN :codes")

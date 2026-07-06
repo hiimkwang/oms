@@ -224,28 +224,11 @@
                 <div class="d-flex gap-2 align-items-center">
                     <select class="form-select filter-btn w-auto fw-bold text-dark" id="datePreset"
                             onchange="handleDateChange()">
-                        <option value="today" th:selected="${param.preset != null and param.preset[0] == 'today'}">Hôm
-                            nay
-                        </option>
-                        <option value="yesterday"
-                                th:selected="${param.preset != null and param.preset[0] == 'yesterday'}">Hôm qua
-                        </option>
-                        <option value="thisMonth"
-                                th:selected="${param.preset == null or param.preset[0] == 'thisMonth'}">Tháng này
-                        </option>
-                        <option value="lastMonth"
-                                th:selected="${param.preset != null and param.preset[0] == 'lastMonth'}">Tháng trước
-                        </option>
-                        <option value="thisYear"
-                                th:selected="${param.preset != null and param.preset[0] == 'thisYear'}">Năm nay
-                        </option>
-                        <option value="custom" th:selected="${param.preset != null and param.preset[0] == 'custom'}">Tùy
-                            chọn...
-                        </option>
+                        <th:block th:replace="~{fragments/date-filter :: presetOptions(${preset})}"></th:block>
                     </select>
 
                     <div id="customDateContainer" class="gap-2 align-items-center"
-                         th:classappend="${param.preset != null and param.preset[0] == 'custom'} ? 'd-flex' : 'd-none'">
+                         th:classappend="${preset == 'custom'} ? 'd-flex' : 'd-none'">
                         <input type="date" class="form-control filter-btn w-auto text-muted" id="startDate"
                                th:value="${param.start != null ? #strings.substring(param.start[0],0,10) : ''}">
                         <span class="text-muted">-</span>
@@ -348,11 +331,38 @@
                         </td>
                     </tr>
                     </tbody>
+                    <tfoot th:unless="${#lists.isEmpty(transactions)}">
+                    <tr class="fw-bold" style="border-top: 2px solid #dce0e4; background: #f8fafc;">
+                        <td colspan="6" class="text-end pe-3" style="padding-top:12px; padding-bottom:12px;">
+                            <span class="text-muted me-2">Tổng theo bộ lọc:</span>
+                            Thu <span class="text-receipt"
+                                      th:text="'+' + ${#numbers.formatDecimal(filterTotalIn, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                            <span class="text-muted mx-2">|</span>
+                            Chi <span class="text-payment"
+                                      th:text="'-' + ${#numbers.formatDecimal(filterTotalOut, 0, 'COMMA', 0, 'POINT')} + '₫'"></span>
+                            <span class="text-muted mx-2">|</span>
+                            Chênh lệch
+                        </td>
+                        <td class="text-end pe-4" style="padding-top:12px; padding-bottom:12px;"
+                            th:classappend="${filterNet.signum() >= 0 ? 'text-receipt' : 'text-payment'}"
+                            th:text="${(filterNet.signum() >= 0 ? '+' : '') + #numbers.formatDecimal(filterNet, 0, 'COMMA', 0, 'POINT')} + '₫'"></td>
+                    </tr>
+                    </tfoot>
                 </table>
             </div>
 
-            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white">
-                <div class="text-muted small" id="recordInfo"></div>
+            <div class="p-3 d-flex justify-content-between align-items-center border-top bg-white flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-muted small" id="recordInfo"></div>
+                    <span class="small text-muted">Hiển thị</span>
+                    <select id="cashbookPageSize" class="form-select form-select-sm oms-page-size">
+                        <option value="15">15</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span class="small text-muted">kết quả/trang</span>
+                </div>
                 <div class="d-flex align-items-center gap-3">
                     <nav>
                         <ul class="pagination pagination-sm mb-0" id="cashbookPagination"></ul>
@@ -364,7 +374,7 @@
 
     <script th:inline="javascript">
         document.addEventListener('DOMContentLoaded', function () {
-            OMSPaginate({tbodyId: 'cashbookTableBody', pageSize: 20, paginationId: 'cashbookPagination', infoId: 'recordInfo', noun: 'bản ghi'});
+            OMSPaginate({tbodyId: 'cashbookTableBody', pageSize: 20, paginationId: 'cashbookPagination', infoId: 'recordInfo', noun: 'bản ghi', pageSizeSelectId: 'cashbookPageSize'});
         });
 
         // --- XỬ LÝ MẶC ĐỊNH LỌC THÁNG NÀY KHI VỪA VÀO TRANG ---

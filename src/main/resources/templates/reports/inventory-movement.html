@@ -111,11 +111,17 @@
         </div>
         <div class="d-flex gap-2 align-items-center">
             <select class="form-select w-auto fw-semibold" id="presetSelect" onchange="changePreset()">
-                <option value="7days" th:selected="${preset == '7days'}">7 ngày qua</option>
-                <option value="30days" th:selected="${preset == '30days'}">30 ngày qua</option>
-                <option value="90days" th:selected="${preset == '90days'}">90 ngày qua</option>
-                <option value="thisMonth" th:selected="${preset == 'thisMonth'}">Tháng này</option>
+                <th:block th:replace="~{fragments/date-filter :: presetOptions(${preset})}"></th:block>
             </select>
+            <div id="customDateRange" class="gap-2 align-items-center"
+                 th:classappend="${preset == 'custom'} ? 'd-flex' : 'd-none'">
+                <input type="date" id="startDate" class="form-control w-auto"
+                       th:value="${startDate != null ? #temporals.format(startDate, 'yyyy-MM-dd') : ''}">
+                <span class="text-muted">-</span>
+                <input type="date" id="endDate" class="form-control w-auto"
+                       th:value="${endDate != null ? #temporals.format(endDate, 'yyyy-MM-dd') : ''}">
+                <button class="btn btn-primary" onclick="applyCustomRange()">Lọc</button>
+            </div>
             <a th:href="@{/ui/inventory}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Quản lý
                 kho</a>
         </div>
@@ -230,7 +236,22 @@
 
         function changePreset() {
             const p = document.getElementById('presetSelect').value;
-            window.location.href = window.location.pathname + '?preset=' + p;
+            const custom = document.getElementById('customDateRange');
+            if (p === 'custom') {
+                custom.classList.remove('d-none');
+                custom.classList.add('d-flex');
+            } else {
+                window.location.href = window.location.pathname + '?preset=' + p;
+            }
+        }
+
+        function applyCustomRange() {
+            const s = document.getElementById('startDate').value;
+            const e = document.getElementById('endDate').value;
+            let url = window.location.pathname + '?preset=custom';
+            if (s) url += '&start=' + s + 'T00:00:00';
+            if (e) url += '&end=' + e + 'T23:59:59';
+            window.location.href = url;
         }
 
         function filterCat(el) {

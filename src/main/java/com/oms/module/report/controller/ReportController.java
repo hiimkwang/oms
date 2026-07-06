@@ -36,55 +36,9 @@ public class ReportController {
     public String reportOverview(Model model, @RequestParam(required = false, defaultValue = "overview") String tab, @RequestParam(required = false, defaultValue = "30days") String preset, @RequestParam(required = false) String channel,
                                  @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startTime = start;
-        LocalDateTime endTime = end;
-
-        if (!"custom".equals(preset)) {
-            endTime = now.with(LocalTime.MAX);
-            switch (preset) {
-                case "today":
-                    startTime = now.with(LocalTime.MIN);
-                    break;
-                case "yesterday":
-                    startTime = now.minusDays(1).with(LocalTime.MIN);
-                    endTime = now.minusDays(1).with(LocalTime.MAX);
-                    break;
-                case "7days":
-                    startTime = now.minusDays(7).with(LocalTime.MIN);
-                    break;
-                case "30days":
-                    startTime = now.minusDays(30).with(LocalTime.MIN);
-                    break;
-                case "thisWeek":
-                    startTime = now.with(java.time.DayOfWeek.MONDAY).with(LocalTime.MIN);
-                    break;
-                case "lastWeek":
-                    startTime = now.minusWeeks(1).with(java.time.DayOfWeek.MONDAY).with(LocalTime.MIN);
-                    endTime = startTime.plusDays(6).with(LocalTime.MAX);
-                    break;
-                case "thisMonth":
-                    startTime = now.withDayOfMonth(1).with(LocalTime.MIN);
-                    break;
-                case "lastMonth":
-                    startTime = now.minusMonths(1).withDayOfMonth(1).with(LocalTime.MIN);
-                    endTime = startTime.with(TemporalAdjusters.lastDayOfMonth()).with(LocalTime.MAX);
-                    break;
-                case "thisYear":
-                    startTime = now.withDayOfYear(1).with(LocalTime.MIN);
-                    break;
-                case "lastYear":
-                    startTime = now.minusYears(1).withDayOfYear(1).with(LocalTime.MIN);
-                    endTime = startTime.with(TemporalAdjusters.lastDayOfYear()).with(LocalTime.MAX);
-                    break;
-                default:
-                    startTime = now.minusDays(30).with(LocalTime.MIN);
-            }
-        }
-
-        // Phòng NPE: preset=custom nhưng client không truyền start/end -> mặc định 30 ngày gần nhất
-        if (startTime == null) startTime = now.minusDays(30).with(LocalTime.MIN);
-        if (endTime == null) endTime = now.with(LocalTime.MAX);
+        com.oms.utility.DateRangeUtil.DateRange range = com.oms.utility.DateRangeUtil.resolve(preset, start, end);
+        LocalDateTime startTime = range.start();
+        LocalDateTime endTime = range.end();
 
         model.addAttribute("preset", preset);
         model.addAttribute("startDate", startTime);
@@ -207,31 +161,12 @@ public class ReportController {
     // BÁO CÁO BÁN CHẠY / TỒN ĐỌNG (thuộc Quản lý kho)
     @GetMapping("/ui/stock-movement")
     public String inventoryMovement(Model model,
-                                    @RequestParam(required = false, defaultValue = "30days") String preset,
+                                    @RequestParam(required = false, defaultValue = "thisMonth") String preset,
                                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
                                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startTime = start;
-        LocalDateTime endTime = (end != null) ? end : now.with(LocalTime.MAX);
-
-        if (!"custom".equals(preset) || startTime == null) {
-            endTime = now.with(LocalTime.MAX);
-            switch (preset) {
-                case "7days":
-                    startTime = now.minusDays(7).with(LocalTime.MIN);
-                    break;
-                case "thisMonth":
-                    startTime = now.withDayOfMonth(1).with(LocalTime.MIN);
-                    break;
-                case "90days":
-                    startTime = now.minusDays(90).with(LocalTime.MIN);
-                    break;
-                case "30days":
-                default:
-                    startTime = now.minusDays(30).with(LocalTime.MIN);
-                    break;
-            }
-        }
+        com.oms.utility.DateRangeUtil.DateRange range = com.oms.utility.DateRangeUtil.resolve(preset, start, end);
+        LocalDateTime startTime = range.start();
+        LocalDateTime endTime = range.end();
 
         List<InventoryMovementRow> rows = reportService.getInventoryMovement(startTime, endTime);
 

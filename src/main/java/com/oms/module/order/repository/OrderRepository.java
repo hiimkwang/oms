@@ -1,6 +1,7 @@
 package com.oms.module.order.repository;
 
 import com.oms.module.order.entity.Order;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,44 @@ import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    // Danh sách đơn có phân trang + lọc phía BACKEND (mã đơn, khách, kênh, khoảng ngày, trạng thái).
+    String ORDER_FILTER =
+            "(:status IS NULL OR o.status = :status) AND " +
+            "(:channel IS NULL OR o.salesChannelCode = :channel) AND " +
+            "(:start IS NULL OR o.createdAt >= :start) AND " +
+            "(:end IS NULL OR o.createdAt <= :end) AND " +
+            "(:kw IS NULL OR LOWER(o.orderCode) LIKE :kw OR LOWER(o.customer.fullName) LIKE :kw " +
+            "OR o.customer.phone LIKE :kw OR LOWER(o.trackingCode) LIKE :kw OR LOWER(o.referenceCode) LIKE :kw)";
+
+    @Query("SELECT o FROM Order o WHERE " + ORDER_FILTER)
+    Page<Order> searchOrders(@Param("kw") String kw, @Param("status") String status,
+                             @Param("channel") String channel, @Param("start") LocalDateTime start,
+                             @Param("end") LocalDateTime end, Pageable pageable);
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE " + ORDER_FILTER)
+    BigDecimal sumFilteredAmount(@Param("kw") String kw, @Param("status") String status,
+                                 @Param("channel") String channel, @Param("start") LocalDateTime start,
+                                 @Param("end") LocalDateTime end);
+
+    // Tổng lãi gộp (giá bán - giá vốn) * SL của các dòng thuộc đơn khớp bộ lọc
+    @Query("SELECT COALESCE(SUM((d.unitPrice - d.costPrice) * d.quantity), 0) FROM OrderDetail d WHERE " +
+            "(:status IS NULL OR d.order.status = :status) AND " +
+            "(:channel IS NULL OR d.order.salesChannelCode = :channel) AND " +
+            "(:start IS NULL OR d.order.createdAt >= :start) AND " +
+            "(:end IS NULL OR d.order.createdAt <= :end) AND " +
+            "(:kw IS NULL OR LOWER(d.order.orderCode) LIKE :kw OR LOWER(d.order.customer.fullName) LIKE :kw " +
+            "OR d.order.customer.phone LIKE :kw OR LOWER(d.order.trackingCode) LIKE :kw OR LOWER(d.order.referenceCode) LIKE :kw)")
+    BigDecimal sumFilteredMargin(@Param("kw") String kw, @Param("status") String status,
+                                 @Param("channel") String channel, @Param("start") LocalDateTime start,
+                                 @Param("end") LocalDateTime end);
+
+    // Tổng chiết khấu đơn của các đơn khớp bộ lọc (để trừ ra lãi ròng)
+    @Query("SELECT COALESCE(SUM(o.discountAmount), 0) FROM Order o WHERE " + ORDER_FILTER)
+    BigDecimal sumFilteredDiscount(@Param("kw") String kw, @Param("status") String status,
+                                   @Param("channel") String channel, @Param("start") LocalDateTime start,
+                                   @Param("end") LocalDateTime end);
+
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE MONTH(o.createdAt) = :month AND YEAR(o.createdAt) = :year AND o.status NOT IN ('CANCELLED', 'CREATED', 'DRAFT', 'RETURNED')")
     BigDecimal sumTotalRevenueBigDecimal(@Param("month") int month, @Param("year") int year);
 

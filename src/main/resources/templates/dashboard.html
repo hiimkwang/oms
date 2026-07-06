@@ -100,6 +100,21 @@
             margin-top: 6px;
         }
 
+        /* Badge trạng thái đơn - dùng màu tường minh (hex) để không bị .bg-primary/.text-primary
+           của layout ghi đè !important gây trùng màu chữ với nền (lỗi "Đang giao" bị ẩn). */
+        .st-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            border: 1px solid transparent;
+        }
+        .st-init      { background-color: #e2e8f0; color: #475569; border-color: #cbd5e1; }
+        .st-processing{ background-color: #cce5ff; color: #004085; border-color: #b8daff; }
+        .st-success   { background-color: #d1e7dd; color: #0f5132; border-color: #badbcc; }
+        .st-cancel    { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+
         .table-mini thead th {
             background: #f8fafc;
             color: #64748b;
@@ -143,25 +158,11 @@
 
         <div class="d-flex gap-2 align-items-center">
             <select class="form-select filter-btn w-auto text-primary" id="datePreset" onchange="handleDateChange()">
-                <option value="thisWeek" th:selected="${param.preset == null or param.preset[0] == 'thisWeek'}">Tuần
-                    này
-                </option>
-                <option value="thisMonth" th:selected="${param.preset != null and param.preset[0] == 'thisMonth'}">Tháng
-                    này
-                </option>
-                <option value="thisQuarter" th:selected="${param.preset != null and param.preset[0] == 'thisQuarter'}">
-                    Quý này
-                </option>
-                <option value="thisYear" th:selected="${param.preset != null and param.preset[0] == 'thisYear'}">Năm
-                    nay
-                </option>
-                <option value="custom" th:selected="${param.preset != null and param.preset[0] == 'custom'}">Tùy
-                    chọn...
-                </option>
+                <th:block th:replace="~{fragments/date-filter :: presetOptions(${preset})}"></th:block>
             </select>
 
             <div id="customDateContainer" class="gap-2 align-items-center"
-                 th:classappend="${param.preset != null and param.preset[0] == 'custom'} ? 'd-flex' : 'd-none'">
+                 th:classappend="${preset == 'custom'} ? 'd-flex' : 'd-none'">
                 <input type="date" class="form-control filter-btn w-auto text-muted" id="startDate"
                        th:value="${param.start != null ? #strings.substring(param.start[0],0,10) : ''}">
                 <span class="text-muted">-</span>
@@ -392,15 +393,19 @@
                             <td class="fw-bold text-primary"
                                 th:text="${#numbers.formatDecimal(o.totalAmount, 0, 'COMMA', 0, 'POINT')} + '₫'"></td>
                             <td>
-                                <span class="badge px-2 py-1 border fw-bold"
-                                      th:classappend="${o.status == 'CANCELLED' ? 'bg-danger bg-opacity-10 text-danger border-danger border-opacity-25' :
-                                                     (o.status == 'COMPLETED' ? 'bg-success bg-opacity-10 text-success border-success border-opacity-25' : 'bg-primary bg-opacity-10 text-primary border-primary border-opacity-25')}"
+                                <span class="st-badge"
+                                      th:classappend="${o.status == 'CANCELLED' ? 'st-cancel' :
+                                                     (o.status == 'COMPLETED' or o.status == 'RETURNED' ? 'st-success' :
+                                                     (o.status == 'SHIPPING' or o.status == 'PROCESSING' ? 'st-processing' : 'st-init'))}"
                                       th:text="${o.status == 'CANCELLED' ? 'Đã hủy' :
                                                 (o.status == 'COMPLETED' ? 'Hoàn thành' :
+                                                (o.status == 'RETURNED' ? 'Đã hoàn' :
                                                 (o.status == 'CREATED' ? 'Mới tạo' :
                                                 (o.status == 'CONFIRMED' ? 'Đã Xác Nhận' :
+                                                (o.status == 'PROCESSING' ? 'Đang xử lý' :
                                                 (o.status == 'SHIPPING' ? 'Đang giao' :
-                                                (o.status != null ? o.status : 'Chưa có')))))}">
+                                                (o.status == 'DRAFT' ? 'Nháp' :
+                                                (o.status != null ? o.status : 'Chưa có'))))))))}">
                                 </span>
                             </td>
                         </tr>

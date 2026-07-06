@@ -377,8 +377,19 @@
             </table>
         </div>
 
-        <div class="p-3 bg-white border-top text-muted small d-flex justify-content-between align-items-center">
-            <span id="invRecordInfo"></span>
+        <div class="p-3 bg-white border-top text-muted small d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span id="invRecordInfo"></span>
+                <span class="small text-muted">Hiển thị</span>
+                <select id="invPageSize" class="form-select form-select-sm oms-page-size">
+                    <option value="15">15</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span class="small text-muted">kết quả/trang</span>
+                <span class="fw-semibold text-dark" id="invTotals"></span>
+            </div>
             <nav>
                 <ul class="pagination pagination-sm mb-0" id="invPagination"></ul>
             </nav>
@@ -446,11 +457,23 @@
         let config = JSON.parse(localStorage.getItem('inventory_column_config_v4')) || [...DEFAULT_COLUMNS];
 
         // --- PHÂN TRANG PHÍA CLIENT (theo nhóm sản phẩm) ---
-        const INV_PAGE_SIZE = 20;
+        let INV_PAGE_SIZE = 20;
         let invCurrentPage = 1;
         let invGroupedList = [];
 
         document.addEventListener('DOMContentLoaded', function () {
+            // Ô chọn số dòng/trang
+            const invSizeSel = document.getElementById('invPageSize');
+            if (invSizeSel) {
+                invSizeSel.addEventListener('change', function () {
+                    const v = parseInt(this.value, 10);
+                    if (v > 0) {
+                        INV_PAGE_SIZE = v;
+                        invCurrentPage = 1;
+                        renderInventoryPage();
+                    }
+                });
+            }
             // Xử lý nút ngày
             document.querySelectorAll('.date-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
@@ -639,6 +662,17 @@
                     : `Hiển thị ${startIdx + 1} - ${Math.min(startIdx + pageItems.length, total)} trên tổng ${total}`;
             }
             renderInvPagination(total, totalPages);
+
+            // Tổng tồn kho theo bộ lọc (toàn bộ danh sách, không chỉ trang hiện tại)
+            const totalsEl = document.getElementById('invTotals');
+            if (totalsEl) {
+                let sumStock = 0, sumAvail = 0;
+                invGroupedList.forEach(p => {
+                    sumStock += Number(p.totalStock) || 0;
+                    sumAvail += Number(p.totalAvailable) || 0;
+                });
+                totalsEl.textContent = `Tổng tồn: ${sumStock.toLocaleString('vi-VN')} · Có thể bán: ${sumAvail.toLocaleString('vi-VN')}`;
+            }
 
             // Re-áp dụng cấu hình ẩn/hiện cột sau khi render lại bảng
             if (typeof applyConfig === 'function') applyConfig();

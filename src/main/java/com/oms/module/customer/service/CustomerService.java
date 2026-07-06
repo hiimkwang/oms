@@ -27,8 +27,18 @@ public class CustomerService {
 
     public List<CustomerRequest> getCustomerList(String keyword) {
         List<Customer> customers = customerRepository.searchByKeyword(keyword);
+        return customers.stream().map(this::toRequest).collect(Collectors.toList());
+    }
 
-        return customers.stream().map(c -> {
+    // Danh sách khách có phân trang + lọc theo nhóm phía BACKEND
+    public org.springframework.data.domain.Page<CustomerRequest> getCustomerPage(
+            String keyword, String group, org.springframework.data.domain.Pageable pageable) {
+        return customerRepository.searchPage(keyword, group, pageable).map(this::toRequest);
+    }
+
+    // Map entity -> DTO (dùng chung cho list & paged)
+    private CustomerRequest toRequest(Customer c) {
+        {
             CustomerRequest req = new CustomerRequest();
 
             // --- 1. Thông tin cơ bản ---
@@ -66,7 +76,7 @@ public class CustomerService {
             req.setTotalSpent(c.getTotalSpent() != null ? c.getTotalSpent() : java.math.BigDecimal.ZERO);
 
             return req;
-        }).collect(Collectors.toList());
+        }
     }
 
     @Transactional

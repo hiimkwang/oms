@@ -60,6 +60,45 @@ public class OrderService {
         return orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 
+    // DANH SÁCH ĐƠN CÓ PHÂN TRANG + LỌC PHÍA BACKEND
+    // Chuẩn hoá tham số: chuỗi rỗng/"ALL" -> null (bỏ lọc); keyword -> '%kw%' viết thường.
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Order> searchOrders(
+            String keyword, String status, String channel,
+            LocalDateTime start, LocalDateTime end,
+            org.springframework.data.domain.Pageable pageable) {
+        String kw = (keyword == null || keyword.isBlank()) ? null
+                : "%" + keyword.trim().toLowerCase() + "%";
+        String st = (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) ? null : status;
+        String ch = (channel == null || channel.isBlank() || "ALL".equalsIgnoreCase(channel)) ? null : channel;
+        return orderRepository.searchOrders(kw, st, ch, start, end, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal sumFilteredAmount(String keyword, String status, String channel,
+                                        LocalDateTime start, LocalDateTime end) {
+        String kw = (keyword == null || keyword.isBlank()) ? null
+                : "%" + keyword.trim().toLowerCase() + "%";
+        String st = (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) ? null : status;
+        String ch = (channel == null || channel.isBlank() || "ALL".equalsIgnoreCase(channel)) ? null : channel;
+        return orderRepository.sumFilteredAmount(kw, st, ch, start, end);
+    }
+
+    // Tổng lãi/lỗ theo bộ lọc = (lãi gộp toàn bộ dòng) - (tổng chiết khấu đơn)
+    @Transactional(readOnly = true)
+    public BigDecimal sumFilteredProfit(String keyword, String status, String channel,
+                                        LocalDateTime start, LocalDateTime end) {
+        String kw = (keyword == null || keyword.isBlank()) ? null
+                : "%" + keyword.trim().toLowerCase() + "%";
+        String st = (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) ? null : status;
+        String ch = (channel == null || channel.isBlank() || "ALL".equalsIgnoreCase(channel)) ? null : channel;
+        BigDecimal margin = orderRepository.sumFilteredMargin(kw, st, ch, start, end);
+        BigDecimal discount = orderRepository.sumFilteredDiscount(kw, st, ch, start, end);
+        if (margin == null) margin = BigDecimal.ZERO;
+        if (discount == null) discount = BigDecimal.ZERO;
+        return margin.subtract(discount);
+    }
+
     // TẠO ĐƠN HÀNG MỚI
     @Transactional
     public Order createOrder(OrderRequest request) {

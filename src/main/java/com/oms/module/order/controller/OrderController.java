@@ -25,14 +25,58 @@ public class OrderController {
 
     private final OrderService orderService;
 
-    // LẤY DANH SÁCH
+    // LẤY DANH SÁCH (PHÂN TRANG + LỌC PHÍA BACKEND)
+    // Trả về: content (đơn của trang hiện tại), totalElements, totalPages, page, size,
+    // và totalAmountSum = tổng "Khách phải trả" của TOÀN BỘ tập đã lọc (cho dòng tổng cuối bảng).
     @GetMapping
-    public ResponseEntity<List<Order>> getAllOrders() {
-        List<Order> orders = orderService.getAllOrders();
-        if (!isAdmin()) {
-            orders.forEach(this::hideCost);
+    public ResponseEntity<Map<String, Object>> getAllOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String channel,
+            @RequestParam(required = false) String preset,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime start,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime end) {
+
+        // Chỉ áp lọc ngày khi preset khác null/'all' (hoặc client gửi thẳng start/end)
+        java.time.LocalDateTime startTime = null, endTime = null;
+        if (preset != null && !preset.isBlank() && !"all".equalsIgnoreCase(preset)) {
+            com.oms.utility.DateRangeUtil.DateRange r = com.oms.utility.DateRangeUtil.resolve(preset, start, end);
+            startTime = r.start();
+            endTime = r.end();
+        } else if (start != null || end != null) {
+            startTime = start;
+            endTime = end;
         }
-        return ResponseEntity.ok(orders);
+
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                Math.max(0, page), size <= 0 ? 15 : size,
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+
+        org.springframework.data.domain.Page<Order> pageData =
+                orderService.searchOrders(keyword, status, channel, startTime, endTime, pageable);
+        BigDecimal totalAmountSum = orderService.sumFilteredAmount(keyword, status, channel, startTime, endTime);
+
+        List<Order> content = pageData.getContent();
+        boolean admin = isAdmin();
+        if (!admin) {
+            content.forEach(this::hideCost);
+        }
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("content", content);
+        body.put("totalElements", pageData.getTotalElements());
+        body.put("totalPages", pageData.getTotalPages());
+        body.put("page", pageData.getNumber());
+        body.put("size", pageData.getSize());
+        body.put("totalAmountSum", totalAmountSum != null ? totalAmountSum : BigDecimal.ZERO);
+        // Chỉ ADMIN mới nhận tổng Lãi/Lỗ (cột này ẩn với STAFF -> không lộ giá vốn)
+        if (admin) {
+            BigDecimal totalProfitSum = orderService.sumFilteredProfit(keyword, status, channel, startTime, endTime);
+            body.put("totalProfitSum", totalProfitSum != null ? totalProfitSum : BigDecimal.ZERO);
+        }
+        return ResponseEntity.ok(body);
     }
 
     // Nhân viên (STAFF) không được xem giá vốn -> ẩn khỏi JSON trả về

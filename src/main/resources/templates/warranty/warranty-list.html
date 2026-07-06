@@ -196,7 +196,17 @@
                            onkeypress="handleEnter(event)">
                 </div>
 
-                <div class="d-flex gap-2 align-items-center">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <select id="datePreset" class="form-select filter-btn w-auto" onchange="handleDateChange()">
+                        <option value="all">Tất cả thời gian</option>
+                        <th:block th:replace="~{fragments/date-filter :: presetOptions('')}"></th:block>
+                    </select>
+                    <div id="customDateRange" class="d-none gap-2 align-items-center">
+                        <input type="date" id="startDate" class="form-control filter-btn w-auto" title="Từ ngày">
+                        <span class="text-muted">-</span>
+                        <input type="date" id="endDate" class="form-control filter-btn w-auto" title="Đến ngày">
+                    </div>
+
                     <select class="form-select filter-btn w-auto" id="typeFilter" onchange="applyFilters()">
                         <option value="">Tất cả dịch vụ</option>
                         <option value="WARRANTY" th:selected="${param.type != null and param.type[0] == 'WARRANTY'}">Bảo
@@ -247,7 +257,7 @@
                     </tr>
                     </thead>
                     <tbody id="warrantyTableBody">
-                    <tr th:each="t : ${tickets}">
+                    <tr th:each="t : ${tickets}" th:data-date="${t.receiveDate}">
                         <td class="ps-4"><input type="checkbox" class="form-check-input tick-checkbox"
                                                 th:value="${t.id}" onchange="checkSelection()"></td>
                         <td>
@@ -290,8 +300,18 @@
                 </table>
             </div>
 
-            <div class="p-3 bg-white border-top d-flex justify-content-between align-items-center">
-                <div class="small text-muted" id="recordInfo"></div>
+            <div class="p-3 bg-white border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="small text-muted" id="recordInfo"></div>
+                    <span class="small text-muted">Hiển thị</span>
+                    <select id="warrantyPageSize" class="form-select form-select-sm oms-page-size">
+                        <option value="15">15</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span class="small text-muted">kết quả/trang</span>
+                </div>
                 <nav>
                     <ul class="pagination pagination-sm mb-0" id="warrantyPagination"></ul>
                 </nav>
@@ -300,9 +320,41 @@
     </div>
 
     <script th:inline="javascript">
+        let warrantyPager = null;
+
         document.addEventListener('DOMContentLoaded', function () {
-            OMSPaginate({tbodyId: 'warrantyTableBody', pageSize: 20, paginationId: 'warrantyPagination', infoId: 'recordInfo', noun: 'bản ghi'});
+            warrantyPager = OMSPaginate({tbodyId: 'warrantyTableBody', pageSize: 20, paginationId: 'warrantyPagination', infoId: 'recordInfo', noun: 'bản ghi', pageSizeSelectId: 'warrantyPageSize'});
+            const sd = document.getElementById('startDate');
+            const ed = document.getElementById('endDate');
+            if (sd) sd.addEventListener('change', applyDateFilter);
+            if (ed) ed.addEventListener('change', applyDateFilter);
         });
+
+        function handleDateChange() {
+            const preset = document.getElementById('datePreset').value;
+            const custom = document.getElementById('customDateRange');
+            if (preset === 'custom') {
+                custom.classList.remove('d-none');
+                custom.classList.add('d-flex');
+            } else {
+                custom.classList.add('d-none');
+                custom.classList.remove('d-flex');
+                applyDateFilter();
+            }
+        }
+
+        function applyDateFilter() {
+            const preset = document.getElementById('datePreset').value;
+            const startVal = document.getElementById('startDate').value;
+            const endVal = document.getElementById('endDate').value;
+            document.querySelectorAll('#warrantyTableBody tr').forEach(row => {
+                if (row.hasAttribute('data-empty')) return;
+                const rowDate = new Date(row.getAttribute('data-date') || 0);
+                const ok = window.OMSDateMatch(rowDate, preset, startVal, endVal);
+                row.setAttribute('data-filtered-out', ok ? '0' : '1');
+            });
+            if (warrantyPager) warrantyPager.refresh();
+        }
 
         function handleEnter(e) {
             if (e.key === 'Enter') applyFilters();
