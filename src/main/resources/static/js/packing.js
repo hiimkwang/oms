@@ -11,7 +11,7 @@
   const API = "/api/v1/packing";
 
   const state = {
-    running:false, recording:false,
+    running:false, recording:false, videoSaved:false,
     panoStream:null, qrStream:null, sameDevice:false,
     order:null,                 // {orderCode, trackingCode}
     pending:null,               // {sku,name,price} đang chờ serial
@@ -190,8 +190,9 @@
   }
 
   async function stopSystem(){
-    // Nếu đang có đơn dở -> hoàn tất (lưu video) trước khi tắt, tránh mất video
-    if(state.order){ await finishOrder(); }
+    // TẮT CAMERA = chỉ DỪNG & LƯU video, KHÔNG hoàn tất đơn.
+    // Đơn vẫn mở để nhập liệu tiếp; khi xong người dùng bấm "Hoàn tất đơn".
+    const info = await stopAndSaveVideo();
     state.running=false;
     cancelAnimationFrame(state.rafId);
     [state.panoStream,state.qrStream].forEach(s=>{ if(s) s.getTracks().forEach(t=>t.stop()); });
@@ -199,10 +200,17 @@
     setState('idle','CHƯA KẾT NỐI');
     $('overlayStatus').textContent='Đã tắt camera';
     $('scanDot').className='eye'; $('scanText').textContent='đang tắt';
-    $('startBtn').disabled=false; $('stopSysBtn').disabled=true; $('finishBtn').disabled=true;
-    $('skuInput').disabled=true; $('serialInput').disabled=true; $('saveRecipientBtn').disabled=true;
+    $('startBtn').disabled=false; $('stopSysBtn').disabled=true;
+    // Còn đơn đang mở -> vẫn cho quét sản phẩm / nhập người nhận / bấm Hoàn tất.
+    const hasOrder=!!state.order;
+    $('finishBtn').disabled=!hasOrder;
+    $('skuInput').disabled=!hasOrder; $('serialInput').disabled=!hasOrder; $('saveRecipientBtn').disabled=!hasOrder;
     pctx.clearRect(0,0,panoCanvas.width,panoCanvas.height);
     $('qrFloat').style.display='none';
+    if(hasOrder){
+      toast('Đã tắt camera & lưu video'+(info?' ('+info+')':'')+'. Bạn nhập liệu tiếp rồi bấm "Hoàn tất đơn".','ok');
+      $('skuInput').focus();
+    }
   }
 
   function fmtTime(d){const p=n=>String(n).padStart(2,'0');
@@ -290,7 +298,10 @@
     state.recording=true; state.recStartTs=Date.now();
     const sec=parseInt($('autoStop').value,10);
     if(sec>0){ clearTimeout(state.autoStopTimer);
-      state.autoStopTimer=setTimeout(()=>{ if(state.recording) finishOrder(); }, sec*1000); }
+      // Tự DỪNG QUAY (lưu video) sau N giây, KHÔNG tự hoàn tất đơn -> vẫn cho nhập liệu tiếp.
+      state.autoStopTimer=setTimeout(()=>{ if(state.recording) stopAndSaveVideo().then(info=>{
+        if(state.order) toast('Đã tự dừng quay & lưu video'+(info?' ('+info+')':'')+'. Bấm "Hoàn tất đơn" khi xong.','ok');
+      }); }, sec*1000); }
   }
   function stopOne(rec, chunksArr){
     return new Promise(resolve=>{
@@ -394,6 +405,7 @@
     try{
       const data=await apiJSON(API+'/orders',{method:'POST',body:JSON.stringify(Object.assign({trackingCode}, orderInfoPayload()))});
       state.order={orderCode:data.orderCode, trackingCode:trackingCode};
+      state.videoSaved=false;   // đơn mới -> cho phép lưu video mới
       state.lastTracking=trackingCode;
       $('orderCodeBox').textContent=data.orderCode;
       $('trackingInput').value=trackingCode||'';
@@ -407,17 +419,14 @@
     }catch(e){ toast('Không tạo được đơn: '+e.message,'err'); }
   }
 
-  async function finishOrder(){
-    if(!state.order){ return; }
-    // Flush ô đang gõ (vd giá vừa sửa) để lưu trước khi hoàn tất
-    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    // Tự lưu thông tin khách nếu người dùng đã nhập mà chưa bấm Lưu
-    const nm=$('recipientName').value.trim(), ph=$('recipientPhone').value.trim(), ad=$('recipientAddr').value.trim();
-    // Luôn lưu (kèm mã đơn sàn/nguồn/chi nhánh) để không sót thông tin đơn dù chưa nhập người nhận
-    try{ await apiJSON(API+'/orders/'+state.order.orderCode+'/recipient',
-      {method:'PUT',body:JSON.stringify(Object.assign({recipientName:nm,recipientPhone:ph,shippingAddress:ad}, orderInfoPayload()))}); }catch(e){}
-    const order=state.order; state.order=null; state.pending=null; $('pendingBox').style.display='none';
+  // Dừng quay + lưu video cho đơn hiện tại (KHÔNG đóng đơn). Idempotent: đã lưu rồi thì bỏ qua.
+  // Trả về chuỗi mô tả video đã lưu (vd "toàn cảnh + cam QR") hoặc null nếu không có gì để lưu.
+  async function stopAndSaveVideo(){
+    if(!state.order || state.videoSaved){ return null; }
+    const order=state.order;
     const {pano, qr}=await stopRecording();
+    $('recTime').textContent='00:00';
+    if(!pano && !qr){ return null; }
     const base=(order.trackingCode||order.orderCode).replace(/[^\w.-]/g,'_')+'_'+order.orderCode;
     let panoName=null, qrName=null;
     if(pano){ panoName=base+'_pano.'+state.ext; await saveVideoToFolder(pano, panoName); }
@@ -427,12 +436,28 @@
       const meta={ v:2, dir:(state.dirHandle && state.dirHandle.name) || 'Downloads', pano:panoName, qr:qrName, ext:state.ext };
       try{ await apiJSON(API+'/orders/'+order.orderCode+'/video',{method:'POST',body:JSON.stringify({videoPath:JSON.stringify(meta)})}); }catch(e){}
     }
+    state.videoSaved=true;
+    return [panoName&&'toàn cảnh', qrName&&'cam QR'].filter(Boolean).join(' + ');
+  }
+
+  // HOÀN TẤT ĐƠN: lưu người nhận + đảm bảo video đã lưu, rồi đóng đơn & reset panel.
+  async function finishOrder(){
+    if(!state.order){ return; }
+    // Flush ô đang gõ (vd giá vừa sửa) để lưu trước khi hoàn tất
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    // Tự lưu thông tin khách nếu người dùng đã nhập mà chưa bấm Lưu
+    const nm=$('recipientName').value.trim(), ph=$('recipientPhone').value.trim(), ad=$('recipientAddr').value.trim();
+    // Luôn lưu (kèm mã đơn sàn/nguồn/chi nhánh) để không sót thông tin đơn dù chưa nhập người nhận
+    try{ await apiJSON(API+'/orders/'+state.order.orderCode+'/recipient',
+      {method:'PUT',body:JSON.stringify(Object.assign({recipientName:nm,recipientPhone:ph,shippingAddress:ad}, orderInfoPayload()))}); }catch(e){}
+    // Nếu vẫn đang quay (chưa bấm Tắt camera) thì dừng & lưu video luôn; nếu đã lưu trước đó thì bỏ qua.
+    const savedInfo=await stopAndSaveVideo();
+    const order=state.order; state.order=null; state.pending=null; state.videoSaved=false; $('pendingBox').style.display='none';
     if(state.running){ setState('ready','SẴN SÀNG QUÉT VẬN ĐƠN'); }
     $('skuInput').disabled=true; $('serialInput').disabled=true; $('finishBtn').disabled=true; $('saveRecipientBtn').disabled=true;
     $('recTime').textContent='00:00';
     resetOrderPanel();
-    const savedInfo=[panoName&&'toàn cảnh', qrName&&'cam QR'].filter(Boolean).join(' + ');
-    toast('Đã lưu đơn '+order.orderCode+(savedInfo?' • video: '+savedInfo:''),'ok');
+    toast('Đã hoàn tất đơn '+order.orderCode+(savedInfo?' • video: '+savedInfo:''),'ok');
   }
 
   /* ---------- Quét sản phẩm + serial ---------- */

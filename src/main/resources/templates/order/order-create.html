@@ -36,6 +36,28 @@
             box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, .1);
         }
 
+        /* Nút icon (sửa / bỏ chọn) trên thẻ khách đã chọn */
+        .cus-icon-btn {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            border-radius: 6px;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1;
+            cursor: pointer;
+            transition: background-color .12s, border-color .12s;
+        }
+
+        .cus-icon-btn:hover {
+            background: #eef2f7;
+            border-color: #cbd5e1;
+        }
+
         .text-link {
             color: #3b82f6;
             cursor: pointer;
@@ -428,13 +450,16 @@
                             id="customerDropdownList" style="left: 0;"></ul>
                     </div>
                     <div id="customerSelectedWrapper"
-                         class="d-none mt-2 p-3 border border-primary rounded bg-primary bg-opacity-10 position-relative">
-                        <i class="bi bi-x position-absolute top-0 end-0 m-2 cursor-pointer text-muted fs-5"
-                           onclick="clearCustomer()"></i>
-                        <i class="bi bi-pencil-square position-absolute top-0 end-0 mt-2 me-4 cursor-pointer text-primary fs-6"
-                           title="Sửa thông tin khách hàng" onclick="editSelectedCustomer()"></i>
+                         class="d-none mt-2 p-3 border rounded position-relative"
+                         style="background:#f1f5f9; border-color:#e2e8f0 !important;">
+                        <div class="position-absolute top-0 end-0 mt-2 me-2 d-flex gap-1">
+                            <button type="button" class="cus-icon-btn" title="Sửa thông tin khách hàng"
+                                    onclick="editSelectedCustomer()"><i class="bi bi-pencil text-primary"></i></button>
+                            <button type="button" class="cus-icon-btn" title="Bỏ chọn khách"
+                                    onclick="clearCustomer()"><i class="bi bi-x-lg text-muted"></i></button>
+                        </div>
                         <input type="hidden" id="selectedCustomerId">
-                        <div class="fw-bold text-primary" id="selectedCusName"></div>
+                        <div class="fw-bold text-dark pe-5" id="selectedCusName"></div>
                         <div class="small text-dark mt-1"><i class="bi bi-telephone text-muted me-1"></i><span
                                 id="selectedCusPhone"></span></div>
                         <div class="small text-dark mt-1" id="selectedCusAddrRow" style="display:none"><i class="bi bi-geo-alt text-muted me-1"></i><span
@@ -1095,7 +1120,9 @@
             listEl.classList.add('show');
             try {
                 const res = await fetch('/api/v1/customers?keyword=' + encodeURIComponent(keyword));
-                currentSearchedCustomers = await res.json();
+                const data = await res.json();
+                // API khách hàng giờ trả về dạng phân trang {content:[...]}; vẫn hỗ trợ cả mảng cũ
+                currentSearchedCustomers = Array.isArray(data) ? data : (data.content || []);
 
                 let html = '<li class="border-bottom p-2 dropdown-item-hover text-primary fw-medium" onclick="prepareAddCustomer()" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-plus-circle me-2"></i>Thêm mới khách hàng nhanh</li>';
 

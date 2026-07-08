@@ -165,27 +165,18 @@
 
                 <div class="px-3 py-2 d-flex justify-content-between align-items-center flex-wrap gap-3"
                      style="background:#f0f8ff;border-bottom:1px solid #e2e8f0;">
-                    <div class="d-flex align-items-center flex-wrap gap-3">
-                        <span class="small fw-medium" style="color:#2563eb;">Đã chọn <b id="selCount">0</b> đơn</span>
-                        <span class="text-muted small">| Đồng bộ:</span>
-                        <label class="small mb-0"><input type="checkbox" id="actCreate" checked class="me-1">Tạo đơn bù
-                            (Nháp)</label>
-                        <label class="small mb-0"><input type="checkbox" id="actFill" checked class="me-1">Điền mã
-                            sàn/vận đơn</label>
-                        <label class="small mb-0"><input type="checkbox" id="actPaid" checked class="me-1">Đánh dấu đã
-                            thanh toán</label>
-                    </div>
-                    <button class="btn btn-success btn-sm fw-bold px-3" onclick="syncSelected()">
-                        <i class="bi bi-arrow-repeat me-1"></i>Đồng bộ đã chọn
+                    <span class="small text-muted">
+                        <i class="bi bi-info-circle me-1"></i>Bấm <b>Đồng bộ về OMS</b> rồi chọn chính xác nội dung cần đồng bộ.
+                    </span>
+                    <button class="btn btn-success btn-sm fw-bold px-3" onclick="openSyncDialog()">
+                        <i class="bi bi-arrow-repeat me-1"></i>Đồng bộ về OMS
                     </button>
                 </div>
                 <div class="table-responsive" style="min-height: 300px;">
                     <table class="table table-custom table-hover mb-0">
                         <thead>
                         <tr>
-                            <th class="ps-3" style="width:36px;"><input type="checkbox" id="rcbAll"
-                                                                        onclick="toggleAllRows(this)"></th>
-                            <th>Trạng thái</th>
+                            <th class="ps-3">Trạng thái</th>
                             <th>Mã đơn sàn</th>
                             <th>Mã vận chuyển</th>
                             <th>TT sàn</th>
@@ -268,17 +259,13 @@
             // Giữ index gốc trong allRows để đồng bộ đúng dòng
             const indexed = allRows.map((r, i) => ({r, i})).filter(x => cat === 'ALL' || x.r.status === cat);
             if (!indexed.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-5 text-muted">Không có dòng nào.</td></tr>';
-                updateSelCount();
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted">Không có dòng nào.</td></tr>';
                 return;
             }
             tbody.innerHTML = indexed.map(({r, i}) => {
                 const omsLink = r.omsOrderCode ? `<a href="/ui/orders/detail/${r.omsOrderCode}" class="text-decoration-none fw-semibold">${r.omsOrderCode}</a>` : '—';
-                // MISSING_FILE: không có hành động đồng bộ -> khóa checkbox
-                const cbDisabled = (r.status === 'MISSING_FILE') ? 'disabled title="Đơn OMS không có trong file - không cần đồng bộ"' : '';
                 return `<tr>
-                    <td class="ps-3"><input type="checkbox" class="rcb" data-idx="${i}" onchange="updateSelCount()" ${cbDisabled}></td>
-                    <td><span class="pill pill-${r.status}">${r.statusLabel}</span></td>
+                    <td class="ps-3"><span class="pill pill-${r.status}">${r.statusLabel}</span></td>
                     <td class="fw-bold text-dark">${r.sanOrderCode || '—'}</td>
                     <td class="text-muted small">${r.tracking || '—'}</td>
                     <td class="text-muted small text-truncate" style="max-width:160px;" title="${(r.sanStatus || '').replace(/"/g,'&quot;')}">${r.sanStatus || '—'}</td>
@@ -287,9 +274,6 @@
                     <td class="text-muted small">${r.note || ''}</td>
                 </tr>`;
             }).join('');
-            const all = document.getElementById('rcbAll');
-            if (all) all.checked = false;
-            updateSelCount();
         }
 
         function filterRows(el) {
@@ -298,35 +282,74 @@
             renderRows(el.getAttribute('data-cat'));
         }
 
-        function toggleAllRows(src) {
-            document.querySelectorAll('.rcb:not([disabled])').forEach(cb => cb.checked = src.checked);
-            updateSelCount();
+        function esc(s) {
+            return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        function updateSelCount() {
-            const n = document.querySelectorAll('.rcb:checked').length;
-            const el = document.getElementById('selCount');
-            if (el) el.innerText = n;
-        }
+        // Mở hộp thoại chọn CHÍNH XÁC nội dung đồng bộ + xem mẫu 1 đơn sẽ tạo bù
+        async function openSyncDialog() {
+            const missing = allRows.filter(r => r.status === 'MISSING_OMS');
+            const matched = allRows.filter(r => r.status === 'MATCHED');
+            const createN = missing.length, fillN = matched.length, paidN = matched.length;
 
-        async function syncSelected() {
-            const checked = Array.from(document.querySelectorAll('.rcb:checked'));
-            if (!checked.length) {
-                Toast.fire({icon: 'warning', title: 'Chưa chọn đơn nào để đồng bộ!'});
-                return;
-            }
-            const doCreate = document.getElementById('actCreate').checked;
-            const doFill = document.getElementById('actFill').checked;
-            const doPaid = document.getElementById('actPaid').checked;
-            if (!doCreate && !doFill && !doPaid) {
-                Toast.fire({icon: 'warning', title: 'Chưa chọn hành động đồng bộ nào!'});
+            if (!createN && !fillN && !paidN) {
+                Toast.fire({icon: 'info', title: 'Không có đơn nào cần đồng bộ.'});
                 return;
             }
 
+            // Mẫu: 1 đơn tạo bù (nếu có), để người dùng xem trước dữ liệu sẽ tạo
+            let sampleHtml = '';
+            const s = missing[0];
+            if (s) {
+                const rows = (s.items || []).map(it =>
+                    `<tr><td>${esc(it.sku || '—')}</td><td>${esc(it.name || '')}</td><td class="text-center">${it.quantity || 1}</td><td class="text-end">${fmtMoney(it.unitPrice)}</td></tr>`
+                ).join('') || '<tr><td colspan="4" class="text-muted text-center">Không có dòng sản phẩm</td></tr>';
+                sampleHtml = `
+                    <div class="border rounded p-2 mt-3" style="background:#f8fafc;">
+                        <div class="fw-semibold small mb-1"><i class="bi bi-eye me-1"></i>Mẫu 1 đơn sẽ tạo bù</div>
+                        <div class="small"><b>Mã đơn sàn:</b> ${esc(s.sanOrderCode || '—')} · <b>Mã vận chuyển:</b> ${esc(s.tracking || '—')}</div>
+                        <div class="small"><b>Khách:</b> ${esc(s.customerName || '—')} · <b>SĐT:</b> ${esc(s.customerPhone || '—')}</div>
+                        <div class="small mb-2"><b>Địa chỉ:</b> ${esc(s.shippingAddress || '—')}</div>
+                        <table class="table table-sm table-bordered mb-0" style="font-size:12px;">
+                            <thead><tr><th>SKU</th><th>Sản phẩm</th><th class="text-center">SL</th><th class="text-end">Đơn giá</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>`;
+            }
+
+            const dis = n => n ? '' : 'disabled';
+            const chk = n => n ? 'checked' : '';
+            const {value} = await Swal.fire({
+                title: 'Đồng bộ về OMS',
+                width: 660,
+                focusConfirm: false,
+                html: `
+                    <div class="text-start">
+                        <div class="mb-2 fw-semibold">Chọn nội dung sẽ đồng bộ:</div>
+                        <label class="d-block mb-1"><input type="checkbox" id="sw-create" ${chk(createN)} ${dis(createN)}> Tạo đơn bù (Nháp) — <b>${createN}</b> đơn (Sàn có, OMS chưa tạo)</label>
+                        <label class="d-block mb-1"><input type="checkbox" id="sw-fill" ${chk(fillN)} ${dis(fillN)}> Điền mã đơn sàn / mã vận chuyển cho đơn đã khớp — <b>${fillN}</b> đơn</label>
+                        <label class="d-block mb-1"><input type="checkbox" id="sw-paid" ${chk(paidN)} ${dis(paidN)}> Đánh dấu đã thanh toán — <b>${paidN}</b> đơn</label>
+                        ${sampleHtml}
+                        <div class="text-muted small mt-2">Đơn bù tạo ở trạng thái <b>Nháp</b> để bạn duyệt, không trừ kho.</div>
+                    </div>`,
+                showCancelButton: true,
+                confirmButtonColor: '#198754', confirmButtonText: 'Đồng bộ', cancelButtonText: 'Hủy',
+                preConfirm: () => {
+                    const c = document.getElementById('sw-create'), f = document.getElementById('sw-fill'), p = document.getElementById('sw-paid');
+                    const doCreate = c && c.checked, doFill = f && f.checked, doPaid = p && p.checked;
+                    if (!doCreate && !doFill && !doPaid) {
+                        Swal.showValidationMessage('Vui lòng chọn ít nhất 1 nội dung đồng bộ');
+                        return false;
+                    }
+                    return {doCreate, doFill, doPaid};
+                }
+            });
+            if (value) performSync(value);
+        }
+
+        async function performSync({doCreate, doFill, doPaid}) {
             const createOrders = [], fillCodes = [], markPaidOrderCodes = [];
-            checked.forEach(cb => {
-                const r = allRows[parseInt(cb.getAttribute('data-idx'))];
-                if (!r) return;
+            allRows.forEach(r => {
                 if (r.status === 'MISSING_OMS') {
                     if (doCreate) createOrders.push({
                         customerName: r.customerName, customerPhone: r.customerPhone,
@@ -340,17 +363,9 @@
             });
 
             if (!createOrders.length && !fillCodes.length && !markPaidOrderCodes.length) {
-                Toast.fire({icon: 'warning', title: 'Các đơn đã chọn không khớp hành động đồng bộ nào!'});
+                Toast.fire({icon: 'warning', title: 'Không có đơn phù hợp với nội dung đã chọn!'});
                 return;
             }
-
-            const confirm = await Swal.fire({
-                title: 'Xác nhận đồng bộ',
-                html: `• Tạo bù: <b>${createOrders.length}</b> đơn (Nháp)<br>• Điền mã sàn/vận đơn: <b>${fillCodes.length}</b> đơn<br>• Đánh dấu đã thanh toán: <b>${markPaidOrderCodes.length}</b> đơn<br><span class="text-muted small">Đơn bù tạo ở trạng thái Nháp để bạn duyệt, không trừ kho.</span>`,
-                icon: 'question', showCancelButton: true,
-                confirmButtonColor: '#198754', confirmButtonText: 'Đồng bộ', cancelButtonText: 'Hủy'
-            });
-            if (!confirm.isConfirmed) return;
 
             const payload = {
                 channel: document.getElementById('channelSelect').value,

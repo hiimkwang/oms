@@ -173,13 +173,14 @@ public class ReconciliationService {
                 }
             }
 
-            // Bản đồ đơn OMS
+            // Bản đồ đơn OMS: index theo CẢ mã vận đơn LẪN mã đơn sàn (referenceCode) vào cùng 1 map.
+            // Vì đơn OMS lúc đóng hàng thường CHỈ có mã vận đơn (thiếu mã đơn sàn), nên khi khớp ta dò
+            // cả 2 mã của dòng sàn (mã đơn sàn + mã vận đơn) vào map này -> khớp được dù đơn thiếu 1 mã.
             List<Order> omsOrders = orderRepository.findForReconciliation(start, end, channel);
-            Map<String, Order> byTracking = new HashMap<>();
-            Map<String, Order> byReference = new HashMap<>();
+            Map<String, Order> byKey = new HashMap<>();
             for (Order o : omsOrders) {
-                if (o.getTrackingCode() != null && !o.getTrackingCode().isBlank()) byTracking.put(norm(o.getTrackingCode()), o);
-                if (o.getReferenceCode() != null && !o.getReferenceCode().isBlank()) byReference.put(norm(o.getReferenceCode()), o);
+                if (o.getTrackingCode() != null && !o.getTrackingCode().isBlank()) byKey.putIfAbsent(norm(o.getTrackingCode()), o);
+                if (o.getReferenceCode() != null && !o.getReferenceCode().isBlank()) byKey.putIfAbsent(norm(o.getReferenceCode()), o);
             }
 
             List<ReconcileRow> result = new ArrayList<>();
@@ -189,10 +190,10 @@ public class ReconciliationService {
             int matched = 0, missingOms = 0;
 
             for (FileEntry e : grouped.values()) {
+                // Khớp bằng CẢ mã đơn sàn và mã vận đơn (mỗi mã dò vào map gồm cả trackingCode + referenceCode)
                 Order matchOrder = null;
-                if (!e.orderCode.isBlank()) matchOrder = byReference.get(norm(e.orderCode));
-                if (matchOrder == null && !e.tracking.isBlank()) matchOrder = byTracking.get(norm(e.tracking));
-                if (matchOrder == null && !e.orderCode.isBlank()) matchOrder = byTracking.get(norm(e.orderCode));
+                if (!e.orderCode.isBlank()) matchOrder = byKey.get(norm(e.orderCode));
+                if (matchOrder == null && !e.tracking.isBlank()) matchOrder = byKey.get(norm(e.tracking));
 
                 BigDecimal net = e.amount.subtract(e.fee);
                 totalSan = totalSan.add(e.amount);
