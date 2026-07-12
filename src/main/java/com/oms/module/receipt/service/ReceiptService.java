@@ -211,9 +211,9 @@ public class ReceiptService {
         }
 
         String currentWorker = getCurrentUserName();
-        // Phân bổ phí ship & chiết khấu của phiếu vào GIÁ VỐN (landed cost) theo tỉ lệ giá nhập.
-        // ratio = (phí ship − chiết khấu) / tiền hàng. Có thể âm khi chiết khấu > phí (làm giảm giá vốn).
-        BigDecimal ratio = calculateExtraCostRatio(receipt);
+        // LƯU Ý GIÁ VỐN (landed cost): phí ship + chiết khấu ĐÃ được phân bổ vào từng dòng ở phía client
+        // (xem calculateFinalAmount trong import-create.html), nên detail.getImportPrice() CHÍNH LÀ giá vốn
+        // thực tế mỗi sản phẩm. KHÔNG phân bổ lại ở đây, nếu không phí ship sẽ bị cộng 2 lần -> giá vốn cao ảo.
 
         // Khóa hàng theo thứ tự SKU cố định để tránh deadlock khi nhiều phiếu chạy đồng thời
         List<ReceiptDetail> lockOrder = new java.util.ArrayList<>(receipt.getDetails());
@@ -221,9 +221,8 @@ public class ReceiptService {
         for (ReceiptDetail detail : lockOrder) {
             ProductVariant variant = variantRepository.findBySkuForUpdate(detail.getSku()).orElseThrow(() -> new RuntimeException("Không thấy SP mã: " + detail.getSku()));
 
-            // Giá vốn thực tế mỗi sản phẩm = giá nhập + phần phí/chiết khấu phân bổ
-            BigDecimal extraCostPerItem = detail.getImportPrice().multiply(ratio);
-            BigDecimal actualImportPrice = detail.getImportPrice().add(extraCostPerItem);
+            // Giá vốn thực tế mỗi sản phẩm = giá nhập landed (đã gồm phần phí/chiết khấu phân bổ từ client)
+            BigDecimal actualImportPrice = detail.getImportPrice();
 
             updateMAC(variant, detail.getQuantity(), actualImportPrice);
             updateBranchInventoryForImport(receipt.getBranchId(), variant.getId(), detail.getQuantity());
@@ -262,7 +261,6 @@ public class ReceiptService {
             throw new RuntimeException("Đơn đã hủy, không thể hoàn tác nhập kho.");
         }
 
-        BigDecimal ratio = calculateExtraCostRatio(receipt);
         List<ReceiptDetail> lockOrder = new java.util.ArrayList<>(receipt.getDetails());
         lockOrder.sort(java.util.Comparator.comparing(d -> d.getSku() == null ? "" : d.getSku()));
 
@@ -279,8 +277,9 @@ public class ReceiptService {
                 throw new RuntimeException("Sản phẩm [" + detail.getProductName() + "] đã phát sinh xuất/bán sau khi nhập, không thể hoàn tác. Hãy điều chỉnh kho thủ công.");
             }
 
-            // Đảo giá vốn bình quân (MAC): gỡ đúng phần đã cộng lúc nhập
-            BigDecimal actualImportPrice = detail.getImportPrice().add(detail.getImportPrice().multiply(ratio));
+            // Đảo giá vốn bình quân (MAC): gỡ đúng phần đã cộng lúc nhập.
+            // Giá vốn landed = detail.getImportPrice() (đã gồm phí/chiết khấu phân bổ từ client), khớp confirmImport.
+            BigDecimal actualImportPrice = detail.getImportPrice();
             BigDecimal curCost = variant.getCostPrice() != null ? variant.getCostPrice() : BigDecimal.ZERO;
             int remain = curVariantStock - qty;
             if (remain > 0) {
@@ -385,14 +384,6 @@ public class ReceiptService {
         } else {
             variant.setCostPrice(price.setScale(2, RoundingMode.HALF_UP));
         }
-    }
-
-    private BigDecimal calculateExtraCostRatio(Receipt receipt) {
-        if (receipt.getItemsAmount() == null || receipt.getItemsAmount().compareTo(BigDecimal.ZERO) <= 0)
-            return BigDecimal.ZERO;
-        BigDecimal fee = receipt.getShippingFee() != null ? receipt.getShippingFee() : BigDecimal.ZERO;
-        BigDecimal discount = receipt.getDiscount() != null ? receipt.getDiscount() : BigDecimal.ZERO;
-        return fee.subtract(discount).divide(receipt.getItemsAmount(), 4, RoundingMode.HALF_UP);
     }
 
     @Transactional

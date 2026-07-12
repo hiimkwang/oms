@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.oms.constant.CommonConstants.OrderStatusConstant.*;
+import static com.oms.constant.CommonConstants.PaymentStatusConstant.PAID;
 
 @Service
 @RequiredArgsConstructor
@@ -283,6 +284,7 @@ public class OrderService {
         }
         Order order = getOrderByCode(orderCode);
         String oldStatus = order.getStatus();
+        BigDecimal oldPaid = order.getAmountPaid();
 
         // Tạo đơn -> tự nhảy sang Đã xác nhận (đồng bộ với updateOrder)
         if (CREATED.equals(newStatus)) {
@@ -311,6 +313,12 @@ public class OrderService {
                     detail.setWarrantyEndDate(LocalDateTime.now().plusMonths(detail.getWarrantyMonths()));
                 }
             }
+
+            // Hoàn thành đơn = đã giao & thu đủ tiền (thu COD). Tự chốt thanh toán để đơn không bị
+            // "treo" ở Chờ thanh toán mà không sửa được nữa (đơn đã hoàn thành bị khóa chỉnh sửa).
+            BigDecimal total = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+            order.setAmountPaid(total);
+            order.setPaymentStatus(PAID);
         }
 
         addActivityLog(order, "Cập nhật trạng thái", "Chuyển trạng thái từ [" + translateStatus(oldStatus) + "] sang [" + translateStatus(newStatus) + "] (cập nhật hàng loạt)");
@@ -323,9 +331,9 @@ public class OrderService {
 
         Order saved = orderRepository.save(order);
 
-        // Đổi trạng thái không đổi số tiền đã trả, nhưng "tiền hiệu lực" có thể đổi
-        // (vd: Nháp->Xác nhận có tiền cọc -> ghi THU; *->Hủy -> đảo ngược tiền đã thu).
-        syncSalesCashFlow(saved, saved.getAmountPaid(), oldStatus, saved.getAmountPaid(), newStatus);
+        // Ghi sổ quỹ phần chênh lệch tiền thực thu giữa trạng thái cũ/mới.
+        // (vd: Nháp->Xác nhận có tiền cọc -> ghi THU; ->Hoàn thành -> thu nốt phần còn lại; *->Hủy -> đảo ngược tiền đã thu).
+        syncSalesCashFlow(saved, oldPaid, oldStatus, saved.getAmountPaid(), newStatus);
 
         return saved;
     }
